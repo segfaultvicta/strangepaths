@@ -1,0 +1,55 @@
+<nav class="bg-gray-900 shadow">
+  <hr style="border-top: double; border-top-color: blueviolet">
+  <div class="container mx-auto px-6 py-3 flex justify-center">
+    <div class="flex justify-center space-x-8">
+      <span><%= live_patch "the Dragon,", to: Routes.card_index_path(@socket, :Dragon), class: subnavClass(@active_principle, :Dragon) %></span>
+      <span><%= live_patch "the Stillness,", to: Routes.card_index_path(@socket, :Stillness), class: subnavClass(@active_principle, :Stillness) %></span>
+      <span><%= live_patch "and the Song", to: Routes.card_index_path(@socket, :Song), class: subnavClass(@active_principle, :Song) %></span>
+    </div>
+  </div>
+  <%= if @active_principle != nil && (@current_user_role == :admin || @current_user_role == :god) do %>
+    <div class="text-center p-2"><%= live_patch "New Card", to: Routes.card_index_path(@socket, :new) %></div>
+  <% end %>
+</nav>
+
+<%= if @live_action in [:new, :edit] do %>
+  <.modal return_to={Routes.card_index_path(@socket, :index)}>
+    <.live_component
+      module={StrangepathsWeb.CardLive.FormComponent}
+      id={@card.id || :new}
+      title={@page_title}
+      action={@live_action}
+      card={@card}
+      return_to={Routes.card_index_path(@socket, :index)}
+    />
+  </.modal>
+<% end %>
+
+<%= if @active_principle == nil do %>
+
+  <div class="text-center"><h1>First, select a Principle.</h1></div>
+
+<% else %>
+
+  <%= if @cards != nil && @cards != %{} do %>
+
+    <div class="container mx-auto">
+      <%= for {_, aspect} <- @cards do %>
+        <div class="p-2">
+          <h2 class="text-center"><%= aspect.name %></h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <%= for card <- aspect.cards do %>
+              <%= live_redirect to: Routes.card_show_path(@socket, :show, card), class: ("p-2 hover:text-white " <> if card.type==:Grace do "bg-yellow-700 hover:bg-yellow-900" else "bg-gray-700 hover:bg-gray-900" end) do %>
+                  <h4 class="text-center"><%= card.name %></h4>
+                  <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                  <div><%= card.rules %></div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-center"><h1>No cards of that principle yet exist.</h1></div>
+  <% end %>
+<% end %>

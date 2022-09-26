@@ -1,0 +1,31 @@
+<h1>Show Deck</h1>
+
+<%= if @live_action in [:edit] do %>
+  <.modal return_to={Routes.deck_show_path(@socket, :show, @deck)}>
+    <.live_component
+      module={StrangepathsWeb.DeckLive.FormComponent}
+      id={@deck.id}
+      title={@page_title}
+      action={@live_action}
+      deck={@deck}
+      return_to={Routes.deck_show_path(@socket, :show, @deck)}
+    />
+  </.modal>
+<% end %>
+
+<ul>
+
+  <li>
+    <strong>Name:</strong>
+    <%= @deck.name %>
+  </li>
+
+  <li>
+    <strong>Principle:</strong>
+    <%= @deck.principle %>
+  </li>
+
+</ul>
+
+<span><%= live_patch "Edit", to: Routes.deck_show_path(@socket, :edit, @deck), class: "button" %></span> |
+<span><%= live_redirect "Back", to: Routes.deck_index_path(@socket, :index) %></span>

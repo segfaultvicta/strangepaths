@@ -1,0 +1,42 @@
+<h1 class="text-center"><%= @card.name %>, a <%= @card.type %> of the <%= @card.principle %>'s <%= @aspect %></h1>
+<h2 class="text-center"><%= live_redirect "RETURN", to: Routes.card_index_path(@socket, @card.principle) %></h2>
+<%= if @current_user_role == :admin || @current_user_role == :god do %>
+  <h2 class="text-center"><%= link "DELETE", to: Routes.card_index_path(@socket, :index), class: "hover:text-red-500", phx_click: "delete", phx_value_id: @card.id, data: [confirm: "Are you sure?"]  %></h2>
+<% end %>
+
+<%= if @live_action in [:edit] do %>
+  <.modal return_to={Routes.card_show_path(@socket, :show, @card)}>
+    <.live_component
+      module={StrangepathsWeb.CardLive.FormComponent}
+      id={@card.id}
+      title={@page_title}
+      action={@live_action}
+      card={@card}
+      return_to={Routes.card_show_path(@socket, :show, @card)}
+    />
+  </.modal>
+<% end %>
+
+<div class="container mx-auto flex flex-row justify-center">
+  <div class="p-5 formstyle">
+    <div class="flex justify-center"><img class="object-scale-down h-auto" src={@card.img}></div>
+    <h3 class="text-center"><%= @card.rules %></h3>
+    <%= if @current_user_role == :admin || @current_user_role == :god do %>
+      <div class="flex flex-row justify-center">
+        <button class="submit"><%= live_patch "EDIT", to: Routes.card_show_path(@socket, :edit, @card), class: "hover:text-white" %></button>
+      </div>
+    <% end %>
+  </div>
+  <%= if @glory != nil do %>
+    <div class="p-5 formstyle">
+      <div class="flex justify-center"><img class="object-scale-down h-auto" src={@glory.img}></div>
+      <h3 class="text-center"><%= @glory.rules %></h3>
+      <%= if @current_user_role == :admin || @current_user_role == :god do %>
+        <div class="flex flex-row justify-center">
+          <button class="submit"><%= live_patch "EDIT", to: Routes.card_show_path(@socket, :edit, @glory), class: "hover:text-white" %></button>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+

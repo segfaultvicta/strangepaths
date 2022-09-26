@@ -1,21 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="basics">
   <head>
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="csrf-token" content={csrf_token_value()}>
-    <%= live_title_tag assigns[:page_title] || "Strange Paths" %>
+    <%= live_title_tag assigns[:page_title] || "SANCTUARY" %>
     <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
   </head>
   <body>
-    <header>
-      <section class="container">
-        <nav>
-        </nav>
-      </section>
-    </header>
+    <nav class="bg-gray-900 shadow">
+      <div class="container mx-auto px-6 py-3 md:flex md:justify-between md:items-center">
+        <div class="flex justify-between items-center">
+          <div class="inline-block">
+            <%= link "SANCTUARY", to: "/", class: "my-1 text-lg text-gray-300 hover:text-green-500 font-large md:mx-4 md:my-0"%>
+          </div>
+        </div>
+
+        <div class="flex items-center">
+          <div class="flex flex-col md:flex-row md:mx-6">
+            <%= link "CEREMONY", to: "/rooms", class: navclass(@conn, :rooms) %>
+            <%= link "CODICES", to: "/decks", class: navclass(@conn, :decks) %>
+            <%= link "COSMOS", to: "/cards", class: navclass(@conn, :cards) %>
+          </div>
+        </div>
+
+        <div class="flex items-center">
+          <div class="flex flex-col md:flex-row md:mx-6">
+            <%= if function_exported?(Routes, :live_dashboard_path, 2) do %>
+              <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
+            <% end %>
+            <%= if @current_user do %>
+              <span class="my-1 text-sm text-gray-300 font-medium md:mx-4 md:my-0 uppercase">Hello, <%= @current_user.nickname %>!</span>
+              <%= link "SETTINGS", to: Routes.user_settings_path(@conn, :edit), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
+              <%= link "LOG OUT", to: Routes.user_session_path(@conn, :delete), method: :delete, class: "my-1 text-sm text-gray-300 font-medium hover:text-red-500 md:mx-4 md:my-0" %>
+            <% else %>
+              <%= link "REGISTER", to: Routes.user_registration_path(@conn, :new), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
+              <%= link "LOG IN", to: Routes.user_session_path(@conn, :new), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </nav>
     <%= @inner_content %>
   </body>
 </html>
