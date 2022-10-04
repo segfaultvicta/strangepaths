@@ -6,20 +6,12 @@ defmodule StrangepathsWeb.CardLive.Index do
 
   @impl true
   def mount(_params, session, socket) do
-    curr_user = find_current_user(session)
-
-    curr_user_role =
-      if curr_user != nil do
-        curr_user.role
-      else
-        nil
-      end
+    socket = assign_defaults(session, socket)
 
     {:ok,
      assign(socket,
        cards: nil,
-       active_principle: nil,
-       current_user_role: curr_user_role
+       active_principle: nil
      )}
   end
 

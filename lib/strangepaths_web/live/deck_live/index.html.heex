@@ -1,54 +1,56 @@
-<nav class="bg-gray-900 shadow">
-  <div class="text-center p-2"><%= live_patch "New Deck", to: Routes.deck_index_path(@socket, :new) %></div>
-</nav>
-
-<%= if @live_action in [:new, :edit] do %>
-  <.modal return_to={Routes.deck_index_path(@socket, :index)}>
-    <.live_component
-      module={StrangepathsWeb.DeckLive.FormComponent}
-      id={@deck.id || :new}
-      title={@page_title}
-      action={@live_action}
-      deck={@deck}
-      return_to={Routes.deck_index_path(@socket, :index)}
-    />
-  </.modal>
-<% end %>
-
-<%= if @decks != nil && @decks != [] do %>
-  <div class="container mx-auto">
-    <%= for deck <- @decks do %>
-      <div class="bg-cyan-400"><%= deck.name %></div>
-    <% end %>
-  </div>
+<%= if @role == nil do %>
+  <h1 class="text-center"> Please log in to view or create decks. </h1>
 <% else %>
-  <div class="text-center"><h1>No decks yet exist.</h1></div>
+  <nav class="bg-gray-900 shadow">
+    <div class="text-center p-2"><%= live_patch "New Deck", to: Routes.deck_index_path(@socket, :new) %></div>
+  </nav>
+
+  <%= if @live_action in [:new, :edit] do %>
+    <.modal return_to={Routes.deck_index_path(@socket, :index)}>
+      <.live_component
+        module={StrangepathsWeb.DeckLive.FormComponent}
+        id={@deck.id || :new}
+        title={@page_title}
+        action={@live_action}
+        deck={@deck}
+        owner_id={@current_user.id}
+        aspects={nil}
+        manatotal={0}
+        return_to={Routes.deck_index_path(@socket, :index)}
+      />
+    </.modal>
+  <% end %>
+
+  <%= if @decks != nil && @decks != [] do %>
+    <div class="container mx-auto p-5">
+      <table class="table-fixed">
+        <thead>
+          <tr class="deckrow">
+            <th class="fooby" phx-click="sort" phx-value-sortcol="name">NAME <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+            <th class="fooby" phx-click="sort" phx-value-sortcol="principle">PRINCIPLE<i class={if @sortcol != :principle do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+            <th class="fooby" phx-click="sort" phx-value-sortcol="aspect_id">ASPECT <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+            <th class="fooby" phx-click="sort" phx-value-sortcol="glory">GLORY <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+            <th class="fooby" phx-click="sort" phx-value-sortcol="manabalance">MANA BALANCE <i class={if @sortcol != :manabalance do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+            <%= if @role == :god do %> <th>OWNER</th><% else %><th /><% end %>
+            <th>DELETE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
+            <tr class="odd:bg-gray-800 even:bg-gray-700 deckrow">
+              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.name %><% end %></td>
+              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.principle %><% end %></td>
+              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= aspect %><% end %></td>
+              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.glory %><% end %></td>
+              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "flex hover:text-white" do %><%= raw(manabalance_div(deck.manabalance)) %><% end %></td>
+              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= if @role == :god do %><%= get_owner_name_by_id(deck.owner) %><% else %><% end %><% end %></td>
+              <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?">X</div></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="text-center"><h1>No decks yet exist.</h1></div>
+  <% end %>
 <% end %>
-<!--
-<table>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Principle</th>
-
-      <th></th>
-    </tr>
-  </thead>
-  <tbody id="decks">
-    <%= for deck <- @decks do %>
-      <tr id={"deck-#{deck.id}"}>
-        <td><%= deck.name %></td>
-        <td><%= deck.principle %></td>
-
-        <td>
-          <span><%= live_redirect "Show", to: Routes.deck_show_path(@socket, :show, deck) %></span>
-          <span><%= live_patch "Edit", to: Routes.deck_index_path(@socket, :edit, deck) %></span>
-          <span><%= link "Delete", to: "#", phx_click: "delete", phx_value_id: deck.id, data: [confirm: "Are you sure?"] %></span>
-        </td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
-
-<span><%= live_patch "New Deck", to: Routes.deck_index_path(@socket, :new) %></span>
--->

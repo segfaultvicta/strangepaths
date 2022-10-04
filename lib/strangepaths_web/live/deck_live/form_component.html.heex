@@ -1,24 +1,96 @@
 <div>
   <h2><%= @title %></h2>
 
+  <%= if @id == :new do %>
   <.form
     let={f}
     for={@changeset}
     id="deck-form"
     phx-target={@myself}
-    phx-change="validate"
+    phx-change="validate_new"
+    phx-submit="save">
+  
+    <div class="formstyle">
+      <div class="py-4">
+        <%= label f, :name %>
+        <%= text_input f, :name, class: "text" %>
+        <%= error_tag f, :name %>
+      </div>
+    
+      <div class="pb-12 grid grid-cols-2">
+        <div>
+        <%= label f, :principle, class: "text-right mt-2" %>
+        <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Deck, :principle), prompt: "Principle:", class: "text", style: "width: 150px;" %>
+        </div>
+        <div>
+        <%= if @aspects != nil do %>
+          <%= label f, :aspect_id, class: "text-right mt-2" %>
+          <%= select f, :aspect_id, Strangepaths.Cards.list_aspects_for_form_permitting(@aspects), prompt: "Aspect:", class: "text", style: "width: 150px;" %>
+        <% end %>
+        </div>
+      </div>
+
+      <div>
+        <div class="grid grid-cols-2">
+          <ul>
+            <li class="p-1"><%= range_input f, :red, min: 0, max: 15, class: "mr-3", style: "accent-color: red", value: @deck.manabalance.red %><output class="text-2xl"><%= @deck.manabalance.red %></output></li>
+            <li class="p-1"><%= range_input f, :green , min: 0, max: 15, class: "mr-3", style: "accent-color: green", value: @deck.manabalance.green %><output class="text-2xl"><%= @deck.manabalance.green %></output></li>
+            <li class="p-1"><%= range_input f, :blue, min: 0, max: 15, class: "mr-3", style: "accent-color: blue", value: @deck.manabalance.blue %><output class="text-2xl"><%= @deck.manabalance.blue %></output></li>
+            <li class="p-1"><%= range_input f, :white, min: 0, max: 15, class: "mr-3", style: "accent-color: white", value: @deck.manabalance.white %><output class="text-2xl"><%= @deck.manabalance.white %></output></li>
+            <li class="p-1"><%= range_input f, :black, min: 0, max: 15, class: "mr-3", style: "accent-color: black", value: @deck.manabalance.black %><output class="text-2xl"><%= @deck.manabalance.black %></output></li>
+          </ul>
+          <div class="grid grid-rows-2">
+            <div class="text-2xl font-black">
+              MANA BALANCE: <%=
+                cond do
+                  @manatotal > 15 ->
+                    raw("<span class='text-red-500'>" <> Integer.to_string(@manatotal) <> "</span>")
+                  @manatotal < 15 ->
+                    raw("<span class='text-red-500'>" <> Integer.to_string(@manatotal) <> "</span>")
+                  @manatotal == 15 ->
+                    raw("<span class='text-green-500'>" <> Integer.to_string(@manatotal) <> "</span>")
+                end%>/15
+            </div>
+            <div>
+              <%= for {type, {error, _elist}} <- @changeset.errors do %>
+                <% e = case type do
+                  :name -> "Please name your deck."
+                  :aspect_id -> "Please select a Principle."
+                  :principle -> "Please select an Aspect."
+                  :manabalance -> error
+                  _ -> "A mysterious error has occurred."
+                end %>
+                <div class="text-lg text-red-500 font-black"><%= e %></div>
+              <% end %>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <%= hidden_input f, :owner, value: @deck.owner %>
+    
+      <div class="flex justify-center pt-4">
+        <%= submit (if @changeset.errors == [] do "Save" else "..." end), phx_disable_with: "Saving...", class: "submit", disabled: @changeset.errors != [] %>
+      </div>
+    </div>
+  </.form>
+  <% else %>
+    <.form
+    let={f}
+    for={@changeset}
+    id="deck-form"
+    phx-target={@myself}
+    phx-change="validate_edit"
     phx-submit="save">
   
     <%= label f, :name %>
     <%= text_input f, :name %>
     <%= error_tag f, :name %>
   
-    <%= label f, :principle %>
-    <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Deck, :principle), prompt: "Choose a value" %>
-    <%= error_tag f, :principle %>
-  
     <div>
       <%= submit "Save", phx_disable_with: "Saving..." %>
     </div>
   </.form>
+  <% end %>
 </div>

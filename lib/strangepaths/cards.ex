@@ -22,12 +22,29 @@ defmodule Strangepaths.Cards do
   end
 
   def list_cards_for_cosmos(principle) do
-    # obviously this should be filtering
-    IO.inspect(principle)
-
     cards =
       Card
       |> where(principle: ^principle, glorified: false)
+      |> order_by(:id)
+      |> Repo.all()
+
+    Enum.reduce(Repo.all(Strangepaths.Cards.Aspect), %{}, fn aspect, acc ->
+      c = cards |> Enum.filter(fn e -> e.aspect_id == aspect.id end)
+
+      if c |> Enum.count() > 0 do
+        Map.put(acc, aspect.id, %{name: aspect.name, cards: c})
+      else
+        acc
+      end
+    end)
+  end
+
+  def list_cards_for_codex(principle) do
+    cards =
+      Card
+      |> where(principle: ^principle)
+      # Flurry should not show up in codex
+      |> where([c], c.id != 187)
       |> order_by(:id)
       |> Repo.all()
 
@@ -46,8 +63,18 @@ defmodule Strangepaths.Cards do
     Repo.all(Strangepaths.Cards.Aspect)
   end
 
+  def list_aspects_for_form_permitting(aspects) do
+    list_aspects()
+    |> Enum.filter(fn a -> a.name in aspects end)
+    |> Enum.map(fn a -> [key: a.name, value: a.id] end)
+  end
+
   def name_aspect(id) do
     Repo.get(Strangepaths.Cards.Aspect, id).name
+  end
+
+  def get_aspect_id(name) do
+    Repo.get_by!(Strangepaths.Cards.Aspect, name: name).id
   end
 
   @doc """
@@ -113,12 +140,8 @@ defmodule Strangepaths.Cards do
       })
       |> Repo.insert()
 
-    # now, get the ID of the inserted card and use that as the alt for the Glory card
-    IO.inspect(card)
-
     if res == :ok do
       original_id = card.id
-      IO.inspect(original_id)
 
       {gloryres, glorycard} =
         %Card{}
@@ -136,7 +159,6 @@ defmodule Strangepaths.Cards do
 
       if gloryres == :ok do
         glory_id = glorycard.id
-        IO.inspect(glory_id)
         Strangepaths.Cards.update_card(card, %{alt: glory_id})
         {:ok, %{base: card, glory: glorycard}}
       else
@@ -199,10 +221,6 @@ defmodule Strangepaths.Cards do
 
   """
   def update_card(%Card{} = card, attrs) do
-    IO.puts("in update_card")
-    IO.inspect(card)
-    IO.inspect(attrs)
-
     card
     |> Card.changeset(attrs)
     |> Repo.update()
@@ -249,8 +267,33 @@ defmodule Strangepaths.Cards do
       [%Deck{}, ...]
 
   """
-  def list_decks do
-    Repo.all(Deck)
+  def list_decks(user_id, sortcol \\ :name, direction \\ :asc) do
+    if user_id == nil do
+      query_all_decks(sortcol, direction)
+    else
+      query_decks(user_id, sortcol, direction)
+    end
+  end
+
+  defp query_decks(user_id, sortcol, direction) do
+    from(d in Deck,
+      join: a in Strangepaths.Cards.Aspect,
+      on: d.aspect_id == a.id,
+      select: {%{deck: d, aspect: a.name}},
+      where: d.owner == ^user_id,
+      order_by: {^direction, ^sortcol}
+    )
+    |> Repo.all()
+  end
+
+  defp query_all_decks(sortcol, direction) do
+    from(d in Deck,
+      join: a in Strangepaths.Cards.Aspect,
+      on: d.aspect_id == a.id,
+      select: {%{deck: d, aspect: a.name}},
+      order_by: {^direction, ^sortcol}
+    )
+    |> Repo.all()
   end
 
   @doc """
@@ -267,7 +310,15 @@ defmodule Strangepaths.Cards do
       ** (Ecto.NoResultsError)
 
   """
-  def get_deck!(id), do: Repo.get!(Deck, id)
+  def get_deck!(id) do
+    from(d in Deck,
+      join: a in Strangepaths.Cards.Aspect,
+      on: d.aspect_id == a.id,
+      select: {%{deck: d, aspect: a.name}},
+      where: d.id == ^id
+    )
+    |> Repo.all()
+  end
 
   @doc """
   Creates a deck.
@@ -282,26 +333,50 @@ defmodule Strangepaths.Cards do
 
   """
   def create_deck(attrs \\ %{}) do
-    %Deck{}
-    |> Deck.changeset(attrs)
+    # preload the deck with the basic Grace and base 5 Rites for that deck's aspect
+    cards = list_cards_for_codex(String.to_atom(attrs["principle"]))
+
+    basecards =
+      [Enum.at(rites(cards, String.to_integer(attrs["aspect_id"]), 1, :Grace), 0)] ++
+        Enum.reject(rites(cards, String.to_integer(attrs["aspect_id"]), 10, :Rite), fn r ->
+          r.glory_cost != 0
+        end)
+
+    %Deck{glory: 0, cards: basecards}
+    |> Deck.new_changeset(attrs)
     |> Repo.insert()
   end
 
-  @doc """
-  Updates a deck.
+  def add_card_to_deck(deck, card) do
+    card = get_card!(card)
 
-  ## Examples
-
-      iex> update_deck(deck, %{field: new_value})
-      {:ok, %Deck{}}
-
-      iex> update_deck(deck, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_deck(%Deck{} = deck, attrs) do
     deck
-    |> Deck.changeset(attrs)
+    |> Deck.cards_changeset([card | deck.cards])
+    |> Repo.update()
+    |> update_glory_used
+  end
+
+  def remove_card_from_deck(deck, card_id) do
+    deck
+    |> Deck.cards_changeset(Enum.reject(deck.cards, fn c -> c.id == card_id end))
+    |> Repo.update()
+    |> update_glory_used
+  end
+
+  def update_glory_used({:ok, deck}) do
+    deck
+  end
+
+  def adjust_glory(deck, adjustment) do
+    adjustment =
+      if deck.glory + adjustment < deck.glory_used do
+        0
+      else
+        adjustment
+      end
+
+    deck
+    |> Deck.glory_changeset(adjustment)
     |> Repo.update()
   end
 
@@ -330,7 +405,53 @@ defmodule Strangepaths.Cards do
       %Ecto.Changeset{data: %Deck{}}
 
   """
+  def change_new_deck(%Deck{} = deck, attrs \\ %{}) do
+    Deck.new_changeset(deck, attrs)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking deck changes.
+
+  ## Examples
+
+      iex> change_deck(deck)
+      %Ecto.Changeset{data: %Deck{}}
+
+  """
   def change_deck(%Deck{} = deck, attrs \\ %{}) do
-    Deck.changeset(deck, attrs)
+    Deck.edit_changeset(deck, attrs)
+  end
+
+  def rites(cards, aspect_id, base_cards_in_aspect, type) do
+    rites = Enum.filter(cards[aspect_id].cards, fn c -> c.type == type end)
+
+    Enum.reduce(rites, %{rites: [], i: 1}, fn rite, %{rites: acc, i: i} ->
+      %{
+        rites: [
+          %Card{
+            rite
+            | glory_cost:
+                if i in 1..base_cards_in_aspect do
+                  0 +
+                    if rite.glorified do
+                      1
+                    else
+                      0
+                    end
+                else
+                  1 +
+                    if rite.glorified do
+                      1
+                    else
+                      0
+                    end
+                end
+          }
+          | acc
+        ],
+        i: i + 1
+      }
+    end).rites
+    |> Enum.reverse()
   end
 end

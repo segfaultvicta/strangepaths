@@ -8,12 +8,24 @@ defmodule StrangepathsWeb.LiveHelpers do
   alias Strangepaths.Accounts.User
 
   def find_current_user(session) do
-    IO.puts("finding current user")
-    IO.inspect(session)
-
     with user_token when not is_nil(user_token) <- session["user_token"],
          %User{} = user <- Accounts.get_user_by_session_token(user_token),
          do: user
+  end
+
+  def assign_defaults(session, socket) do
+    user = find_current_user(session)
+
+    role =
+      if user != nil do
+        user.role
+      else
+        nil
+      end
+
+    socket
+    |> assign(:current_user, user)
+    |> assign(:role, role)
   end
 
   @doc """
@@ -42,11 +54,11 @@ defmodule StrangepathsWeb.LiveHelpers do
     <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-6 phx-modal" phx-remove={hide_modal()}>
       <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-          <div class="absolute inset-0 bg-gray-200 opacity-75"></div>
+          <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
         </div>
         <div
           id="modal-content"
-          class="inline-block overflow-hidden px-4 pt-5 pb-4 text-left align-bottom bg-white rounded-lg shadow-xl transition-all transform phx-modal-content sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
+          class="inline-block overflow-hidden px-4 pt-5 pb-4 text-left align-bottom bg-gray-700 rounded-lg shadow-xl transition-all transform phx-modal-content sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
           role="dialog" aria-modal="true" aria-labelledby="modal-headline"
           phx-click-away={JS.dispatch("click", to: "#close")}
           phx-window-keydown={JS.dispatch("click", to: "#close")}

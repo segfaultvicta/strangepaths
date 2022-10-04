@@ -7,7 +7,7 @@
       <span><%= live_patch "and the Song", to: Routes.card_index_path(@socket, :Song), class: subnavClass(@active_principle, :Song) %></span>
     </div>
   </div>
-  <%= if @active_principle != nil && (@current_user_role == :admin || @current_user_role == :god) do %>
+  <%= if @active_principle != nil && (@role == :admin || @role == :god) do %>
     <div class="text-center p-2"><%= live_patch "New Card", to: Routes.card_index_path(@socket, :new) %></div>
   <% end %>
 </nav>
@@ -32,7 +32,6 @@
 <% else %>
 
   <%= if @cards != nil && @cards != %{} do %>
-
     <div class="container mx-auto">
       <%= for {_, aspect} <- @cards do %>
         <div class="p-2">

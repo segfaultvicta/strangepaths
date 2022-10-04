@@ -18,6 +18,10 @@
     @apply bg-gray-800 text-indigo-200 text-xl;
 }
 
+[x-cloak] {
+    display: none;
+}
+
 @layer base {
     h1 {
         @apply text-4xl text-white my-5;
@@ -44,6 +48,22 @@
     }
 }
 
+.fooby {
+    white-space: nowrap;
+    @apply hover:text-white;
+    @apply pr-2;
+
+    i {
+        @apply pl-1;
+    }
+}
+
+.deckrow {
+    td {
+        @apply px-5 py-2
+    }
+}
+
 .formstyle {
     & .text {
         @apply bg-gray-50 border border-gray-800 text-gray-900 text-sm focus:border-blue-500 mx-3 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500
@@ -54,18 +74,33 @@
     }
 }
 
-.card {
-    @apply p-4 bg-blue-200 text-blue-800 rounded-lg;
+.zoom {
+    transform-origin: 100px 100px;
+    transition: transform .2s;
+    z-index: 0;
+    /* Animation */
+}
 
-    & .title {
-        @apply text-2xl tracking-tight font-bold;
-    }
+.zoom:hover {
+    transform: scale(2.5);
+    z-index: 50;
+    //transform: rotateY(100);
+    /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+}
 
-    & .description {
-        @apply pt-4 text-lg font-medium;
+.extant {
+    @apply bg-gray-700 hover:bg-gray-600
+}
 
-        & a {
-            @apply underline text-blue-600;
-        }
-    }
+.latent {
+    @apply bg-gray-900 hover:bg-gray-600
+}
+
+.glorified {
+    @apply bg-yellow-700 hover:bg-yellow-600
+}
+
+.deckbuttons {
+    min-height: 40px;
+    @apply flex justify-evenly mt-1
 }

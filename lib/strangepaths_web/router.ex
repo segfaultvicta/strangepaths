@@ -11,6 +11,7 @@ defmodule StrangepathsWeb.Router do
     plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
     plug(:fetch_current_user)
+    plug(:fetch_user_role)
   end
 
   pipeline :api do
@@ -24,7 +25,6 @@ defmodule StrangepathsWeb.Router do
 
     live("/decks", DeckLive.Index, :index)
     live("/decks/new", DeckLive.Index, :new)
-    live("/decks/:id/edit", DeckLive.Index, :edit)
 
     live("/decks/:id", DeckLive.Show, :show)
     live("/decks/:id/show/edit", DeckLive.Show, :edit)

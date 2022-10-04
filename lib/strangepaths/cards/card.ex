@@ -11,6 +11,7 @@ defmodule Strangepaths.Cards.Card do
     field(:alt, :id)
     field(:glorified, :boolean)
     field(:aspect_id, :id)
+    field(:glory_cost, :integer, virtual: true)
 
     many_to_many(:decks, Strangepaths.Cards.Deck, join_through: "cards_decks")
 

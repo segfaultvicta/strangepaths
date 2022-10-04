@@ -52,7 +52,8 @@ defmodule Strangepaths.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
       {:dart_sass, "~> 0.5", runtime: Mix.env() == :dev},
-      {:slugify, "~> 1.3"}
+      {:slugify, "~> 1.3"},
+      {:petal_components, "~> 0.17"}
     ]
   end
 
