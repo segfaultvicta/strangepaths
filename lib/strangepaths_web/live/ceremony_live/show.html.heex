@@ -1,0 +1,309 @@
+<%= if @state == :setupEntity do %>
+  <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-20 phx-modal">
+    <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+      </div>
+      <div id="modal-content" 
+        class="inline-block transition-all transform align-middle bg-gray-900" style="width: 95%; height: 90vh;"
+        role="dialog" aria-modal="true" aria-labelledby="modal-headline"
+        phx-click-away="dismiss_setupEntity_click"
+        phx-window-keydown="dismiss_setupEntity_key">
+        <%= if @setupEntityType == :Avatar do %>
+          <h1>AVATAR: <%= @avatarName %></h1>
+            <%= form_for :entity, "#", [phx_change: "validateAvatar", phx_submit: "setupAvatar"], fn f -> %>
+              <div class="formstyle">
+
+                <div class="p-4">
+                  <%= label f, :deck %>
+                  <%= select f, :deck, @available_decks, selected: @selectedDeck, prompt: "Choose a deck", class: "text" %>
+                </div>
+
+                <div class="p-4">
+                  <%= label f, :tolerance %>
+                  <%= number_input f, :tolerance, value: @avatarTolerance, class: "text" %>
+                </div>
+
+              </div>
+              <div class="grid grid-cols-12">  
+                <%= for avatar <- @avatars do %>
+                  <div class="avatar-image" phx-click="selectAvatar" phx-value-id={avatar.id}>
+                    <img class={"object-scale-down h-24 m-4 " <> if avatar.selected do "selected" else "" end} src={avatar.filepath}>
+                  </div>
+                <% end %>            
+              </div>
+
+              <%= submit "Woosh" %>
+            <% end %>
+          <% else %>
+            <h1>COUNTER</h1>
+            <div class="grid grid-cols-10 gap-3 ml-4">
+              <%= for counter <- counters() do %>
+                <div class="counter-image" phx-click="selectCounter" phx-value-img={counter}>
+                  <img src={"/images/counters/" <> counter}>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+    </div>
+  </div>
+<% end %>
+
+<%= if @cheat != nil && @cheatMsg != nil do %>
+  <div id="modal" class="overflow-y-auto fixed inset-0 z-20 pt-48 phx-modal">
+    <div class="flex content-center justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+      </div>
+      <div id="modal-content" 
+        class="inline-block transition-all transform align-middle bg-gray-900" style="width: 40%; height: 40vh;"
+        role="dialog" aria-modal="true" aria-labelledby="modal-headline"
+        phx-click-away="dismiss_cheat"
+        phx-window-keydown="dismiss_cheat">
+        <div class={"text-center text-violet-400 saturate-200 glow pt-36 " <> if @cheatMsg == "ꙮ" do "text-9xl" else "italic font-thin" end}><%= @cheatMsg %></div>  
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%= if @state == :ownHand do %>
+  <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-20 phx-modal">
+    <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+      </div>
+      <div id="modal-content" 
+        class="overflow-auto inline-block transition-all transform align-middle bg-gray-900" style="width: 80%; height: 90vh;"
+        role="dialog" aria-modal="true" aria-labelledby="modal-headline"
+        phx-click-away="dismissOwnhand"
+        phx-window-keydown="ownhandKey">
+
+        <div class="grid grid-cols-6">
+          <div id="handGraces" class="p-1">
+            <h3> GRACES </h3>
+            <div class="grid grid-cols-1 gap-5">
+              <%= for grace <- @selectedEntity.cards.graces do %>
+                <div class="p-2 bg-yellow-900">
+                  <h4 class="text-center"><%= grace.name %></h4>
+                  <div class="flex justify-center"><img class="object-scale-down h-auto" src={grace.img}></div>
+                  <div><%= grace.rules %></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <div id="handHand" class="p-1 col-span-5">
+            <%= if @handView == :Hand do %>
+              <h3 class="text-center"> <span class="font-black text-yellow-200">HAND (<%= Enum.count(@selectedEntity.cards.hand) %>)</span> * <a href="#" phx-click="handViewDraw">DRAWPILE (<%= Enum.count(@selectedEntity.cards.draw) %>)</a> * <a href="#" phx-click="handViewDiscard">DISCARD (<%= Enum.count(@selectedEntity.cards.discard) %>)</a></h3>
+              <div class="pt-4 flex justify-around">
+                <button type="button" class="handcontrol" phx-click="buttonPlay" autofocus>PLAY</button>
+                <button type="button" class="handcontrol" phx-click="buttonDraw">DRAW</button>
+                <button type="button" class="handcontrol" phx-click="buttonDiscard">DISCARD</button>
+                <span class="pt-2">⁂</span>
+                <button type="button" class="handcontrol" phx-click="buttonCurse">CURSE</button>
+                <button type="button" class="handcontrol" phx-click="buttonPoison">POISON</button>
+                <button type="button" class="handcontrol" phx-click="buttonExpose">EXPOSE</button>
+                <button type="button" class="handcontrol" phx-click="buttonWound">WOUND</button>
+                <span class="pt-2">⁂</span>
+                <button type="button" class="handcontrol" phx-click="buttonFlurry">FLURRY x4</button>
+              </div>
+              <div class="p-1">
+                <div class="grid grid-cols-4 gap-5">
+                  <%= for card <- @selectedEntity.cards.hand do %>
+                    <div class="hover:text-white bg-gray-900" phx-click="handCardClick" phx-value-card={card.uuid}>
+                      <h4 class="text-center"><%= card.name %></h4>
+                      <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                      <div><%= card.rules %></div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if @handView == :Draw do %>
+              <h3> <a href="#" phx-click="handViewHandSpecial">HAND (<%= Enum.count(@selectedEntity.cards.hand) %>)</a> * <span class="font-black text-yellow-200">DRAWPILE (<%= Enum.count(@selectedEntity.cards.draw) %>)</span> * <a href="#" phx-click="handViewDiscard">DISCARD (<%= Enum.count(@selectedEntity.cards.discard) %>)</a></h3>
+              <div class="pt-4 flex justify-around">
+                <button type="button" class="handcontrol" phx-click="buttonScry">SCRY INTO HAND</button>
+                <button type="button" class="handcontrol" phx-click="buttonShuffle">SHUFFLE & VIEW HAND</button>
+              </div>
+              <div class="p-1">
+                <div class="grid grid-cols-4 gap-5">
+                  <%= for card <- @selectedEntity.cards.draw do %>
+                    <div class="hover:text-white bg-gray-900" phx-click="handCardClick" phx-value-card={card.uuid}>
+                      <h4 class="text-center"><%= card.name %></h4>
+                      <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                      <div><%= card.rules %></div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if @handView == :Discard do %>
+              <h3> <a href="#" phx-click="handViewHand">HAND (<%= Enum.count(@selectedEntity.cards.hand) %>)</a> * <a href="#" phx-click="handViewDraw">DRAWPILE (<%= Enum.count(@selectedEntity.cards.draw) %>)</a> * <span class="font-black text-yellow-200">DISCARD (<%= Enum.count(@selectedEntity.cards.discard) %>)</span></h3>
+              <div class="pt-4 flex justify-center">
+                <button type="button" class="handcontrol" phx-click="buttonReturn">RETURN</button>
+                <button type="button" class="handcontrol" phx-click="buttonReturnRandom">RETURN RANDOM</button></div>
+              <div class="p-1">
+                <div class="grid grid-cols-4 gap-5">
+                  <%= for card <- @selectedEntity.cards.discard do %>
+                    <div class="hover:text-white bg-gray-900" phx-click="handCardClick" phx-value-card={card.uuid}>
+                      <h4 class="text-center"><%= card.name %></h4>
+                      <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                      <div><%= card.rules %></div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%= if @placingEntity.type != nil do %>
+  <div phx-click="placeEntity" class="fixed" style={"left: #{@placingX}px;top: #{@placingY}px;"}>
+    <%= if @placingEntity.type == :Counter do %>
+      <img src={"/images/counters/" <> @placingEntity.img}>
+    <% else %>
+      <img class={"object-scale-down " <> placingHeight(@placingEntity)} src={@placingEntity.img}>
+    <% end %>
+  </div>
+<% end %>
+
+<%= if @state != nil and @ceremony.entities != [] do %>
+  <%= for entity <- @ceremony.entities do %>
+    <%= if entity.type == :Avatar do %>
+      <%= if @ceremony.gm_avatars_visible || @current_user.role == :god || @current_user.role == :admin || (entity.owner_id != @ceremony.owner_id) do %>
+        <div id={entity.uuid} x-data="{tooltip: false}" x-on:mouseover="tooltip=true" x-on:mouseleave="tooltip=false" class={"avatar fixed " <> if @eligibleAvatars != nil && Enum.member?(@eligibleAvatars, entity) do "eligibleglow" else "" end} phx-click="entityClick" phx-value-id={entity.uuid} style={"left: #{Cards.Entity.screen_x(entity, @context)}px;top: #{Cards.Entity.screen_y(entity, @context)}px;"}>
+          <img class="object-scale-down h-24" src={entity.img}>
+          <%= for {mana, i} <- entity.deckmana |> Enum.with_index do %>
+            <div class="manatick blur-sm" style={manatickStyle(mana, i, 15, 65)}></div>
+          <% end %>
+          <div class="pie" style={pieStyle(entity.stress, entity.tolerance) <> 
+          "-webkit-mask: radial-gradient(farthest-side,#0000 95%, #000 100%);
+            mask:radial-gradient(farthest-side,#0000 95%, #000 100%);"}></div>
+          <%= for i <- 0..entity.defence |> Enum.to_list |> Enum.reject(fn i -> i == 0 end) do %>
+            <div class="manatick blur-sm" style={manatickStyle("D", i, entity.tolerance, 80)}></div>
+          <% end %>
+          <div class="relative" x-cloak x-show.transition.origin.top="tooltip">
+            <div class="absolute z-10 w-64 p-2 -mt-1 text-sm leading-tight text-gray-300 bg-blue-900 rounded-2xl shadow-lg" style="top: 20px; left: -100px;">
+              <div class="pb-1 text-center font-bold"><%= entity.name %>  </div>
+              <div class="pb-1 text-center">Stress: <%= entity.stress %> / <%= entity.tolerance %></div>
+              <div class="pb-1 text-center">
+                Draw <%= Enum.count(entity.cards.draw) %>
+                Discard <%= Enum.count(entity.cards.discard) %>
+              </div>
+              <div class="pb-1 text-center flex justify-between">
+                <img class="object-scale-down h-5" src='/images/black2.png'> <%= count_aspect(entity, [13]) %>
+                <img class="object-scale-down h-5" src='/images/blue2.png'> <%= count_aspect(entity, [10]) %>
+                <img class="object-scale-down h-5" src='/images/green2.png'> <%= count_aspect(entity, [11]) %>
+                <img class="object-scale-down h-5" src='/images/red2.png'> <%= count_aspect(entity, [9]) %>
+                <img class="object-scale-down h-5" src='/images/white2.png'> <%= count_aspect(entity, [12]) %>
+                ⟡ <%= count_aspect(entity, [1, 2, 3, 4, 5, 6, 7, 8]) %>
+                § <%= count_aspect(entity, [14]) %>
+                ꙮ <%= count_aspect(entity, [15]) %>
+              </div>
+              <div class="grid grid-cols-1 gap-2 p-2">
+                <%= for card <- entity.cards.graces do %>
+                  <div class={cardclass(card.type, card.glorified, card.aspect_id)}>
+                    <%= ch(card.type, card.glorified, card.gnosis) <> card.name <> ch(card.type, card.glorified, card.gnosis) %>
+                  </div>
+                <% end %>
+              </div> 
+              <div class="grid grid-cols-1 gap-2 p-2">
+                <%= for card <- entity.cards.hand do %>
+                  <div class={cardclass(card.type, card.glorified, card.aspect_id)}>
+                    <%= ch(card.type, card.glorified, card.gnosis) <> card.name <> ch(card.type, card.glorified, card.gnosis) %>
+                  </div>
+                <% end %>
+              </div>                                                                                                                                                                                                                                                                                                                                                  
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <!-- maybe show something blurred out? -->
+      <% end %>
+    <% else %>
+      <%= if entity.type == :Counter do %>
+        <div class="counter fixed" phx-click="counterClick" phx-value-owner={entity.owner_id} phx-value-id={entity.uuid} style={"left: #{Cards.Entity.screen_x(entity, @context)}px;top: #{Cards.Entity.screen_y(entity, @context)}px;"}>
+          <img src={"/images/counters/" <> entity.img}>
+        </div>
+      <% else %>
+        <div id={entity.uuid} x-data="{tooltip: false}" x-on:mouseover="tooltip=true" x-on:mouseleave="tooltip=false" class={"card fixed " <> if @selectedCard != nil && @selectedCard.uuid == entity.uuid do " sourceglow" else "" end } phx-click="cardClick" phx-value-id={entity.uuid} style={"left: #{Cards.Entity.screen_x(entity, @context)}px;top: #{Cards.Entity.screen_y(entity, @context)}px;"}>
+          <img class="object-scale-down h-72" src={entity.img}>
+          <div class="relative" x-cloak x-show.transition.origin.top="tooltip">
+            <div class="absolute z-10 w-64 p-2 -mt-1 text-sm leading-tight text-gray-300 bg-blue-900 rounded-2xl shadow-lg" style="top: 20px; left: -30px;">
+              <div class="pb-1 text-center font-bold"><%= ch(nil, entity.glorified, entity.gnosis) <> entity.name <> ch(nil, entity.glorified, entity.gnosis) %>  </div>
+              <div class="p-4 text-center font-bold"><%= entity.rulestext %></div>                                                                                                                                                                                                                                                                                                                                         
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<script type="text/javascript">
+function menuClick(e) {
+  let event = new CustomEvent("menuClick", {detail: e, bubbles: true});
+  temenos = document.getElementById('temenos');
+  temenos.dispatchEvent(event);
+}
+</script>
+
+<div id='avatarmenuTemplate' style="height:0px;" data-wheelnav
+data-wheelnav-slicepath='MenuSlice'
+data-wheelnav-rotateoff
+data-wheelnav-navangle='270'
+data-wheelnav-titleheight='40'
+data-wheelnav-cssmode 
+data-wheelnav-init>
+  <div data-wheelnav-navitemicon='book' onmouseup='menuClick("avatarHand");'></div>
+  <div data-wheelnav-navitemicon='arrowright2' onmouseup='menuClick("avatarMove");'></div>
+  <div data-wheelnav-navitemicon='arrowdown' onmouseup='menuClick("avatarStress");'></div>
+  <div data-wheelnav-navitemicon='bolt' onmouseup='menuClick("avatarPierce");'></div>
+  <div data-wheelnav-navitemicon='arrowup' onmouseup='menuClick("avatarRecover");'></div>
+  <div data-wheelnav-navitemicon='cross' onmouseup='menuClick("avatarDelete");'></div>
+  <div data-wheelnav-navitemicon='fitocracy' onmouseup='menuClick("avatarDefend");'></div>
+</div>
+
+<div id='temenosmenuTemplate' style="height:0px;" data-wheelnav
+data-wheelnav-slicepath='MenuSlice'
+data-wheelnav-rotateoff
+data-wheelnav-navangle='270'
+data-wheelnav-titleheight='40'
+data-wheelnav-cssmode 
+data-wheelnav-init>
+  <div data-wheelnav-navitemicon='plus' onmouseup='menuClick("temenosPlace");'></div>
+  <div data-wheelnav-navitemicon='bookmark' onmouseup='menuClick("temenosCounter");'></div>
+  <%= if @ceremony != nil && @ceremony.gm_avatars_visible do %>
+    <div data-wheelnav-navitemicon='noview' onmouseup='menuClick("temenosToggleHide");'></div>
+  <% else %>
+    <div data-wheelnav-navitemicon='view' onmouseup='menuClick("temenosToggleHide");'></div>
+  <% end %>
+  <div data-wheelnav-navitemicon='biohazard' onmouseup='menuClick("temenosTarget");'></div>
+</div>
+
+<div id='cardmenuTemplate' style="height:0px;" data-wheelnav
+data-wheelnav-slicepath='MenuSlice'
+data-wheelnav-rotateoff
+data-wheelnav-navangle='270'
+data-wheelnav-titleheight='40'
+data-wheelnav-cssmode 
+data-wheelnav-init>
+  <div data-wheelnav-navitemicon='trash' onmouseup='menuClick("cardDiscard");'></div>
+  <div data-wheelnav-navitemicon='cross' onmouseup='menuClick("cardDestroy");'></div>
+  <div data-wheelnav-navitemicon='arrowdown' onmouseup='menuClick("cardCopy");'></div>
+  <div data-wheelnav-navitemicon='arrowright2' onmouseup='menuClick("cardMove");'></div>
+  <div data-wheelnav-navitemicon='books' onmouseup='menuClick("cardToDeck");'></div>
+  <div data-wheelnav-navitemicon='crown' onmouseup='menuClick("cardToTopDeck");'></div>
+  <div data-wheelnav-navitemicon='book' onmouseup='menuClick("cardToHand");'></div>
+</div>
+
+<canvas id="temenos" phx-hook="Temenos" class="overflow-hidden bg-gray-600 ml-2 mt-4" style="width: 99%; height: 93vh;">
+
+</canvas>

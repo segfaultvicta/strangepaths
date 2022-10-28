@@ -1,0 +1,45 @@
+<%= if @role == nil do %>
+  <h1 class="text-center"> Please log in to view or create ceremonies. </h1>
+<% else %>
+  <nav class="bg-gray-900 shadow">
+    <div class="text-center p-2"><%= live_patch "New Ceremony", to: Routes.ceremony_index_path(@socket, :new) %></div>
+  </nav>
+
+  <%= if @live_action in [:new] do %>
+    <.modal return_to={Routes.ceremony_index_path(@socket, :index)}>
+      <.live_component
+        module={StrangepathsWeb.CeremonyLive.FormComponent}
+        id={:new}
+        title={@page_title}
+        action={@live_action}
+        ceremony={@ceremony}
+        current_user={@current_user}
+        return_to={Routes.ceremony_index_path(@socket, :index)}
+      />
+    </.modal>
+  <% end %>
+
+  <%= if @ceremonies != nil && @ceremonies != %{} do %>
+    <div class="container mx-auto p-5">
+      <table class="table-fixed">
+        <tbody id="ceremonies">
+          <%= for {truename, ceremony} <- @ceremonies do %>
+            <tr id={"ceremony-#{truename}"} class="odd:bg-gray-800 even:bg-gray-700 deckrow">
+              <td>
+                <%= live_redirect to: Routes.ceremony_show_path(@socket, :show, ceremony), class: "hover:text-white" do %>
+                  <%= ceremony.name %>, a Ceremony of the <%= ceremony.principle %>, overseen by <%= ceremony.owner_name %>
+                <% end %>
+              </td>
+              <%= if (@current_user.id == ceremony.owner_id || @role == :god || @role == :admin) do %>
+                <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={ceremony.id} data-confirm="Are you sure you want to delete that ceremony?">X</div></td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <div class="text-center"><h1>No ceremonies yet exist.</h1></div>
+  <% end %>
+<% end %>
+

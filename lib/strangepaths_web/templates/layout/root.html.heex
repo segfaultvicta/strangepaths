@@ -9,6 +9,10 @@
     <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://kit.fontawesome.com/dc730994d1.js" crossorigin="anonymous"></script>
+    <script src={Routes.static_path(@conn, "/assets/raphael.min.js")}></script>
+    <script src={Routes.static_path(@conn, "/assets/raphael.icons.min.js")}></script>
+    <script src={Routes.static_path(@conn, "/assets/wheelnav.js")}></script>
+    <script src={Routes.static_path(@conn, "/assets/leader-line.min.js")}></script>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
   </head>
   <body>
@@ -22,9 +26,9 @@
 
         <div class="flex items-center">
           <div class="flex flex-col md:flex-row md:mx-6">
-            <%= link "CEREMONY", to: "/rooms", class: navclass(@conn, :rooms) %>
-            <%= link "CODICES", to: "/decks", class: navclass(@conn, :decks) %>
-            <%= link "COSMOS", to: "/cards", class: navclass(@conn, :cards) %>
+            <%= link "CEREMONY", to: "/ceremony", class: navclass(@conn, :rooms) %>
+            <%= link "CODICES", to: "/codex", class: navclass(@conn, :decks) %>
+            <%= link "COSMOS", to: "/cosmos", class: navclass(@conn, :cards) %>
           </div>
         </div>
 
@@ -45,7 +49,7 @@
         </div>
       </div>
     </nav>
-    <main class="pt-16">
+    <main class="pt-64 md:pt-12">
       <%= @inner_content %>
     </main>
   </body>

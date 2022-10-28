@@ -23,20 +23,24 @@ defmodule StrangepathsWeb.Router do
 
     get("/", PageController, :index)
 
-    live("/decks", DeckLive.Index, :index)
-    live("/decks/new", DeckLive.Index, :new)
+    live("/codex", DeckLive.Index, :index)
+    live("/codex/new", DeckLive.Index, :new)
 
-    live("/decks/:id", DeckLive.Show, :show)
-    live("/decks/:id/show/edit", DeckLive.Show, :edit)
+    live("/codex/:id", DeckLive.Show, :show)
+    live("/codex/:id/show/edit", DeckLive.Show, :edit)
 
-    live("/cards", CardLive.Index, :index)
-    live("/cards/dragon", CardLive.Index, :Dragon)
-    live("/cards/stillness", CardLive.Index, :Stillness)
-    live("/cards/song", CardLive.Index, :Song)
-    live("/cards/new", CardLive.Index, :new)
+    live("/cosmos", CardLive.Index, :index)
+    live("/cosmos/dragon", CardLive.Index, :Dragon)
+    live("/cosmos/stillness", CardLive.Index, :Stillness)
+    live("/cosmos/song", CardLive.Index, :Song)
+    live("/cosmos/new", CardLive.Index, :new)
 
-    live("/cards/:id", CardLive.Show, :show)
-    live("/cards/:id/show/edit", CardLive.Show, :edit)
+    live("/cosmos/:id", CardLive.Show, :show)
+    live("/cosmos/:id/show/edit", CardLive.Show, :edit)
+
+    live("/ceremony", CeremonyLive.Index, :index)
+    live("/ceremony/new", CeremonyLive.Index, :new)
+    live("/ceremony/:id", CeremonyLive.Show, :show)
   end
 
   # Other scopes may use custom stacks.

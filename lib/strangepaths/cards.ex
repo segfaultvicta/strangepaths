@@ -107,6 +107,16 @@ defmodule Strangepaths.Cards do
      end}
   end
 
+  def get_card_by_gnosis(gnosis) do
+    card = Repo.get_by(Strangepaths.Cards.Card, gnosis: gnosis)
+
+    if card == nil do
+      {:no_card, nil}
+    else
+      {:ok, card.id}
+    end
+  end
+
   @doc """
   Creates a card and, potentially, its glorified double.
 
@@ -187,6 +197,30 @@ defmodule Strangepaths.Cards do
       rules: rules,
       alt: nil,
       glorified: false
+    })
+    |> Repo.insert()
+  end
+
+  # for cards created via the webform (alethic rites)
+  def create_card(%{
+        "name" => name,
+        "img" => img,
+        "principle" => principle,
+        "type" => type,
+        "rules" => rules,
+        "gnosis" => gnosis_plaintext
+      }) do
+    %Card{}
+    |> Card.changeset(%{
+      name: name,
+      img: img,
+      principle: principle,
+      type: type,
+      aspect_id: Strangepaths.Cards.get_aspect_id("Alethic"),
+      rules: rules,
+      alt: nil,
+      glorified: false,
+      gnosis: :crypto.hash(:md5, gnosis_plaintext) |> Base.encode16() |> String.downcase()
     })
     |> Repo.insert()
   end
@@ -275,6 +309,34 @@ defmodule Strangepaths.Cards do
     end
   end
 
+  def select_decks_for_ceremony(user_id, ceremony) do
+    decks =
+      list_decks(user_id)
+      |> Enum.map(fn {d} -> d.deck end)
+      |> Enum.filter(fn d -> d.principle == ceremony.principle end)
+      |> Enum.map(fn d -> {d.name, d.id} end)
+
+    decks ++
+      case ceremony.principle do
+        :Dragon ->
+          [
+            {"⭒Lithos⭒", 99990},
+            {"🟔Lithos🟔", 99991},
+            {"⭒Orichalca⭒", 99992},
+            {"🟔Orichalca🟔", 99993},
+            {"⭒Papyrus⭒", 99994},
+            {"🟔Papyrus🟔", 99995},
+            {"⭒Vitriol⭒", 99996},
+            {"🟔Vitriol🟔", 99997},
+            {"⭒Lutum⭒", 99998},
+            {"🟔Lutum🟔", 99999}
+          ]
+
+        _ ->
+          []
+      end
+  end
+
   defp query_decks(user_id, sortcol, direction) do
     from(d in Deck,
       join: a in Strangepaths.Cards.Aspect,
@@ -318,6 +380,18 @@ defmodule Strangepaths.Cards do
       where: d.id == ^id
     )
     |> Repo.all()
+  end
+
+  def get_deck(id) do
+    Repo.get(Deck, id)
+  end
+
+  def get_full_deck(id) do
+    Repo.get(Deck, id) |> Repo.preload(:cards)
+  end
+
+  def deck_exists?(id) do
+    Repo.exists?(from(d in Deck, where: d.id == ^id))
   end
 
   @doc """
@@ -378,6 +452,30 @@ defmodule Strangepaths.Cards do
     deck
     |> Deck.glory_changeset(adjustment)
     |> Repo.update()
+  end
+
+  def deckmana(deck_id) do
+    IO.puts(deck_id)
+
+    if(deck_id == nil) do
+      []
+    else
+      (get_deck!(deck_id) |> Enum.at(0) |> Tuple.to_list() |> Enum.at(0)).deck.manabalance
+      |> Enum.reduce("", fn {color, num}, a ->
+        char =
+          case color do
+            "black" -> "B"
+            "blue" -> "U"
+            "red" -> "R"
+            "green" -> "G"
+            "white" -> "W"
+            _ -> "*"
+          end
+
+        a <> String.duplicate(char, num)
+      end)
+      |> String.codepoints()
+    end
   end
 
   @doc """
@@ -453,5 +551,503 @@ defmodule Strangepaths.Cards do
       }
     end).rites
     |> Enum.reverse()
+  end
+
+  defmodule Entity do
+    defstruct name: "",
+              uuid: nil,
+              x: 0,
+              y: 0,
+              img: "",
+              deckID: nil,
+              cards: %{draw: [], discard: [], hand: [], graces: []},
+              tolerance: 10,
+              stress: 7,
+              defence: 0,
+              # todo
+              deckmana: nil,
+              rulestext: "",
+              type: nil,
+              card_id: nil,
+              glorified: false,
+              gnosis: false,
+              owner_id: 0
+
+    def to_string(self) do
+      self.uuid <> ":" <> self.name
+    end
+
+    def create(:Avatar, name, deckID, tolerance, avatarID, owner) do
+      deckID =
+        if Strangepaths.Cards.deck_exists?(deckID) do
+          deckID
+        else
+          nil
+        end
+
+      %Entity{
+        name: name,
+        uuid: Ecto.UUID.generate(),
+        x: 0,
+        y: 0,
+        img: Strangepaths.Accounts.get_avatar!(avatarID).filepath,
+        tolerance: String.to_integer(tolerance),
+        stress: 0,
+        defence: 0,
+        deckID: deckID,
+        deckmana: Strangepaths.Cards.deckmana(deckID),
+        type: :Avatar,
+        owner_id: owner.id
+      }
+    end
+
+    def create(:Card, card, owner) do
+      %Entity{
+        name: card.name,
+        uuid: Ecto.UUID.generate(),
+        x: 0,
+        y: 0,
+        img: card.img,
+        rulestext: card.rules,
+        type: :Card,
+        card_id: card.id,
+        glorified: card.glorified,
+        gnosis: card.gnosis,
+        owner_id: owner.id
+      }
+    end
+
+    def create(:Radial, x, y) do
+      %Entity{type: :Radial, x: x, y: y}
+    end
+
+    def create(:Counter, img, owner) do
+      %Entity{
+        name: "counter",
+        uuid: Ecto.UUID.generate(),
+        x: 0,
+        y: 0,
+        img: img,
+        type: :Counter,
+        owner_id: owner.id
+      }
+    end
+
+    def create() do
+      raise("Unknown entity type created.")
+    end
+
+    @spec screen_x(any, nil | maybe_improper_list | map) :: number
+    def screen_x(_e, nil) do
+      0
+    end
+
+    def screen_x(e, context) do
+      e.x * 0.01 * context["width"] + context["left"] - screenWidth(e.type) / 2
+    end
+
+    def screen_y(_e, nil) do
+      0
+    end
+
+    def screen_y(e, context) do
+      e.y * 0.01 * context["height"] + context["top"] - screenHeight(e.type) / 2
+    end
+
+    def screenWidth(type) do
+      case type do
+        :Avatar -> 120
+        :Card -> 200
+        :Counter -> 40
+        :Radial -> 400
+        _ -> 1
+      end
+    end
+
+    def screenHeight(type) do
+      case type do
+        :Avatar -> 120
+        :Card -> 300
+        :Counter -> 40
+        :Radial -> 400
+        _ -> 1
+      end
+    end
+  end
+
+  defmodule Ceremony do
+    use Agent
+
+    defstruct id: nil,
+              name: "",
+              principle: nil,
+              owner_id: nil,
+              owner_name: "",
+              entities: [],
+              gm_avatars_visible: true
+
+    def to_string(self) do
+      self.id <> ":" <> self.name
+    end
+
+    def start_link(_) do
+      Agent.start_link(fn -> %{} end, name: __MODULE__)
+    end
+
+    def create(name, principle, owner_id) do
+      owner_name = Strangepaths.Accounts.get_user!(owner_id).nickname
+      truename = truename(name, principle, owner_id)
+
+      ceremony = %Ceremony{
+        id: truename,
+        name: name,
+        principle: String.to_atom(principle),
+        owner_id: owner_id,
+        owner_name: owner_name,
+        entities: []
+      }
+
+      if !ceremony_exists?(truename) do
+        Agent.update(__MODULE__, fn state -> Map.put(state, truename, ceremony) end)
+        {:ok, ceremony}
+      else
+        {:error, "Ceremony with that name, principle, and creator already exists."}
+      end
+    end
+
+    def placeEntity(truename, entity) do
+      {ok, ceremony} = get(truename)
+
+      entity =
+        if !Enum.find(ceremony.entities, fn e -> e.uuid == entity.uuid end) &&
+             entity.type == :Avatar &&
+             entity.deckID != nil do
+          # if placing a completely new avatar, handle things differently
+          IO.puts(
+            "placing a totally new non-fiend avatar, do deck lookup and populate cards accordingly"
+          )
+
+          deck = Strangepaths.Cards.get_full_deck(entity.deckID).cards
+          graces = deck |> Enum.filter(fn c -> c.type == :Grace end)
+
+          rites =
+            deck
+            |> Enum.filter(fn c -> c.type == :Rite end)
+            |> Enum.map(fn c -> %Card{c | uuid: Ecto.UUID.generate()} end)
+            |> _shuffle()
+
+          {hand, rites} = Enum.split(rites, 4)
+
+          %Entity{entity | cards: %{entity.cards | hand: hand, graces: graces, draw: rites}}
+        else
+          entity
+        end
+
+      # if entity already exists, remove it from the list of entities (handles moves)
+      entities = ceremony.entities |> Enum.reject(fn e -> e.uuid == entity.uuid end)
+
+      if ok == :ok do
+        {:ok, save(truename, %Ceremony{ceremony | entities: [entity | entities]})}
+      else
+        {:error, ceremony}
+      end
+    end
+
+    def removeEntity(truename, entity) do
+      {ok, ceremony} = get(truename)
+      ceremony.entities |> Enum.each(fn e -> IO.puts("#{e.name}: #{e.uuid}") end)
+      entities = ceremony.entities |> Enum.reject(fn e -> e.uuid == entity.uuid end)
+
+      if ok == :ok do
+        {:ok, save(truename, %Ceremony{ceremony | entities: entities})}
+      else
+        {:error, ceremony}
+      end
+    end
+
+    def get_entity(truename, uuid) do
+      {ok, ceremony} = get(truename)
+
+      if ok == :ok do
+        Enum.find(ceremony.entities, fn e -> e.uuid == uuid end)
+      else
+        {:error, ceremony}
+      end
+    end
+
+    def avatars(truename) do
+      {_ok, ceremony} = get(truename)
+      ceremony.entities |> Enum.filter(fn e -> e.type == :Avatar end)
+    end
+
+    def avatars(truename, uid) do
+      avatars(truename) |> Enum.filter(fn a -> a.owner_id == uid end)
+    end
+
+    def add_card_to_entity_hand(truename, entity, card_id, n \\ 1) do
+      card = Strangepaths.Cards.get_card!(card_id)
+
+      hand =
+        if n == 1 do
+          [%Card{card | uuid: Ecto.UUID.generate()} | entity.cards.hand]
+        else
+          (List.duplicate(card, n)
+           |> Enum.map(fn c -> %Card{c | uuid: Ecto.UUID.generate()} end)) ++ entity.cards.hand
+        end
+
+      entity = %Entity{entity | cards: %{entity.cards | hand: hand}}
+      placeEntity(truename, entity)
+    end
+
+    def draw(truename, entity) do
+      entity =
+        if Enum.count(entity.cards.draw) == 0 do
+          %{entity | cards: %{entity.cards | draw: _shuffle(entity.cards.discard), discard: []}}
+        else
+          entity
+        end
+
+      [card | draw] = entity.cards.draw
+
+      entity = %Entity{
+        entity
+        | cards: %{entity.cards | hand: [card | entity.cards.hand], draw: draw}
+      }
+
+      placeEntity(truename, entity)
+    end
+
+    def shuffle(truename, entity) do
+      entity = %Entity{entity | cards: %{entity.cards | draw: _shuffle(entity.cards.draw)}}
+      placeEntity(truename, entity)
+    end
+
+    defp _shuffle(cards) do
+      cards = Enum.shuffle(cards)
+      # always make sure that Final Seal is on the bottom (194 and 195)
+      finalSeal = Enum.any?(cards, fn c -> c.id == 194 || c.id == 195 end)
+
+      if finalSeal do
+        card = Enum.filter(cards, fn c -> c.id == 194 || c.id == 195 end)
+        Enum.reject(cards, fn c -> c.id == 194 || c.id == 195 end) ++ card
+      else
+        cards
+      end
+    end
+
+    def return_random(truename, entity) do
+      # selects random card from discard and sends it to the hand
+      if entity.cards.discard |> Enum.count() > 0 do
+        card = entity.cards.discard |> Enum.random()
+        discard = entity.cards.discard |> Enum.reject(fn c -> c.uuid == card.uuid end)
+        hand = [card | entity.cards.hand]
+        entity = %Entity{entity | cards: %{entity.cards | hand: hand, discard: discard}}
+        placeEntity(truename, entity)
+      end
+    end
+
+    def discard(truename, entity, card_uuid) do
+      card = entity.cards.hand |> Enum.find(fn c -> c.uuid == card_uuid end)
+      discard = [card | entity.cards.discard]
+      hand = entity.cards.hand |> Enum.reject(fn c -> c.uuid == card.uuid end)
+      entity = %Entity{entity | cards: %{entity.cards | hand: hand, discard: discard}}
+      placeEntity(truename, entity)
+    end
+
+    def discard_from_field(truename, card, entity) do
+      # need to turn card entity back into a card proper
+      truecard = Strangepaths.Cards.get_card!(card.card_id)
+
+      entity = %Entity{
+        entity
+        | cards: %{entity.cards | discard: [truecard | entity.cards.discard]}
+      }
+
+      removeEntity(truename, card)
+      placeEntity(truename, entity)
+    end
+
+    def card_to_hand(truename, card, entity) do
+      truecard = Strangepaths.Cards.get_card!(card.card_id)
+
+      entity = %Entity{
+        entity
+        | cards: %{entity.cards | hand: [truecard | entity.cards.hand]}
+      }
+
+      removeEntity(truename, card)
+      placeEntity(truename, entity)
+    end
+
+    def shuffle_in(deck, card) do
+      count = Enum.count(deck)
+      split = Enum.random(0..count)
+      {stacka, stackb} = Enum.split(deck, split)
+      stacka ++ [card] ++ stackb
+    end
+
+    def card_to_deck(truename, card, entity) do
+      truecard = Strangepaths.Cards.get_card!(card.card_id)
+
+      entity = %Entity{
+        entity
+        | cards: %{entity.cards | draw: shuffle_in(entity.cards.draw, truecard)}
+      }
+
+      removeEntity(truename, card)
+      placeEntity(truename, entity)
+    end
+
+    def card_to_top_deck(truename, card, entity) do
+      truecard = Strangepaths.Cards.get_card!(card.card_id)
+
+      entity = %Entity{
+        entity
+        | cards: %{entity.cards | draw: [truecard | entity.cards.draw]}
+      }
+
+      removeEntity(truename, card)
+      placeEntity(truename, entity)
+    end
+
+    def remove_from_hand(truename, originalUUID, entity) do
+      hand = entity.cards.hand |> Enum.reject(fn c -> c.uuid == originalUUID end)
+      placeEntity(truename, %Entity{entity | cards: %{entity.cards | hand: hand}})
+    end
+
+    def scry(truename, entity, card_uuid) do
+      card = entity.cards.draw |> Enum.find(fn c -> c.uuid == card_uuid end)
+      hand = [card | entity.cards.hand]
+      draw = entity.cards.draw |> Enum.reject(fn c -> c.uuid == card.uuid end)
+      entity = %Entity{entity | cards: %{entity.cards | hand: hand, draw: draw}}
+      placeEntity(truename, entity)
+    end
+
+    def return(truename, entity, card_uuid) do
+      card = entity.cards.discard |> Enum.find(fn c -> c.uuid == card_uuid end)
+      hand = [card | entity.cards.hand]
+      discard = entity.cards.discard |> Enum.reject(fn c -> c.uuid == card.uuid end)
+      entity = %Entity{entity | cards: %{entity.cards | hand: hand, discard: discard}}
+      placeEntity(truename, entity)
+    end
+
+    def gm_screen_toggle(truename) do
+      {_, ceremony} = get(truename)
+      ceremony = %Ceremony{ceremony | gm_avatars_visible: !ceremony.gm_avatars_visible}
+      save(truename, ceremony)
+    end
+
+    def delete(truename) do
+      Agent.update(__MODULE__, fn state -> Map.delete(state, truename) end)
+    end
+
+    def list() do
+      ceremonies = Agent.get(__MODULE__, fn state -> state end)
+
+      ceremonies
+    end
+
+    def get(truename) do
+      ceremony = Agent.get(__MODULE__, fn state -> state[truename] end)
+
+      if ceremony == nil do
+        {:error, "No ceremony found."}
+      else
+        {:ok, ceremony}
+      end
+    end
+
+    defp save(truename, ceremony) do
+      Agent.update(__MODULE__, fn state -> Map.put(state, truename, ceremony) end)
+      ceremony
+    end
+
+    def ceremony_exists?(name) do
+      !is_nil(Agent.get(__MODULE__, fn state -> state[name] end))
+    end
+
+    def truename(name, principle, owner_id) do
+      :crypto.hash(:md5, name <> principle <> Integer.to_string(owner_id))
+      |> Base.encode16()
+      |> String.downcase()
+    end
+  end
+
+  @doc """
+  Returns the list of ceremonies.
+
+  ## Examples
+
+      iex> list_ceremonies()
+      [%Ceremony{}, ...]
+
+  """
+  def list_ceremonies do
+    # Might not be necessary
+    Ceremony.list()
+  end
+
+  @doc """
+  Gets a single ceremony.
+
+  Raises if the Ceremony does not exist.
+
+  ## Examples
+
+      iex> get_ceremony!(123)
+      %Ceremony{}
+
+  """
+  def get_ceremony!(truename) do
+    # Might not be necessary
+    Ceremony.get(truename)
+  end
+
+  @doc """
+  Creates a ceremony.
+
+  ## Examples
+
+      iex> create_ceremony(%{field: value})
+      {:ok, %Ceremony{}}
+
+      iex> create_ceremony(%{field: bad_value})
+      {:error, ...}
+
+  """
+  def create_ceremony(attrs \\ %{}, owner_id) do
+    # ceremony =
+    #  %Ceremony{}
+    #  |> Ceremony.changeset(attrs)
+    Ceremony.create(attrs["name"], attrs["principle"], owner_id)
+  end
+
+  @doc """
+  Updates a ceremony.
+
+  ## Examples
+
+      iex> update_ceremony(ceremony, %{field: new_value})
+      {:ok, %Ceremony{}}
+
+      iex> update_ceremony(ceremony, %{field: bad_value})
+      {:error, ...}
+
+  """
+
+  @doc """
+  Deletes a Ceremony.
+
+  ## Examples
+
+      iex> delete_ceremony(ceremony)
+      {:ok, %Ceremony{}}
+
+      iex> delete_ceremony(ceremony)
+      {:error, ...}
+
+  """
+  def delete_ceremony(truename) do
+    Ceremony.delete(truename)
   end
 end

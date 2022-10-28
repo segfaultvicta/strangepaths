@@ -28,4 +28,19 @@ defmodule Strangepaths.AccountsFixtures do
     [_, token | _] = String.split(captured_email.text_body, "[TOKEN]")
     token
   end
+
+  @doc """
+  Generate a avatar.
+  """
+  def avatar_fixture(attrs \\ %{}) do
+    {:ok, avatar} =
+      attrs
+      |> Enum.into(%{
+        filepath: "some filepath",
+        public: true
+      })
+      |> Strangepaths.Accounts.create_avatar()
+
+    avatar
+  end
 end

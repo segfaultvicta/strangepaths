@@ -1,14 +1,22 @@
-<%= if @live_action in [:edit] do %>
-  <.modal return_to={Routes.deck_show_path(@socket, :show, @deck)}>
-    <.live_component
-      module={StrangepathsWeb.DeckLive.FormComponent}
-      id={@deck.id}
-      title={@page_title}
-      action={@live_action}
-      deck={@deck}
-      return_to={Routes.deck_show_path(@socket, :show, @deck)}
-    />
-  </.modal>
+<%= if @eye != nil do %>
+  <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-6 phx-modal">
+      <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+          <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+        </div>
+        <div id="modal-content" 
+          class="inline-block transition-all transform align-middle max-w-xl w-full"
+          role="dialog" aria-modal="true" aria-labelledby="modal-headline"
+          phx-click-away="key"
+          phx-window-keydown="key">
+          <%= if @eye == :open do %>
+            <img class="mt-64 scale-150 transition-opacity opacity-0 delay-700 duration-700 " src={@eye_img} />
+          <% else %>
+            <img class="mt-64 scale-150" src={@eye_img} />
+          <% end %>
+        </div>
+      </div>
+    </div>
 <% end %>
 
 <nav class="fixed bg-gray-900 inset-x-0 top-12 z-50 h-32 flex flex-col justify-between items-center shadow-lg">
@@ -38,7 +46,7 @@
       <%= for card <- Enum.sort(@deck.cards, fn a, b -> a.id < b.id end) do %>
         <div class={cardclass(card.type, card.glorified, card.aspect_id)}>
           <!-- signify rite/grace/glory status here, maybe w/ unicode on cards, and backgrounds -->
-          <%= ch(card.type, card.glorified) %><%= card.name %><%= ch(card.type, card.glorified) %>
+          <%= ch(card.type, card.glorified, card.gnosis) %><%= card.name %><%= ch(card.type, card.glorified, card.gnosis) %>
         </div>
       <% end %>
     </div>
@@ -150,17 +158,41 @@
         </div>
       <% end %>
     </div>
-    <div id="TRUTH" class="hidden">
-      <h2 class="text-center">Aletheia</h2>
-      <div class="text-center">Tell me the truth.</div>
-      <div class="grid justify-items-center formstyle">
-        <input id="LIBRA" class="text">
+
+    <div>
+      <%= if @aletheia != nil && @aletheia != [] do %>
+        <h2 class="text-center">Alethics</h2>
+        <div class="grid grid-cols-3 lg:grid-cols-5 gap-5">
+          <%= for card <- @aletheia do %>
+            <div class="p-2 hover:text-white extant">
+              <div class="flex justify-center"><img class={"zoom object-scale-down h-auto extant"} src={card.img}></div>
+              <div class="deckbuttons">
+                <button phx-click="remove", value={card.id}><i class="fa-solid fa-minus"></i></button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    
+    <%= if @alethics || @current_user.role == :god || @current_user.role == :admin do %>
+      <div id="ALETHEIA" class="h-64">
+        <h2 class="text-center">Aletheia</h2>
+        <div class="text-center font-black italic">Tell me the truth!</div>
+        <div class="text-center text-sm">Consider carefully with whom you share this forbidden knowledge; it is yours to do with as you will.</div>
+        <form class="pt-5 grid justify-items-center formstyle" phx-change="libra">
+          <input type="text" name="LIBRA" id="LIBRA" class="text" />
+        </form>
       </div>
-    </div>
-    <div phx-click="truth" class="flex justify-center">
-      <button phx-keydown="key">
-        ꙮ <%= @eye %>
-      </button>
-    </div>
+    <% else %>
+      <div id="ALETHEIA" class="hidden">
+        Tell me the truth!
+      </div>
+      <div phx-click="truth" class="flex justify-center">
+        <button>
+          ꙮ
+        </button>
+      </div>
+    <% end %>
   </div>
 </div>

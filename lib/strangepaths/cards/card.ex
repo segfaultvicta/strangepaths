@@ -11,7 +11,9 @@ defmodule Strangepaths.Cards.Card do
     field(:alt, :id)
     field(:glorified, :boolean)
     field(:aspect_id, :id)
+    field(:gnosis, :string)
     field(:glory_cost, :integer, virtual: true)
+    field(:uuid, :string, virtual: true)
 
     many_to_many(:decks, Strangepaths.Cards.Deck, join_through: "cards_decks")
 
@@ -21,7 +23,7 @@ defmodule Strangepaths.Cards.Card do
   @doc false
   def changeset(card, attrs) do
     card
-    |> cast(attrs, [:name, :img, :rules, :principle, :type, :aspect_id, :alt, :glorified])
+    |> cast(attrs, [:name, :img, :rules, :principle, :type, :aspect_id, :alt, :glorified, :gnosis])
     |> validate_required([:name, :img, :rules, :principle, :type, :aspect_id])
   end
 end

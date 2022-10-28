@@ -1,6 +1,7 @@
 <div>
   <h2><%= @title %></h2>
 
+<%= if @id == :new do %>
   <.form
     let={f}
     for={@changeset}
@@ -9,28 +10,83 @@
     phx-change="validate"
     phx-submit="save">
   
-    <%= label f, :name %>
-    <%= text_input f, :name %>
-    <%= error_tag f, :name %>
-  
-    <%= label f, :img %>
-    <%= text_input f, :img %>
-    <%= error_tag f, :img %>
-  
-    <%= label f, :rules %>
-    <%= textarea f, :rules %>
-    <%= error_tag f, :rules %>
-  
-    <%= label f, :principle %>
-    <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Card, :principle), prompt: "Choose a value" %>
-    <%= error_tag f, :principle %>
-  
-    <%= label f, :type %>
-    <%= select f, :type, Ecto.Enum.values(Strangepaths.Cards.Card, :type), prompt: "Choose a value" %>
-    <%= error_tag f, :type %>
-  
-    <div>
-      <%= submit "Save", phx_disable_with: "Saving..." %>
+    <div class="formstyle">
+      <div class="p-4">
+        <%= label f, :name %>
+        <%= text_input f, :name, class: "text"%>
+        <%= error_tag f, :name %>
+      </div>
+    
+      <div class="p-4">
+        <%= label f, :image %>
+        <%= live_file_input @uploads.image %>
+        <%= for entry <- @uploads.image.entries do %>
+          <p>
+            <progress value={entry.progress} max="100"> <%= entry.progress %>% </progress>
+          </p>
+          <%= for err <- upload_errors(@uploads.image, entry) do %>
+            <p class="alert alert-danger"><%= friendly_error(err) %></p>
+          <% end %>
+        <% end %>
+      </div>
+
+      <div class="p-4">
+        <%= label f, :rules %>
+        <%= textarea f, :rules, class: "text" %>
+        <%= error_tag f, :rules %>
+      </div>
+    
+      <div class="p-4 grid grid-cols-2">
+        <div>
+          <%= label f, :principle, class: "text-right mt-2" %>
+          <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Card, :principle), prompt: "Choose a value" %>
+          <%= error_tag f, :principle %>
+        </div>
+        <div>
+          <%= label f, :type, class: "text-right mt-2" %>
+          <%= select f, :type, Ecto.Enum.values(Strangepaths.Cards.Card, :type), prompt: "Choose a value" %>
+          <%= error_tag f, :type %>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <%= label f, :gnosis %>
+        <%= text_input f, :gnosis, class: "text" %>
+        <%= error_tag f, :gnosis %>
+      </div>
+    
+      <div>
+        <%= submit "Save", phx_disable_with: "Saving..." %>
+      </div>
+
     </div>
   </.form>
+<% else %>
+  <.form
+    let={f}
+    for={@changeset}
+    id="card-form"
+    phx-target={@myself}
+    phx-change="validate_edit"
+    phx-submit="save">
+
+    <div class="formstyle">
+      <div class="p-4">
+        <%= label f, :name %>
+        <%= text_input f, :name, class: "text"%>
+        <%= error_tag f, :name %>
+      </div>
+
+      <div class="p-4">
+        <%= label f, :rules %>
+        <%= textarea f, :rules, class: "text" %>
+        <%= error_tag f, :rules %>
+      </div>
+
+      <div>
+        <%= submit "Save", phx_disable_with: "Saving..." %>
+      </div>
+    </div>
+  </.form>
+<% end %>
 </div>

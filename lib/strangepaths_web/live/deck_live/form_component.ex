@@ -75,18 +75,18 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
     save_deck(socket, socket.assigns.action, deck_params)
   end
 
-  defp save_deck(socket, :edit, deck_params) do
-    case Cards.update_deck(socket.assigns.deck, deck_params) do
-      {:ok, _deck} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "Deck updated successfully")
-         |> push_redirect(to: socket.assigns.return_to)}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, :changeset, changeset)}
-    end
-  end
+  # defp save_deck(socket, :edit, deck_params) do
+  #  case Cards.update_deck(socket.assigns.deck, deck_params) do
+  #    {:ok, _deck} ->
+  #      {:noreply,
+  #       socket
+  #       |> put_flash(:info, "Deck updated successfully")
+  #       |> push_redirect(to: socket.assigns.return_to)}
+  #
+  #    {:error, %Ecto.Changeset{} = changeset} ->
+  #      {:noreply, assign(socket, :changeset, changeset)}
+  #  end
+  # end
 
   defp save_deck(socket, :new, deck_params) do
     manabalance = %{

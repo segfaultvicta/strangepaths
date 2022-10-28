@@ -4,8 +4,8 @@ defmodule StrangepathsWeb.DeckLive.Show do
   alias Strangepaths.Cards
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, socket}
+  def mount(_params, session, socket) do
+    {:ok, assign_defaults(session, socket)}
   end
 
   @impl true
@@ -14,7 +14,11 @@ defmodule StrangepathsWeb.DeckLive.Show do
     [{%{deck: deck, aspect: aspect}}] = Cards.get_deck!(id)
     deck = Map.put(Strangepaths.Repo.preload(deck, :cards), :aspect, aspect)
 
-    {:noreply, socket |> assign(:eye, -1) |> assign(:page_title, deck.name) |> recalc(deck)}
+    {:noreply,
+     socket
+     |> assign(eye: nil, eye_img: nil, alethics: false)
+     |> assign(:page_title, deck.name)
+     |> recalc(deck)}
   end
 
   defp manabalance_div(deck) do
@@ -74,15 +78,77 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   def handle_event("truth", _, socket) do
-    IO.puts("truth")
-
-    {:noreply, assign(socket, :eye, 0)}
+    {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
   end
 
   def handle_event("key", value, socket) do
+    value = value["key"]
     IO.inspect(value)
 
-    {:noreply, socket}
+    case {socket.assigns.eye, value} do
+      {0, "ArrowUp"} ->
+        {:noreply, socket |> assign(eye: 1, eye_img: "/images/eye/1.png")}
+
+      {1, "ArrowUp"} ->
+        {:noreply, socket |> assign(eye: 2, eye_img: "/images/eye/1.png")}
+
+      {2, "ArrowDown"} ->
+        {:noreply, socket |> assign(eye: 3, eye_img: "/images/eye/2.png")}
+
+      {3, "ArrowDown"} ->
+        {:noreply, socket |> assign(eye: 4, eye_img: "/images/eye/2.png")}
+
+      {4, "ArrowLeft"} ->
+        {:noreply, socket |> assign(eye: 5, eye_img: "/images/eye/3.png")}
+
+      {5, "ArrowRight"} ->
+        {:noreply, socket |> assign(eye: 6, eye_img: "/images/eye/3.png")}
+
+      {6, "ArrowLeft"} ->
+        {:noreply, socket |> assign(eye: 7, eye_img: "/images/eye/4.png")}
+
+      {7, "ArrowRight"} ->
+        {:noreply, socket |> assign(eye: 8, eye_img: "/images/eye/4.png")}
+
+      {8, "b"} ->
+        {:noreply, socket |> assign(eye: 9, eye_img: "/images/eye/5.png")}
+
+      {9, "a"} ->
+        {:noreply, socket |> assign(eye: 10, eye_img: "/images/eye/6.png")}
+
+      {10, "Enter"} ->
+        IO.puts("boop")
+        IO.inspect(Process.send_after(self(), :alethics, 2000))
+        {:noreply, socket |> assign(eye: :open, eye_img: "/images/eye/7.png")}
+
+      _ ->
+        {:noreply, socket |> assign(:eye, nil)}
+    end
+  end
+
+  def handle_event("libra", value, socket) do
+    IO.inspect(value)
+
+    {res, card_id} =
+      Cards.get_card_by_gnosis(
+        :crypto.hash(:md5, value["LIBRA"])
+        |> Base.encode16()
+        |> String.downcase()
+      )
+
+    if res == :ok do
+      # add card to the deck and clear LIBRA
+      deck = Cards.add_card_to_deck(socket.assigns.deck, card_id)
+
+      {:noreply, recalc(socket |> assign(eye: nil, eye_img: nil, alethics: false), deck)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(:alethics, socket) do
+    {:noreply, assign(socket, eye: nil, eye_img: nil, alethics: true)}
   end
 
   defp recalc(socket, deck) do
@@ -174,7 +240,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
       end)
       |> Enum.reject(fn c -> c == nil end)
 
-    aletheia = [nil]
+    aletheia = Enum.filter(deck.cards, fn c -> c.gnosis != nil end)
 
     cards =
       (basecards ++
@@ -187,7 +253,15 @@ defmodule StrangepathsWeb.DeckLive.Show do
       deck
       | cards:
           Enum.map(deck.cards, fn c ->
-            %Cards.Card{c | glory_cost: Enum.find(cards, fn d -> c.id == d.id end).glory_cost}
+            %Cards.Card{
+              c
+              | glory_cost:
+                  if(c.gnosis != nil) do
+                    0
+                  else
+                    Enum.find(cards, fn d -> c.id == d.id end).glory_cost
+                  end
+            }
           end)
     }
 
@@ -222,14 +296,18 @@ defmodule StrangepathsWeb.DeckLive.Show do
     Enum.count(cards, fn c -> c.aspect_id == color end) >= i
   end
 
-  defp ch(type, glory) do
-    if type == :Grace do
-      "❂"
+  defp ch(type, glory, gnosis) do
+    if gnosis != nil do
+      "ꙮ"
     else
-      if glory do
-        "🟔"
+      if type == :Grace do
+        "❂"
       else
-        "⭒"
+        if glory do
+          "🟔"
+        else
+          "⭒"
+        end
       end
     end
   end

@@ -120,4 +120,58 @@ defmodule Strangepaths.CardsTest do
       assert %Ecto.Changeset{} = Cards.change_deck(deck)
     end
   end
+
+  describe "ceremonies" do
+    alias Strangepaths.Cards.Ceremony
+
+    import Strangepaths.CardsFixtures
+
+    @invalid_attrs %{name: nil}
+
+    test "list_ceremonies/0 returns all ceremonies" do
+      ceremony = ceremony_fixture()
+      assert Cards.list_ceremonies() == [ceremony]
+    end
+
+    test "get_ceremony!/1 returns the ceremony with given id" do
+      ceremony = ceremony_fixture()
+      assert Cards.get_ceremony!(ceremony.id) == ceremony
+    end
+
+    test "create_ceremony/1 with valid data creates a ceremony" do
+      valid_attrs = %{name: "some name"}
+
+      assert {:ok, %Ceremony{} = ceremony} = Cards.create_ceremony(valid_attrs)
+      assert ceremony.name == "some name"
+    end
+
+    test "create_ceremony/1 with invalid data returns error changeset" do
+      assert {:error, %Ecto.Changeset{}} = Cards.create_ceremony(@invalid_attrs)
+    end
+
+    test "update_ceremony/2 with valid data updates the ceremony" do
+      ceremony = ceremony_fixture()
+      update_attrs = %{name: "some updated name"}
+
+      assert {:ok, %Ceremony{} = ceremony} = Cards.update_ceremony(ceremony, update_attrs)
+      assert ceremony.name == "some updated name"
+    end
+
+    test "update_ceremony/2 with invalid data returns error changeset" do
+      ceremony = ceremony_fixture()
+      assert {:error, %Ecto.Changeset{}} = Cards.update_ceremony(ceremony, @invalid_attrs)
+      assert ceremony == Cards.get_ceremony!(ceremony.id)
+    end
+
+    test "delete_ceremony/1 deletes the ceremony" do
+      ceremony = ceremony_fixture()
+      assert {:ok, %Ceremony{}} = Cards.delete_ceremony(ceremony)
+      assert_raise Ecto.NoResultsError, fn -> Cards.get_ceremony!(ceremony.id) end
+    end
+
+    test "change_ceremony/1 returns a ceremony changeset" do
+      ceremony = ceremony_fixture()
+      assert %Ecto.Changeset{} = Cards.change_ceremony(ceremony)
+    end
+  end
 end

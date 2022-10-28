@@ -15,9 +15,10 @@ defmodule Strangepaths.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Strangepaths.PubSub},
       # Start the Endpoint (http/https)
-      StrangepathsWeb.Endpoint
+      StrangepathsWeb.Endpoint,
       # Start a worker by calling: Strangepaths.Worker.start_link(arg)
       # {Strangepaths.Worker, arg}
+      Strangepaths.Cards.Ceremony
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

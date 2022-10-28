@@ -36,4 +36,18 @@ defmodule Strangepaths.CardsFixtures do
 
     deck
   end
+
+  @doc """
+  Generate a ceremony.
+  """
+  def ceremony_fixture(attrs \\ %{}) do
+    {:ok, ceremony} =
+      attrs
+      |> Enum.into(%{
+        name: "some name"
+      })
+      |> Strangepaths.Cards.create_ceremony()
+
+    ceremony
+  end
 end
