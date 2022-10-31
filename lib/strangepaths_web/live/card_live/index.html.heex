@@ -33,10 +33,18 @@
 
   <%= if @cards != nil && @cards != %{} do %>
     <div class="container mx-auto">
+      <div id="toc" class="flex mt-2" style="justify-content: space-evenly;">
+        <%= for {_, aspect} <- @cards do %>
+          <%= if aspect.name != "Alethic" && aspect.name != "Status" do %>
+            <div><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
+          <% end %>
+        <% end %>
+      </div>
       <%= for {_, aspect} <- @cards do %>
         <%= if !(aspect.name == "Alethic" && (@role == :user || @role == nil)) do %>
-          <div class="p-2">
-            <h2 class="text-center"><%= aspect.name %></h2>
+          <div id={aspect.name} class="p-2">
+            <h2 class="text-center"><%= aspect.name %></h2> 
+            <div class="text-center"><a href="#toc">Return to Top</a></div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
               <%= for card <- aspect.cards do %>
                 <%= live_redirect to: Routes.card_show_path(@socket, :show, card), class: ("p-2 hover:text-white " <> if card.type==:Grace do "bg-yellow-700 hover:bg-yellow-900" else "bg-gray-700 hover:bg-gray-900" end) do %>

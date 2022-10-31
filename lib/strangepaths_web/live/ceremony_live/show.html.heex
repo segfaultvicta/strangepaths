@@ -33,7 +33,9 @@
                 <% end %>            
               </div>
 
-              <%= submit "Woosh" %>
+              <div class="mt-24">
+                <%= submit "CREATE" %>
+              </div>
             <% end %>
           <% else %>
             <h1>COUNTER</h1>
@@ -192,7 +194,12 @@
           <div class="relative" x-cloak x-show.transition.origin.top="tooltip">
             <div class="absolute z-10 w-64 p-2 -mt-1 text-sm leading-tight text-gray-300 bg-blue-900 rounded-2xl shadow-lg" style="top: 20px; left: -100px;">
               <div class="pb-1 text-center font-bold"><%= entity.name %>  </div>
-              <div class="pb-1 text-center">Stress: <%= entity.stress %> / <%= entity.tolerance %></div>
+              <div class="pb-1 text-center">
+                Stress: <%= entity.stress %> / <%= entity.tolerance %>
+                <%= if entity.defence > 0 do %>
+                 ⁠— Defence: <%= entity.defence %> / <%= entity.tolerance %>
+                <% end %>
+                </div>
               <div class="pb-1 text-center">
                 Draw <%= Enum.count(entity.cards.draw) %>
                 Discard <%= Enum.count(entity.cards.discard) %>

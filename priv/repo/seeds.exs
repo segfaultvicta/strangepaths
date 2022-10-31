@@ -19,27 +19,6 @@ Strangepaths.Accounts.register_god(%{
   password_confirmation: "B4h4mUtz3r0"
 })
 
-Strangepaths.Accounts.register_admin(%{
-  email: "icecylee@nerds.net",
-  nickname: "Icecylee",
-  password: "123456",
-  password_confirmation: "123456"
-})
-
-Strangepaths.Accounts.register_user(%{
-  email: "testone@sanctuary.com",
-  nickname: "Testone",
-  password: "123456",
-  password_confirmation: "123456"
-})
-
-Strangepaths.Accounts.register_user(%{
-  email: "testtwo@sanctuary.com",
-  nickname: "Testtwo",
-  password: "123456",
-  password_confirmation: "123456"
-})
-
 # name: name,
 # principle: principle,
 # type: type,

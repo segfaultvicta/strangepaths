@@ -55,9 +55,17 @@
 
 <div class="pt-32 pl-64">
   <div class="container mx-auto">
+    <div id="toc" class="flex mt-2" style="justify-content: space-evenly;">
+      <div><a href="#graces">Graces</a></div>
+      <div><a href="#rites">Rites</a></div>
+      <%= for {color, _} <- @sidereals do %>
+        <div><a href={"#" <> (color |> Atom.to_string |> String.downcase) }><%= color |> Atom.to_string |> String.capitalize %></a></div>
+      <% end %>
+      <div><a href="#ꙮ">ꙮ</a></div>
+    </div>
     <div class="">
       <h2 class="text-center pb-4">Physis</h2>
-      <div class="grid grid-cols-2 lg:grid-cols-6 gap-5">
+      <div class="mx-24 grid grid-cols-2 lg:grid-cols-6 gap-5">
         <%= for card <- @basecards do %>
           <div class={"p-2 hover:text-white " <> card.deckstatus}>
             <div class="flex justify-center"><img class="zoom object-scale-down h-auto" src={card.img}></div>
@@ -78,8 +86,9 @@
       </div>
     </div>
     <div class="">
-     <h2 class="text-center pb-4">Graces</h2>
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-5">
+      <h2 id="graces" class="text-center pb-4">Graces</h2>
+      <div class="text-center"><a href="#toc">Return to Top</a></div>
+      <div class="mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
         <%= for card <- @graces do %>
           <div class={"p-2 hover:text-white " <> card.deckstatus}>
             <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> card.deckstatus} src={card.img}></div>
@@ -100,8 +109,9 @@
       </div>
     </div>
     <div class="">
-     <h2 class="text-center pb-4">Rites</h2>
-      <div class="grid grid-cols-2 lg:grid-cols-5 gap-5">
+      <h2 id="rites" class="text-center pb-4">Rites</h2>
+      <div class="text-center"><a href="#toc">Return to Top</a></div>
+      <div class="mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
         <%= for card <- @aspectrites do %>
           <div class={"p-2 hover:text-white " <> card.deckstatus}>
             <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> card.deckstatus} src={card.img}></div>
@@ -129,9 +139,10 @@
     <div class="">
       <h2 class="text-center">Sidereal Rites</h2>
       <%= for {color, rites} <- @sidereals do %>
-        <div class="p-2">
+        <div id={color |> Atom.to_string |> String.downcase} class="p-2">
           <h3 class="text-center"><%= color |> Atom.to_string |> String.capitalize %></h3>
-          <div class="grid grid-cols-3 lg:grid-cols-5 gap-5">
+          <div class="text-center"><a href="#toc">Return to Top</a></div>
+          <div class="mx-24 grid grid-cols-3 lg:grid-cols-5 gap-5">
             <%= for rite <- rites do %>
               <div class={"p-2 hover:text-white " <> rite.deckstatus}>
               <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> rite.deckstatus} src={rite.img}></div>
@@ -159,10 +170,10 @@
       <% end %>
     </div>
 
-    <div>
+    <div id="ꙮ">
       <%= if @aletheia != nil && @aletheia != [] do %>
         <h2 class="text-center">Alethics</h2>
-        <div class="grid grid-cols-3 lg:grid-cols-5 gap-5">
+        <div class="mx-24 grid grid-cols-3 lg:grid-cols-5 gap-5">
           <%= for card <- @aletheia do %>
             <div class="p-2 hover:text-white extant">
               <div class="flex justify-center"><img class={"zoom object-scale-down h-auto extant"} src={card.img}></div>

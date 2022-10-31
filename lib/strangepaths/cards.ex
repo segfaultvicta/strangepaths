@@ -807,14 +807,16 @@ defmodule Strangepaths.Cards do
           entity
         end
 
-      [card | draw] = entity.cards.draw
+      if entity.cards.draw |> Enum.count() > 0 do
+        [card | draw] = entity.cards.draw
 
-      entity = %Entity{
-        entity
-        | cards: %{entity.cards | hand: [card | entity.cards.hand], draw: draw}
-      }
+        entity = %Entity{
+          entity
+          | cards: %{entity.cards | hand: [card | entity.cards.hand], draw: draw}
+        }
 
-      placeEntity(truename, entity)
+        placeEntity(truename, entity)
+      end
     end
 
     def shuffle(truename, entity) do

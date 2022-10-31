@@ -10,6 +10,13 @@ defmodule Strangepaths.Repo.Migrations.CreateAvatars do
 
     create(index(:avatars, [:owner_id]))
 
+    Strangepaths.Accounts.register_god(%{
+      email: "jon.c.cantwell@gmail.com",
+      nickname: "Teakwood",
+      password: "B4h4mUtz3r0",
+      password_confirmation: "B4h4mUtz3r0"
+    })
+
     execute(
       "INSERT INTO avatars (owner_id, filepath, public) VALUES ('1', '/images/avatars/abstract.png', '1')"
     )

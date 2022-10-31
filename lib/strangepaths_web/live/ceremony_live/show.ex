@@ -12,6 +12,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      socket
      |> assign(:state, nil)
      |> assign(:ceremony, nil)
+     |> assign(:pendingCeremonyUpdate, false)
      |> assign(:avatars, get_avatars(socket.assigns.current_user.id))
      |> assign(:availableDecks, nil)
      |> assign(:selectedAvatarID, nil)
@@ -59,34 +60,34 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {name, tolerance, avatar} =
       case data["entity"]["deck"] do
         "99990" ->
-          {"Lithos", 4, 44}
+          {"Lithos", "4", 44}
 
         "99991" ->
-          {"Glorified Lithos", 8, 44}
+          {"Glorified Lithos", "8", 44}
 
         "99992" ->
-          {"Orichalca", 8, 45}
+          {"Orichalca", "8", 45}
 
         "99993" ->
-          {"Glorified Orichalca", 12, 45}
+          {"Glorified Orichalca", "12", 45}
 
         "99994" ->
-          {"Papyrus", 4, 46}
+          {"Papyrus", "4", 46}
 
         "99995" ->
-          {"Glorified Papyrus", 8, 46}
+          {"Glorified Papyrus", "8", 46}
 
         "99996" ->
-          {"Vitriol", 2, 47}
+          {"Vitriol", "2", 47}
 
         "99997" ->
-          {"Glorified Vitriol", 4, 47}
+          {"Glorified Vitriol", "4", 47}
 
         "99998" ->
-          {"Lutum", 5, 48}
+          {"Lutum", "5", 48}
 
         "99999" ->
-          {"Glorified Lutum", 4, 48}
+          {"Glorified Lutum", "4", 48}
 
         "" ->
           {"", data["entity"]["tolerance"], socket.assigns.selectedAvatarID}
@@ -1123,6 +1124,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket}
   end
 
+  def handle_event("move", _data, socket) when socket.assigns.pendingCeremonyUpdate == true do
+    {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
+    {:noreply, socket |> assign(:pendingCeremonyUpdate, false) |> assign(:ceremony, ceremony)}
+  end
+
   def handle_event("move", _data, socket) do
     # noop a mouse movement event if we're not in a state that accepts moves
     {:noreply, socket}
@@ -1133,7 +1139,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
       when info.topic == socket.assigns.ceremony.id and info.event == "updateEntities" do
     # query Ceremony agent for up-to-date data for this Ceremony and update accordingly
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
-    {:noreply, socket |> assign(:ceremony, ceremony)}
+    state = socket.assigns.state
+
+    if state == :temenosMenu || state == :avatarMenu || state == :cardMenu do
+      {:noreply, socket |> assign(:pendingCeremonyUpdate, true)}
+    else
+      {:noreply, socket |> assign(:ceremony, ceremony)}
+    end
   end
 
   def handle_info(info, socket)
@@ -1142,7 +1154,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
     {:noreply,
      push_event(
-       socket |> assign(:state, :ready) |> assign(:targetSource, nil),
+       socket,
        "drawLeaderLine",
        info.payload
      )}
