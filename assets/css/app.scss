@@ -75,7 +75,7 @@
 }
 
 .zoom {
-    transform-origin: 100px 100px;
+    transform-origin: 100px 300px;
     transition: transform .2s;
     z-index: 0;
     /* Animation */
@@ -84,8 +84,18 @@
 .zoom:hover {
     transform: scale(2.5);
     z-index: 50;
-    //transform: rotateY(100);
-    /* (150% zoom - Note: if the zoom is too large, it will go outside of the viewport) */
+}
+
+.zoom-physis {
+    transform-origin: 100px 240px;
+    transition: transform .2s;
+    z-index: 0;
+    /* Animation */
+}
+
+.zoom-physis:hover {
+    transform: scale(2.5);
+    z-index: 50;
 }
 
 .extant {

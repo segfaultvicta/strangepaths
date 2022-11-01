@@ -68,7 +68,7 @@
       <div class="mx-24 grid grid-cols-2 lg:grid-cols-6 gap-5">
         <%= for card <- @basecards do %>
           <div class={"p-2 hover:text-white " <> card.deckstatus}>
-            <div class="flex justify-center"><img class="zoom object-scale-down h-auto" src={card.img}></div>
+            <div class="flex justify-center"><img class="zoom-physis object-scale-down h-auto" src={card.img}></div>
             <div class="deckbuttons">
               <%= if card.deckstatus == "glorified" do %>
                 <button phx-click="swap", phx-value-card={card.id}, phx-value-with={card.alt}><i class="fa-solid fa-circle-minus"></i></button>
