@@ -11,7 +11,11 @@ defmodule Strangepaths.Cards.Deck do
     field(:manabalance, :map)
     belongs_to(:user, Strangepaths.Accounts.User, foreign_key: :owner)
 
-    many_to_many(:cards, Strangepaths.Cards.Card, join_through: "cards_decks", on_replace: :delete)
+    many_to_many(:cards, Strangepaths.Cards.Card,
+      join_through: "cards_decks",
+      on_replace: :delete,
+      on_delete: :delete_all
+    )
 
     timestamps()
   end

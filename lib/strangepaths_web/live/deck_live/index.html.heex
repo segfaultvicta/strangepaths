@@ -26,7 +26,7 @@
       <table class="table-fixed">
         <thead>
           <tr class="deckrow">
-            <th class="fooby" phx-click="sort" phx-value-sortcol="name">NAME <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+            <th class="fooby" style="width: 365px;" phx-click="sort" phx-value-sortcol="name">NAME <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
             <th class="fooby" phx-click="sort" phx-value-sortcol="principle">PRINCIPLE<i class={if @sortcol != :principle do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
             <th class="fooby" phx-click="sort" phx-value-sortcol="aspect_id">ASPECT <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
             <th class="fooby" phx-click="sort" phx-value-sortcol="glory">GLORY <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>

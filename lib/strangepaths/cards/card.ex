@@ -15,7 +15,7 @@ defmodule Strangepaths.Cards.Card do
     field(:glory_cost, :integer, virtual: true)
     field(:uuid, :string, virtual: true)
 
-    many_to_many(:decks, Strangepaths.Cards.Deck, join_through: "cards_decks")
+    many_to_many(:decks, Strangepaths.Cards.Deck, join_through: "cards_decks", on_delete: :nothing)
 
     timestamps()
   end

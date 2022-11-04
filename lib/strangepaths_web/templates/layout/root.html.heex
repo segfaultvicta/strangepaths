@@ -14,6 +14,13 @@
     <script src={Routes.static_path(@conn, "/assets/wheelnav.js")}></script>
     <script src={Routes.static_path(@conn, "/assets/leader-line.min.js")}></script>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
+    <script type="text/javascript">
+      function menuClick(e) {
+        let event = new CustomEvent("menuClick", {detail: e, bubbles: true});
+        temenos = document.getElementById('temenos');
+        temenos.dispatchEvent(event);
+      }
+    </script>
   </head>
   <body>
     <nav class="fixed inset-x-0 z-50 bg-gray-900 shadow">

@@ -18,7 +18,8 @@ defmodule Strangepaths.Application do
       StrangepathsWeb.Endpoint,
       # Start a worker by calling: Strangepaths.Worker.start_link(arg)
       # {Strangepaths.Worker, arg}
-      Strangepaths.Cards.Ceremony
+      Strangepaths.Cards.Ceremony,
+      Strangepaths.Presence
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

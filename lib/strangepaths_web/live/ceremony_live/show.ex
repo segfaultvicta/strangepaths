@@ -34,7 +34,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:cheat, nil)
      |> assign(:cheatMsg, nil)
      |> assign(:eligibleAvatars, nil)
-     |> assign(:avatarTolerance, 10)}
+     |> assign(:avatarTolerance, 10)
+     |> assign(:presenceList, [])}
   end
 
   def handle_event("context", data, socket) do
@@ -306,7 +307,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
          y: Cards.Entity.screen_y(menuEntity, socket.assigns.context)
        })}
     else
-      {:noreply, socket}
+      {:noreply, socket |> assign(:state, :othersHand) |> assign(:selectedEntity, entity)}
     end
   end
 
@@ -919,6 +920,14 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket}
   end
 
+  def handle_event("dismissOthershand", _data, socket) do
+    {:noreply, socket |> assign(:state, :ready)}
+  end
+
+  def handle_event("othershandKey", _data, socket) do
+    {:noreply, socket |> assign(:state, :ready)}
+  end
+
   # CARD MENU
 
   def handle_event("cardClick", %{"id" => uuid}, socket)
@@ -1160,6 +1169,15 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
+  def handle_info(%{event: "presence_diff", payload: _wev}, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       :presenceList,
+       Strangepaths.Presence.list(socket.assigns.ceremony.id) |> to_presence
+     )}
+  end
+
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
     {ok, ceremony} = Cards.Ceremony.get(id)
@@ -1167,6 +1185,18 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     if(connected?(socket)) do
       if ok == :ok do
         StrangepathsWeb.Endpoint.subscribe(id)
+        nickname = socket.assigns.current_user.nickname
+        IO.puts("NICKNAME IS >>>#{nickname}<<<")
+        IO.inspect(nickname)
+
+        nick =
+          if nickname != nil do
+            nickname
+          else
+            "ANONYMOUS GOOBER"
+          end
+
+        Strangepaths.Presence.track(self(), id, socket.id, %{nickname: nick})
 
         {:noreply,
          socket
@@ -1177,6 +1207,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
            :available_decks,
            Cards.select_decks_for_ceremony(socket.assigns.current_user.id, ceremony)
          )
+         |> assign(:presenceList, Strangepaths.Presence.list(id) |> to_presence)
          |> assign(:state, :ready)}
       else
         {:noreply,
@@ -1190,17 +1221,15 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  defp triggerTargetDraw(tgt, socket) do
-    src = socket.assigns.targetSource
-    IO.puts("SOURCE: #{src}")
-    IO.puts("TARGET: #{tgt}")
-  end
-
   defp get_avatars(uid) do
     # first, get all the default avatars
     (Strangepaths.Accounts.list_public_avatars() ++
        Strangepaths.Accounts.list_avatars_of(uid))
     |> Enum.map(fn a -> Map.put(a, :selected, false) end)
+  end
+
+  defp to_presence(presence_list) do
+    presence_list |> Enum.map(fn {_, %{metas: v}} -> List.first(v).nickname end)
   end
 
   defp count_aspect(entity, aspect_list) do

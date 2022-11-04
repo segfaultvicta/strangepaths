@@ -455,8 +455,6 @@ defmodule Strangepaths.Cards do
   end
 
   def deckmana(deck_id) do
-    IO.puts(deck_id)
-
     if(deck_id == nil) do
       []
     else
@@ -478,6 +476,12 @@ defmodule Strangepaths.Cards do
     end
   end
 
+  def deckglory(deck_id) do
+    IO.puts("in deckglory for deck #{deck_id}")
+    IO.inspect((get_deck!(deck_id) |> Enum.at(0) |> Tuple.to_list() |> Enum.at(0)).deck)
+    (get_deck!(deck_id) |> Enum.at(0) |> Tuple.to_list() |> Enum.at(0)).deck.glory
+  end
+
   @doc """
   Deletes a deck.
 
@@ -491,6 +495,7 @@ defmodule Strangepaths.Cards do
 
   """
   def delete_deck(%Deck{} = deck) do
+    IO.puts("in delete deck function")
     Repo.delete(deck)
   end
 
@@ -564,7 +569,7 @@ defmodule Strangepaths.Cards do
               tolerance: 10,
               stress: 7,
               defence: 0,
-              # todo
+              glory: 0,
               deckmana: nil,
               rulestext: "",
               type: nil,
@@ -593,6 +598,7 @@ defmodule Strangepaths.Cards do
         img: Strangepaths.Accounts.get_avatar!(avatarID).filepath,
         tolerance: String.to_integer(tolerance),
         stress: 0,
+        glory: Strangepaths.Cards.deckglory(deckID),
         defence: 0,
         deckID: deckID,
         deckmana: Strangepaths.Cards.deckmana(deckID),
@@ -722,11 +728,6 @@ defmodule Strangepaths.Cards do
         if !Enum.find(ceremony.entities, fn e -> e.uuid == entity.uuid end) &&
              entity.type == :Avatar &&
              entity.deckID != nil do
-          # if placing a completely new avatar, handle things differently
-          IO.puts(
-            "placing a totally new non-fiend avatar, do deck lookup and populate cards accordingly"
-          )
-
           deck = Strangepaths.Cards.get_full_deck(entity.deckID).cards
           graces = deck |> Enum.filter(fn c -> c.type == :Grace end)
 

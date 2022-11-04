@@ -166,6 +166,46 @@
   </div>
 <% end %>
 
+<%= if @state == :othersHand do %>
+  <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-20 phx-modal">
+    <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+        <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
+      </div>
+      <div id="modal-content" 
+        class="overflow-auto inline-block transition-all transform align-middle bg-gray-900" style="width: 80%; height: 90vh;"
+        role="dialog" aria-modal="true" aria-labelledby="modal-headline"
+        phx-click-away="dismissOthershand"
+        phx-window-keydown="othershandKey">
+
+        <div id="handGraces" class="p-1">
+          <h3> GRACES </h3>
+          <div class="grid grid-cols-6 gap-5">
+            <%= for grace <- @selectedEntity.cards.graces do %>
+              <div class="p-2 bg-yellow-900">
+                <h4 class="text-center"><%= grace.name %></h4>
+                <div class="flex justify-center"><img class="object-scale-down h-auto" src={grace.img}></div>
+                <div><%= grace.rules %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <div class="p-1">
+          <div class="grid grid-cols-4 gap-5">
+            <%= for card <- @selectedEntity.cards.hand do %>
+              <div class="hover:text-white bg-gray-900">
+                <h4 class="text-center"><%= card.name %></h4>
+                <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                <div><%= card.rules %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
 <%= if @placingEntity.type != nil do %>
   <div phx-click="placeEntity" class="fixed" style={"left: #{@placingX}px;top: #{@placingY}px;"}>
     <%= if @placingEntity.type == :Counter do %>
@@ -193,7 +233,7 @@
           <% end %>
           <div class="relative" x-cloak x-show.transition.origin.top="tooltip">
             <div class="absolute z-10 w-64 p-2 -mt-1 text-sm leading-tight text-gray-300 bg-blue-900 rounded-2xl shadow-lg" style="top: 20px; left: -100px;">
-              <div class="pb-1 text-center font-bold"><%= entity.name %>  </div>
+              <div class="pb-1 text-center font-bold"><%= entity.name %> — <%= entity.glory %>❁ </div>
               <div class="pb-1 text-center">
                 Stress: <%= entity.stress %> / <%= entity.tolerance %>
                 <%= if entity.defence > 0 do %>
@@ -254,13 +294,13 @@
   <% end %>
 <% end %>
 
-<script type="text/javascript">
-function menuClick(e) {
-  let event = new CustomEvent("menuClick", {detail: e, bubbles: true});
-  temenos = document.getElementById('temenos');
-  temenos.dispatchEvent(event);
-}
-</script>
+<%= if @presenceList != [] do %>
+  <div id="presenceList" class="absolute flex w-32 pl-4 pt-2 text-slate-400">
+    <%= for nickname <- @presenceList do %>
+      <div class="p-1"><%= nickname %></div>
+    <% end %>
+  </div>
+<% end %>
 
 <div id='avatarmenuTemplate' style="height:0px;" data-wheelnav
 data-wheelnav-slicepath='MenuSlice'
