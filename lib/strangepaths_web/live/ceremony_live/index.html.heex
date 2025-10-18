@@ -27,11 +27,11 @@
             <tr id={"ceremony-#{truename}"} class="odd:bg-gray-800 even:bg-gray-700 deckrow">
               <td>
                 <%= live_redirect to: Routes.ceremony_show_path(@socket, :show, ceremony), class: "hover:text-white" do %>
-                  <%= ceremony.name %>, a Ceremony of the <%= ceremony.principle %>, overseen by <%= ceremony.owner_name %>
+                  <%= ceremony.name %>, a Rite overseen by <%= ceremony.owner_name %>
                 <% end %>
               </td>
               <%= if (@current_user.id == ceremony.owner_id || @role == :god || @role == :admin) do %>
-                <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={ceremony.id} data-confirm="Are you sure you want to delete that ceremony?">X</div></td>
+                <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={ceremony.id} data-confirm="Are you sure you want to delete that rite?">X</div></td>
               <% end %>
             </tr>
           <% end %>
@@ -39,7 +39,7 @@
       </table>
     </div>
   <% else %>
-    <div class="text-center"><h1>No ceremonies yet exist.</h1></div>
+    <div class="text-center"><h1>No rites yet exist.</h1></div>
   <% end %>
 <% end %>
 

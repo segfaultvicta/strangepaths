@@ -38,11 +38,6 @@
     
       <div class="p-4 grid grid-cols-2">
         <div>
-          <%= label f, :principle, class: "text-right mt-2" %>
-          <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Card, :principle), prompt: "Choose a value" %>
-          <%= error_tag f, :principle %>
-        </div>
-        <div>
           <%= label f, :type, class: "text-right mt-2" %>
           <%= select f, :type, Ecto.Enum.values(Strangepaths.Cards.Card, :type), prompt: "Choose a value" %>
           <%= error_tag f, :type %>

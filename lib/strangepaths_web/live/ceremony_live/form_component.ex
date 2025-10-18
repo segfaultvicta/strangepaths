@@ -4,7 +4,7 @@ defmodule StrangepathsWeb.CeremonyLive.FormComponent do
   alias Strangepaths.Cards
 
   @impl true
-  def update(%{ceremony: ceremony} = assigns, socket) do
+  def update(assigns, socket) do
     {:ok,
      socket
      |> assign(assigns)
@@ -12,7 +12,7 @@ defmodule StrangepathsWeb.CeremonyLive.FormComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"ceremony" => ceremony_params}, socket) do
+  def handle_event("validate", %{"ceremony" => _ceremony_params}, socket) do
     {:noreply, socket}
   end
 

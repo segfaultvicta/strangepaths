@@ -19,7 +19,13 @@ defmodule Strangepaths.Application do
       # Start a worker by calling: Strangepaths.Worker.start_link(arg)
       # {Strangepaths.Worker, arg}
       Strangepaths.Cards.Ceremony,
-      Strangepaths.Presence
+      Strangepaths.Presence,
+      {Nostrum.Bot,
+       %{
+         consumer: Strangepaths.DiscordHandler,
+         intents: [:direct_messages, :guild_messages, :message_content],
+         wrapped_token: fn -> System.fetch_env!("BOT_TOKEN") end
+       }}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

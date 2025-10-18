@@ -2,7 +2,6 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
   use StrangepathsWeb, :live_component
 
   alias Strangepaths.Cards
-  alias Strangepaths.Cards.Deck
 
   @impl true
   def update(%{deck: deck} = assigns, socket) do
@@ -16,24 +15,7 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
 
   @impl true
   def handle_event("validate_new", %{"deck" => deck_params}, socket) do
-    aspects =
-      if Map.has_key?(deck_params, "principle") && deck_params["principle"] != nil do
-        case deck_params["principle"] do
-          "Dragon" ->
-            ["Fang", "Claw", "Scale", "Breath"]
-
-          "Stillness" ->
-            ["Star", "Island", "Mountain", "Void"]
-
-          "Song" ->
-            []
-
-          _ ->
-            nil
-        end
-      else
-        nil
-      end
+    aspects = ["Fang", "Claw", "Scale", "Breath"]
 
     manabalance = %{
       red: String.to_integer(deck_params["red"]),
@@ -48,13 +30,13 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
         manabalance.black
 
     changeset =
-      %Deck{socket.assigns.deck | manabalance: manabalance}
+      %{socket.assigns.deck | manabalance: manabalance}
       |> Cards.change_new_deck(deck_params)
       |> Map.put(:action, :validate)
 
     {:noreply,
      assign(socket,
-       deck: %Deck{socket.assigns.deck | manabalance: manabalance},
+       deck: %{socket.assigns.deck | manabalance: manabalance},
        changeset: changeset,
        aspects: aspects,
        manatotal: manatotal
@@ -96,6 +78,8 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
       white: String.to_integer(deck_params["white"]),
       black: String.to_integer(deck_params["black"])
     }
+
+    IO.inspect(deck_params)
 
     case Cards.create_deck(Map.put(deck_params, "manabalance", manabalance)) do
       {:ok, _deck} ->

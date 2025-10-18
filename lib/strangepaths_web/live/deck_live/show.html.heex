@@ -20,7 +20,7 @@
 <% end %>
 
 <nav class="fixed bg-gray-900 inset-x-0 top-12 z-50 h-32 flex flex-col justify-between items-center shadow-lg">
-  <div><h1 class="text-center"><%= @deck.name %>, a Codex of the <%= @deck.principle %>'s <%= @deck.aspect %> 
+  <div><h1 class="text-center"><%= @deck.name %>, of the Dragon's <%= @deck.aspect %> 
   <button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
   ❁<%= @deck.glory %>
   <button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button></h1></div>

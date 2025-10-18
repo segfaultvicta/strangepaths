@@ -31,7 +31,7 @@ defmodule StrangepathsWeb.CardLive.Show do
 
     {:noreply,
      push_redirect(socket |> put_flash(:info, card.name <> " successfully deleted!"),
-       to: Routes.card_index_path(socket, card.principle)
+       to: Routes.card_index_path(socket, :index)
      )}
   end
 

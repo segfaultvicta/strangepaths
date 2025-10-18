@@ -153,7 +153,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
 
   defp recalc(socket, deck) do
     deck_ids = Enum.map(deck.cards, fn c -> c.id end)
-    cards = Cards.list_cards_for_codex(deck.principle)
+    cards = Cards.list_cards_for_codex()
     graces = Cards.rites(cards, deck.aspect_id, 1, :Grace)
     aspectrites = Cards.rites(cards, deck.aspect_id, 10, :Rite)
     aspects = Cards.list_aspects()
@@ -249,11 +249,11 @@ defmodule StrangepathsWeb.DeckLive.Show do
          Enum.reduce(sidereals, [], fn {_, rites}, acc -> acc ++ rites end) ++ aletheia)
       |> Enum.reject(fn c -> c == nil end)
 
-    deck = %Cards.Deck{
+    deck = %{
       deck
       | cards:
           Enum.map(deck.cards, fn c ->
-            %Cards.Card{
+            %{
               c
               | glory_cost:
                   if(c.gnosis != nil) do
@@ -289,7 +289,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
     |> assign(:glory, glory)
     |> assign(:balanced, balanced)
     |> assign(:satieties, satieties)
-    |> assign(:deck, %Cards.Deck{deck | glory_used: glory})
+    |> assign(:deck, %{deck | glory_used: glory})
   end
 
   defp sidereal_satiation(cards, color, i) do

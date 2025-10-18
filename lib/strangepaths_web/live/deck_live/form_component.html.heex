@@ -19,10 +19,6 @@
     
       <div class="pb-12 grid grid-cols-2">
         <div>
-        <%= label f, :principle, class: "text-right mt-2" %>
-        <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Deck, :principle), prompt: "Principle:", class: "text", style: "width: 150px;" %>
-        </div>
-        <div>
         <%= if @aspects != nil do %>
           <%= label f, :aspect_id, class: "text-right mt-2" %>
           <%= select f, :aspect_id, Strangepaths.Cards.list_aspects_for_form_permitting(@aspects), prompt: "Aspect:", class: "text", style: "width: 150px;" %>
@@ -55,8 +51,7 @@
               <%= for {type, {error, _elist}} <- @changeset.errors do %>
                 <% e = case type do
                   :name -> "Please name your deck."
-                  :aspect_id -> "Please select a Principle."
-                  :principle -> "Please select an Aspect."
+                  :aspect_id -> "Please select an Aspect."
                   :manabalance -> error
                   _ -> "A mysterious error has occurred."
                 end %>

@@ -4,7 +4,6 @@ defmodule Strangepaths.Cards.Deck do
 
   schema "decks" do
     field(:name, :string)
-    field(:principle, Ecto.Enum, values: [:Dragon, :Stillness, :Song])
     field(:aspect_id, :id)
     field(:glory, :integer)
     field(:glory_used, :integer, virtual: true)
@@ -23,8 +22,8 @@ defmodule Strangepaths.Cards.Deck do
   @doc false
   def new_changeset(deck, attrs) do
     deck
-    |> cast(attrs, [:name, :principle, :aspect_id, :owner, :manabalance])
-    |> validate_required([:name, :principle, :aspect_id, :owner, :manabalance])
+    |> cast(attrs, [:name, :aspect_id, :owner, :manabalance])
+    |> validate_required([:name, :aspect_id, :owner, :manabalance])
     |> manabalance_validator()
   end
 

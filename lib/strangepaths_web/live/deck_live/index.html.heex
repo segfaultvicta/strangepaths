@@ -27,7 +27,6 @@
         <thead>
           <tr class="deckrow">
             <th class="fooby" style="width: 365px;" phx-click="sort" phx-value-sortcol="name">NAME <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
-            <th class="fooby" phx-click="sort" phx-value-sortcol="principle">PRINCIPLE<i class={if @sortcol != :principle do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
             <th class="fooby" phx-click="sort" phx-value-sortcol="aspect_id">ASPECT <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
             <th class="fooby" phx-click="sort" phx-value-sortcol="glory">GLORY <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
             <th class="fooby" phx-click="sort" phx-value-sortcol="manabalance">MANA BALANCE <i class={if @sortcol != :manabalance do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
@@ -39,7 +38,6 @@
           <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
             <tr class="odd:bg-gray-800 even:bg-gray-700 deckrow">
               <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.name %><% end %></td>
-              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.principle %><% end %></td>
               <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= aspect %><% end %></td>
               <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.glory %><% end %></td>
               <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "flex hover:text-white" do %><%= raw(manabalance_div(deck.manabalance)) %><% end %></td>

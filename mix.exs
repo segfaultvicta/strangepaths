@@ -5,7 +5,7 @@ defmodule Strangepaths.MixProject do
     [
       app: :strangepaths,
       version: "0.1.0",
-      elixir: "~> 1.12",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -51,9 +51,10 @@ defmodule Strangepaths.MixProject do
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
-      {:dart_sass, "~> 0.5", runtime: Mix.env() == :dev},
+      {:dart_sass, "~> 0.7", runtime: Mix.env() == :dev},
       {:slugify, "~> 1.3"},
-      {:petal_components, "~> 0.17"}
+      {:petal_components, "~> 0.17"},
+      {:nostrum, github: "Kraigie/nostrum"}
     ]
   end
 

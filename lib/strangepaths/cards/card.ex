@@ -5,7 +5,6 @@ defmodule Strangepaths.Cards.Card do
   schema "cards" do
     field(:img, :string)
     field(:name, :string)
-    field(:principle, Ecto.Enum, values: [:Dragon, :Stillness, :Song])
     field(:rules, :string)
     field(:type, Ecto.Enum, values: [:Rite, :Grace, :Status])
     field(:alt, :id)
@@ -15,7 +14,10 @@ defmodule Strangepaths.Cards.Card do
     field(:glory_cost, :integer, virtual: true)
     field(:uuid, :string, virtual: true)
 
-    many_to_many(:decks, Strangepaths.Cards.Deck, join_through: "cards_decks", on_delete: :nothing)
+    many_to_many(:decks, Strangepaths.Cards.Deck,
+      join_through: "cards_decks",
+      on_delete: :nothing
+    )
 
     timestamps()
   end
@@ -23,7 +25,7 @@ defmodule Strangepaths.Cards.Card do
   @doc false
   def changeset(card, attrs) do
     card
-    |> cast(attrs, [:name, :img, :rules, :principle, :type, :aspect_id, :alt, :glorified, :gnosis])
-    |> validate_required([:name, :img, :rules, :principle, :type, :aspect_id])
+    |> cast(attrs, [:name, :img, :rules, :type, :aspect_id, :alt, :glorified, :gnosis])
+    |> validate_required([:name, :img, :rules, :type, :aspect_id])
   end
 end

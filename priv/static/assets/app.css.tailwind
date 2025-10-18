@@ -57,6 +57,10 @@
   @apply pl-1;
 }
 
+#music a {
+  @apply text-2xl font-light text-indigo-200 underline;
+}
+
 .deckrow td {
   @apply px-5 py-2;
 }

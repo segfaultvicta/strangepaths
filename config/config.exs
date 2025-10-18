@@ -8,7 +8,8 @@
 import Config
 
 config :strangepaths,
-  ecto_repos: [Strangepaths.Repo]
+  ecto_repos: [Strangepaths.Repo],
+  discord_channel: 1_427_456_465_332_994_2
 
 # Configures the endpoint
 config :strangepaths, StrangepathsWeb.Endpoint,
@@ -16,6 +17,8 @@ config :strangepaths, StrangepathsWeb.Endpoint,
   render_errors: [view: StrangepathsWeb.ErrorView, accepts: ~w(html json), layout: false],
   pubsub_server: Strangepaths.PubSub,
   live_view: [signing_salt: "cFS8hIEM"]
+
+config :nostrum, :ffmpeg, nil
 
 # Configures the mailer
 #
@@ -60,7 +63,7 @@ config :tailwind,
   ]
 
 config :dart_sass,
-  version: "1.54.9",
+  version: "1.61.0",
   default: [
     args: ~w(css/app.scss ../priv/static/assets/app.css.tailwind),
     cd: Path.expand("../assets", __DIR__)

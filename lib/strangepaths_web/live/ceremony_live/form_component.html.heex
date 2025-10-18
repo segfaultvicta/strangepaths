@@ -8,11 +8,6 @@
         <%= label f, :name %>
         <%= text_input f, :name, class: "text" %>
       </div>
-
-      <div class="p-4">
-        <%= label f, :principle, class: "text-right mt-2" %>
-        <%= select f, :principle, Ecto.Enum.values(Strangepaths.Cards.Deck, :principle), prompt: "Principle:", class: "text", style: "width: 150px;" %>
-      </div>
     
       <%= if @error_msg != nil do %>
         <div class="p-4 text-red"><%= @error_msg %></div>

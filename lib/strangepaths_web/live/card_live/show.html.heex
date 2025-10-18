@@ -1,7 +1,7 @@
 <%= if @aspect == "Alethic" do %>
-  <h1 class="text-center"><%= @card.name %>, an Alethic <%= @card.type %> of the <%= @card.principle %></h1>
+  <h1 class="text-center"><%= @card.name %>, an Alethic <%= @card.type %></h1>
 <% else %>
-  <h1 class="text-center"><%= @card.name %>, a <%= @card.type %> of the <%= @card.principle %>'s <%= @aspect %></h1>
+  <h1 class="text-center"><%= @card.name %>, a <%= @card.type %> of the Dragon's <%= @aspect %></h1>
 <% end %>
 <%= if @role == :admin || @role == :god do %>
   <h2 class="text-center"><%= link "DELETE", to: Routes.card_index_path(@socket, :index), class: "hover:text-red-500", phx_click: "delete", phx_value_id: @card.id, data: [confirm: "Are you sure?"]  %></h2>

@@ -10,8 +10,7 @@ defmodule StrangepathsWeb.CardLive.Index do
 
     {:ok,
      assign(socket,
-       cards: nil,
-       active_principle: nil
+       cards: nil
      )}
   end
 
@@ -32,48 +31,17 @@ defmodule StrangepathsWeb.CardLive.Index do
     |> assign(:card, %Card{})
   end
 
-  defp apply_action(socket, :Dragon, _params) do
-    socket
-    |> assign(:page_title, "the Dragon's Cosmos")
-    |> assign(:cards, Cards.list_cards_for_cosmos(:Dragon))
-    |> assign(:active_principle, :Dragon)
-  end
-
-  defp apply_action(socket, :Stillness, _params) do
-    socket
-    |> assign(:page_title, "the Stillness' Cosmos")
-    |> assign(:cards, Cards.list_cards_for_cosmos(:Stillness))
-    |> assign(:active_principle, :Stillness)
-  end
-
-  defp apply_action(socket, :Song, _params) do
-    socket
-    |> assign(:page_title, "the Song's Cosmos")
-    |> assign(:cards, Cards.list_cards_for_cosmos(:Song))
-    |> assign(:active_principle, :Song)
-  end
-
   defp apply_action(socket, :index, _params) do
     socket
-    |> assign(:page_title, "Choose a Principle")
-    |> assign(:cards, nil)
-    |> assign(:active_principle, nil)
+    |> assign(:page_title, "the Dragon's Cosmos")
+    |> assign(:cards, Cards.list_cards_for_cosmos())
   end
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    IO.puts("in index delete")
     card = Cards.get_card!(id)
     {:ok, _} = Cards.delete_card(card)
 
-    {:noreply,
-     assign(socket, :cards, Cards.list_cards_for_cosmos(socket.assigns.active_principle))}
-  end
-
-  def subnavClass(active_principle, test_principle) do
-    "my-1 text-lg font-large md:mx-4 md:my-0 hover:text-sky-300 " <>
-      if active_principle == test_principle,
-        do: "activenav",
-        else: "inactivenav"
+    {:noreply, assign(socket, :cards, Cards.list_cards_for_cosmos())}
   end
 end

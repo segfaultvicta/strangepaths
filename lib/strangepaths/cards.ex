@@ -21,10 +21,10 @@ defmodule Strangepaths.Cards do
     Repo.all(Card)
   end
 
-  def list_cards_for_cosmos(principle) do
+  def list_cards_for_cosmos() do
     cards =
       Card
-      |> where(principle: ^principle, glorified: false)
+      |> where(glorified: false)
       |> order_by(:id)
       |> Repo.all()
 
@@ -39,10 +39,9 @@ defmodule Strangepaths.Cards do
     end)
   end
 
-  def list_cards_for_codex(principle) do
+  def list_cards_for_codex() do
     cards =
       Card
-      |> where(principle: ^principle)
       # Flurry should not show up in codex
       |> where([c], c.id != 187)
       |> order_by(:id)
@@ -131,7 +130,6 @@ defmodule Strangepaths.Cards do
   """
   def create_card(%{
         name: name,
-        principle: principle,
         type: type,
         aspect_id: aspect_id,
         rules: rules,
@@ -141,7 +139,6 @@ defmodule Strangepaths.Cards do
       %Card{}
       |> Card.changeset(%{
         name: name,
-        principle: principle,
         type: type,
         aspect_id: aspect_id,
         rules: rules,
@@ -157,7 +154,6 @@ defmodule Strangepaths.Cards do
         %Card{}
         |> Card.changeset(%{
           name: name,
-          principle: principle,
           type: type,
           aspect_id: aspect_id,
           rules: glory_rules,
@@ -182,7 +178,6 @@ defmodule Strangepaths.Cards do
   # for cards with no glory version
   def create_card(%{
         name: name,
-        principle: principle,
         type: type,
         aspect_id: aspect_id,
         rules: rules
@@ -191,7 +186,6 @@ defmodule Strangepaths.Cards do
     |> Card.changeset(%{
       name: name,
       img: image_from_name(name, false),
-      principle: principle,
       type: type,
       aspect_id: aspect_id,
       rules: rules,
@@ -205,7 +199,6 @@ defmodule Strangepaths.Cards do
   def create_card(%{
         "name" => name,
         "img" => img,
-        "principle" => principle,
         "type" => type,
         "rules" => rules,
         "gnosis" => gnosis_plaintext
@@ -214,7 +207,6 @@ defmodule Strangepaths.Cards do
     |> Card.changeset(%{
       name: name,
       img: img,
-      principle: principle,
       type: type,
       aspect_id: Strangepaths.Cards.get_aspect_id("Alethic"),
       rules: rules,
@@ -261,7 +253,7 @@ defmodule Strangepaths.Cards do
   end
 
   @doc """
-  Deletes a card. Need to name-search to delete both a card and its glorified form within a principle, if necessary.
+  Deletes a card. Need to name-search to delete both a card and its glorified form, if necessary.
 
   ## Examples
 
@@ -273,7 +265,7 @@ defmodule Strangepaths.Cards do
 
   """
   def delete_card(%Card{} = card) do
-    from(c in Card, where: c.name == ^card.name and c.principle == ^card.principle)
+    from(c in Card, where: c.name == ^card.name)
     |> Repo.delete_all()
   end
 
@@ -309,32 +301,25 @@ defmodule Strangepaths.Cards do
     end
   end
 
-  def select_decks_for_ceremony(user_id, ceremony) do
+  def select_decks_for_ceremony(user_id) do
     decks =
       list_decks(user_id)
       |> Enum.map(fn {d} -> d.deck end)
-      |> Enum.filter(fn d -> d.principle == ceremony.principle end)
       |> Enum.map(fn d -> {d.name, d.id} end)
 
     decks ++
-      case ceremony.principle do
-        :Dragon ->
-          [
-            {"⭒Lithos⭒", 99990},
-            {"🟔Lithos🟔", 99991},
-            {"⭒Orichalca⭒", 99992},
-            {"🟔Orichalca🟔", 99993},
-            {"⭒Papyrus⭒", 99994},
-            {"🟔Papyrus🟔", 99995},
-            {"⭒Vitriol⭒", 99996},
-            {"🟔Vitriol🟔", 99997},
-            {"⭒Lutum⭒", 99998},
-            {"🟔Lutum🟔", 99999}
-          ]
-
-        _ ->
-          []
-      end
+      [
+        {"⭒Lithos⭒", 99990},
+        {"🟔Lithos🟔", 99991},
+        {"⭒Orichalca⭒", 99992},
+        {"🟔Orichalca🟔", 99993},
+        {"⭒Papyrus⭒", 99994},
+        {"🟔Papyrus🟔", 99995},
+        {"⭒Vitriol⭒", 99996},
+        {"🟔Vitriol🟔", 99997},
+        {"⭒Lutum⭒", 99998},
+        {"🟔Lutum🟔", 99999}
+      ]
   end
 
   defp query_decks(user_id, sortcol, direction) do
@@ -408,7 +393,7 @@ defmodule Strangepaths.Cards do
   """
   def create_deck(attrs \\ %{}) do
     # preload the deck with the basic Grace and base 5 Rites for that deck's aspect
-    cards = list_cards_for_codex(String.to_atom(attrs["principle"]))
+    cards = list_cards_for_codex()
 
     basecards =
       [Enum.at(rites(cards, String.to_integer(attrs["aspect_id"]), 1, :Grace), 0)] ++
@@ -531,7 +516,7 @@ defmodule Strangepaths.Cards do
     Enum.reduce(rites, %{rites: [], i: 1}, fn rite, %{rites: acc, i: i} ->
       %{
         rites: [
-          %Card{
+          %{
             rite
             | glory_cost:
                 if i in 1..base_cards_in_aspect do
@@ -686,7 +671,6 @@ defmodule Strangepaths.Cards do
 
     defstruct id: nil,
               name: "",
-              principle: nil,
               owner_id: nil,
               owner_name: "",
               entities: [],
@@ -700,14 +684,13 @@ defmodule Strangepaths.Cards do
       Agent.start_link(fn -> %{} end, name: __MODULE__)
     end
 
-    def create(name, principle, owner_id) do
+    def create(name, owner_id) do
       owner_name = Strangepaths.Accounts.get_user!(owner_id).nickname
-      truename = truename(name, principle, owner_id)
+      truename = truename(name, owner_id)
 
       ceremony = %Ceremony{
         id: truename,
         name: name,
-        principle: String.to_atom(principle),
         owner_id: owner_id,
         owner_name: owner_name,
         entities: []
@@ -717,7 +700,7 @@ defmodule Strangepaths.Cards do
         Agent.update(__MODULE__, fn state -> Map.put(state, truename, ceremony) end)
         {:ok, ceremony}
       else
-        {:error, "Ceremony with that name, principle, and creator already exists."}
+        {:error, "Ceremony with that name and creator already exists."}
       end
     end
 
@@ -734,12 +717,12 @@ defmodule Strangepaths.Cards do
           rites =
             deck
             |> Enum.filter(fn c -> c.type == :Rite end)
-            |> Enum.map(fn c -> %Card{c | uuid: Ecto.UUID.generate()} end)
+            |> Enum.map(fn c -> %{c | uuid: Ecto.UUID.generate()} end)
             |> _shuffle()
 
           {hand, rites} = Enum.split(rites, 4)
 
-          %Entity{entity | cards: %{entity.cards | hand: hand, graces: graces, draw: rites}}
+          %{entity | cards: %{entity.cards | hand: hand, graces: graces, draw: rites}}
         else
           entity
         end
@@ -748,7 +731,7 @@ defmodule Strangepaths.Cards do
       entities = ceremony.entities |> Enum.reject(fn e -> e.uuid == entity.uuid end)
 
       if ok == :ok do
-        {:ok, save(truename, %Ceremony{ceremony | entities: [entity | entities]})}
+        {:ok, save(truename, %{ceremony | entities: [entity | entities]})}
       else
         {:error, ceremony}
       end
@@ -760,7 +743,7 @@ defmodule Strangepaths.Cards do
       entities = ceremony.entities |> Enum.reject(fn e -> e.uuid == entity.uuid end)
 
       if ok == :ok do
-        {:ok, save(truename, %Ceremony{ceremony | entities: entities})}
+        {:ok, save(truename, %{ceremony | entities: entities})}
       else
         {:error, ceremony}
       end
@@ -790,13 +773,13 @@ defmodule Strangepaths.Cards do
 
       hand =
         if n == 1 do
-          [%Card{card | uuid: Ecto.UUID.generate()} | entity.cards.hand]
+          [%{card | uuid: Ecto.UUID.generate()} | entity.cards.hand]
         else
           (List.duplicate(card, n)
-           |> Enum.map(fn c -> %Card{c | uuid: Ecto.UUID.generate()} end)) ++ entity.cards.hand
+           |> Enum.map(fn c -> %{c | uuid: Ecto.UUID.generate()} end)) ++ entity.cards.hand
         end
 
-      entity = %Entity{entity | cards: %{entity.cards | hand: hand}}
+      entity = %{entity | cards: %{entity.cards | hand: hand}}
       placeEntity(truename, entity)
     end
 
@@ -811,7 +794,7 @@ defmodule Strangepaths.Cards do
       if entity.cards.draw |> Enum.count() > 0 do
         [card | draw] = entity.cards.draw
 
-        entity = %Entity{
+        entity = %{
           entity
           | cards: %{entity.cards | hand: [card | entity.cards.hand], draw: draw}
         }
@@ -821,7 +804,7 @@ defmodule Strangepaths.Cards do
     end
 
     def shuffle(truename, entity) do
-      entity = %Entity{entity | cards: %{entity.cards | draw: _shuffle(entity.cards.draw)}}
+      entity = %{entity | cards: %{entity.cards | draw: _shuffle(entity.cards.draw)}}
       placeEntity(truename, entity)
     end
 
@@ -844,7 +827,7 @@ defmodule Strangepaths.Cards do
         card = entity.cards.discard |> Enum.random()
         discard = entity.cards.discard |> Enum.reject(fn c -> c.uuid == card.uuid end)
         hand = [card | entity.cards.hand]
-        entity = %Entity{entity | cards: %{entity.cards | hand: hand, discard: discard}}
+        entity = %{entity | cards: %{entity.cards | hand: hand, discard: discard}}
         placeEntity(truename, entity)
       end
     end
@@ -853,7 +836,7 @@ defmodule Strangepaths.Cards do
       card = entity.cards.hand |> Enum.find(fn c -> c.uuid == card_uuid end)
       discard = [card | entity.cards.discard]
       hand = entity.cards.hand |> Enum.reject(fn c -> c.uuid == card.uuid end)
-      entity = %Entity{entity | cards: %{entity.cards | hand: hand, discard: discard}}
+      entity = %{entity | cards: %{entity.cards | hand: hand, discard: discard}}
       placeEntity(truename, entity)
     end
 
@@ -861,7 +844,7 @@ defmodule Strangepaths.Cards do
       # need to turn card entity back into a card proper
       truecard = Strangepaths.Cards.get_card!(card.card_id)
 
-      entity = %Entity{
+      entity = %{
         entity
         | cards: %{entity.cards | discard: [truecard | entity.cards.discard]}
       }
@@ -873,7 +856,7 @@ defmodule Strangepaths.Cards do
     def card_to_hand(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
 
-      entity = %Entity{
+      entity = %{
         entity
         | cards: %{entity.cards | hand: [truecard | entity.cards.hand]}
       }
@@ -892,7 +875,7 @@ defmodule Strangepaths.Cards do
     def card_to_deck(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
 
-      entity = %Entity{
+      entity = %{
         entity
         | cards: %{entity.cards | draw: shuffle_in(entity.cards.draw, truecard)}
       }
@@ -904,7 +887,7 @@ defmodule Strangepaths.Cards do
     def card_to_top_deck(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
 
-      entity = %Entity{
+      entity = %{
         entity
         | cards: %{entity.cards | draw: [truecard | entity.cards.draw]}
       }
@@ -915,14 +898,14 @@ defmodule Strangepaths.Cards do
 
     def remove_from_hand(truename, originalUUID, entity) do
       hand = entity.cards.hand |> Enum.reject(fn c -> c.uuid == originalUUID end)
-      placeEntity(truename, %Entity{entity | cards: %{entity.cards | hand: hand}})
+      placeEntity(truename, %{entity | cards: %{entity.cards | hand: hand}})
     end
 
     def scry(truename, entity, card_uuid) do
       card = entity.cards.draw |> Enum.find(fn c -> c.uuid == card_uuid end)
       hand = [card | entity.cards.hand]
       draw = entity.cards.draw |> Enum.reject(fn c -> c.uuid == card.uuid end)
-      entity = %Entity{entity | cards: %{entity.cards | hand: hand, draw: draw}}
+      entity = %{entity | cards: %{entity.cards | hand: hand, draw: draw}}
       placeEntity(truename, entity)
     end
 
@@ -930,13 +913,13 @@ defmodule Strangepaths.Cards do
       card = entity.cards.discard |> Enum.find(fn c -> c.uuid == card_uuid end)
       hand = [card | entity.cards.hand]
       discard = entity.cards.discard |> Enum.reject(fn c -> c.uuid == card.uuid end)
-      entity = %Entity{entity | cards: %{entity.cards | hand: hand, discard: discard}}
+      entity = %{entity | cards: %{entity.cards | hand: hand, discard: discard}}
       placeEntity(truename, entity)
     end
 
     def gm_screen_toggle(truename) do
       {_, ceremony} = get(truename)
-      ceremony = %Ceremony{ceremony | gm_avatars_visible: !ceremony.gm_avatars_visible}
+      ceremony = %{ceremony | gm_avatars_visible: !ceremony.gm_avatars_visible}
       save(truename, ceremony)
     end
 
@@ -969,8 +952,8 @@ defmodule Strangepaths.Cards do
       !is_nil(Agent.get(__MODULE__, fn state -> state[name] end))
     end
 
-    def truename(name, principle, owner_id) do
-      :crypto.hash(:md5, name <> principle <> Integer.to_string(owner_id))
+    def truename(name, owner_id) do
+      :crypto.hash(:md5, name <> Integer.to_string(owner_id))
       |> Base.encode16()
       |> String.downcase()
     end
@@ -1022,21 +1005,8 @@ defmodule Strangepaths.Cards do
     # ceremony =
     #  %Ceremony{}
     #  |> Ceremony.changeset(attrs)
-    Ceremony.create(attrs["name"], attrs["principle"], owner_id)
+    Ceremony.create(attrs["name"], owner_id)
   end
-
-  @doc """
-  Updates a ceremony.
-
-  ## Examples
-
-      iex> update_ceremony(ceremony, %{field: new_value})
-      {:ok, %Ceremony{}}
-
-      iex> update_ceremony(ceremony, %{field: bad_value})
-      {:error, ...}
-
-  """
 
   @doc """
   Deletes a Ceremony.

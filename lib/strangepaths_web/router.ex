@@ -23,6 +23,12 @@ defmodule StrangepathsWeb.Router do
 
     get("/", PageController, :index)
 
+    resources("/ost", SongController)
+
+    post("/ost/:id/unlock", SongController, :unlock)
+
+    live("/ascension", Ascension)
+
     live("/codex", DeckLive.Index, :index)
     live("/codex/new", DeckLive.Index, :new)
 
@@ -30,9 +36,6 @@ defmodule StrangepathsWeb.Router do
     live("/codex/:id/show/edit", DeckLive.Show, :edit)
 
     live("/cosmos", CardLive.Index, :index)
-    live("/cosmos/dragon", CardLive.Index, :Dragon)
-    live("/cosmos/stillness", CardLive.Index, :Stillness)
-    live("/cosmos/song", CardLive.Index, :Song)
     live("/cosmos/new", CardLive.Index, :new)
 
     live("/cosmos/:id", CardLive.Show, :show)

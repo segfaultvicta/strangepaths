@@ -2,7 +2,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   use StrangepathsWeb, :live_view
 
   alias Strangepaths.Cards
-  alias Strangepaths.Accounts.Avatar
 
   @impl true
   def mount(_params, session, socket) do
@@ -109,7 +108,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
       # if selected avatar has been updated,
       newAvatars =
         Enum.map(socket.assigns.avatars, fn a ->
-          %Avatar{a | selected: a.id == avatar}
+          %{a | selected: a.id == avatar}
         end)
 
       {:noreply,
@@ -155,7 +154,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
     newAvatars =
       Enum.map(socket.assigns.avatars, fn a ->
-        %Avatar{a | selected: a.id == socket.assigns.selectedAvatarID}
+        %{a | selected: a.id == socket.assigns.selectedAvatarID}
       end)
 
     {:noreply,
@@ -178,7 +177,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   @impl true
   def handle_event("move", data, socket) when socket.assigns.state == :placeEntity do
-    placingEntity = %Cards.Entity{socket.assigns.placingEntity | x: data["x"], y: data["y"]}
+    placingEntity = %{socket.assigns.placingEntity | x: data["x"], y: data["y"]}
 
     {:noreply,
      socket
@@ -299,7 +298,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
     if(entity.owner_id == socket.assigns.current_user.id) do
       socket = socket |> assign(:state, :avatarMenu) |> assign(:selectedEntity, entity)
-      menuEntity = %Cards.Entity{entity | type: :Radial}
+      menuEntity = %{entity | type: :Radial}
 
       {:noreply,
        push_event(socket, "loadAvatarMenu", %{
@@ -330,13 +329,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   def handle_event("menuClick", %{"e" => "avatarStress"}, socket) do
     if(socket.assigns.selectedEntity.defence == 0) do
       if socket.assigns.selectedEntity.stress < socket.assigns.selectedEntity.tolerance do
-        Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %Cards.Entity{
+        Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
           socket.assigns.selectedEntity
           | stress: socket.assigns.selectedEntity.stress + 1
         })
       end
     else
-      Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %Cards.Entity{
+      Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
         socket.assigns.selectedEntity
         | defence: socket.assigns.selectedEntity.defence - 1
       })
@@ -347,7 +346,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   end
 
   def handle_event("menuClick", %{"e" => "avatarPierce"}, socket) do
-    Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %Cards.Entity{
+    Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
       socket.assigns.selectedEntity
       | stress: socket.assigns.selectedEntity.stress + 1
     })
@@ -358,7 +357,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   def handle_event("menuClick", %{"e" => "avatarRecover"}, socket) do
     if(socket.assigns.selectedEntity.stress > 0) do
-      Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %Cards.Entity{
+      Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
         socket.assigns.selectedEntity
         | stress: socket.assigns.selectedEntity.stress - 1
       })
@@ -377,7 +376,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   def handle_event("menuClick", %{"e" => "avatarDefend"}, socket) do
     if(socket.assigns.selectedEntity.defence < socket.assigns.selectedEntity.tolerance) do
-      Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %Cards.Entity{
+      Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
         socket.assigns.selectedEntity
         | defence: socket.assigns.selectedEntity.defence + 1
       })
@@ -950,7 +949,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
     socket = socket |> assign(:state, :cardMenu) |> assign(:selectedEntity, entity)
-    menuEntity = %Cards.Entity{entity | type: :Radial}
+    menuEntity = %{entity | type: :Radial}
 
     {:noreply,
      push_event(socket, "loadCardMenu", %{
@@ -1010,7 +1009,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   def handle_event("menuClick", %{"e" => "cardCopy"}, socket) do
     card = socket.assigns.selectedEntity
 
-    copy = %Cards.Entity{card | uuid: Ecto.UUID.generate()}
+    copy = %{card | uuid: Ecto.UUID.generate()}
 
     {:noreply,
      push_event(
@@ -1205,7 +1204,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
          |> assign(:ceremony, ceremony)
          |> assign(
            :available_decks,
-           Cards.select_decks_for_ceremony(socket.assigns.current_user.id, ceremony)
+           Cards.select_decks_for_ceremony(socket.assigns.current_user.id)
          )
          |> assign(:presenceList, Strangepaths.Presence.list(id) |> to_presence)
          |> assign(:state, :ready)}

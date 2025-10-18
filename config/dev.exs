@@ -3,7 +3,7 @@ import Config
 # Configure your database
 config :strangepaths, Strangepaths.Repo,
   username: "postgres",
-  password: "postgres",
+  password: "1zc3edg5",
   hostname: "localhost",
   database: "strangepaths_dev",
   stacktrace: true,
