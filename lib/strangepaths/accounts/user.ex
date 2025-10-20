@@ -9,6 +9,21 @@ defmodule Strangepaths.Accounts.User do
     field(:confirmed_at, :naive_datetime)
     field(:nickname, :string)
     field(:role, Ecto.Enum, values: [:user, :admin, :god], default: :user)
+    field(:public_ascension, :boolean, default: false)
+    field(:arete, :integer, default: 0)
+    field(:primary_red, :integer, default: 4)
+    field(:primary_green, :integer, default: 4)
+    field(:primary_blue, :integer, default: 4)
+    field(:primary_white, :integer, default: 4)
+    field(:primary_black, :integer, default: 4)
+    field(:primary_void, :integer, default: 4)
+    field(:alethic_red, :integer, default: 0)
+    field(:alethic_green, :integer, default: 0)
+    field(:alethic_blue, :integer, default: 0)
+    field(:alethic_white, :integer, default: 0)
+    field(:alethic_black, :integer, default: 0)
+    field(:alethic_void, :integer, default: 0)
+    field(:techne, {:array, :string}, default: [])
 
     timestamps()
   end
@@ -118,6 +133,16 @@ defmodule Strangepaths.Accounts.User do
       %{changes: %{nickname: _}} = changeset -> changeset
       %{} = changeset -> add_error(changeset, :nickname, "did not change")
     end
+  end
+
+  def ascension_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:public_ascension])
+  end
+
+  def techne_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:techne])
   end
 
   @doc """

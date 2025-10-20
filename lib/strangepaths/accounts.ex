@@ -60,6 +60,41 @@ defmodule Strangepaths.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  def get_ascended_users() do
+    users =
+      User
+      |> where(public_ascension: true)
+      |> order_by(:nickname)
+      |> Repo.all()
+
+    # I want to turn each user's techne into a tuple of name, description
+    # where the name cuts off at the first colon, and the description is the rest
+    Enum.map(users, fn user ->
+      techne =
+        case user.techne do
+          nil ->
+            [{"", ""}]
+
+          _ ->
+            Enum.map(user.techne, fn techne ->
+              case String.split(techne, ":", parts: 2) do
+                [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
+                [name] -> %{name: String.trim(name), desc: ""}
+              end
+            end)
+        end
+
+      Map.put(user, :techne, techne)
+    end)
+  end
+
+  def get_private_users() do
+    User
+    |> where(public_ascension: false)
+    |> order_by(:nickname)
+    |> Repo.all()
+  end
+
   ## User registration
 
   @doc """
@@ -103,6 +138,18 @@ defmodule Strangepaths.Accounts do
 
   def change_user_nickname(user, attrs \\ %{}) do
     User.nick_changeset(user, attrs)
+  end
+
+  def update_user_ascension(user, attrs \\ %{}) do
+    user
+    |> User.ascension_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_user_techne(user, attrs \\ %{}) do
+    user
+    |> User.techne_changeset(attrs)
+    |> Repo.update()
   end
 
   @doc """

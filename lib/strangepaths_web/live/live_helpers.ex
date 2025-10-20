@@ -8,9 +8,30 @@ defmodule StrangepathsWeb.LiveHelpers do
   alias Strangepaths.Accounts.User
 
   def find_current_user(session) do
-    with user_token when not is_nil(user_token) <- session["user_token"],
-         %User{} = user <- Accounts.get_user_by_session_token(user_token),
-         do: user
+    user =
+      with user_token when not is_nil(user_token) <- session["user_token"],
+           %User{} = user <- Accounts.get_user_by_session_token(user_token),
+           do: user
+
+    techne =
+      case user.techne do
+        nil ->
+          [{"", ""}]
+
+        _ ->
+          Enum.map(user.techne, fn techne ->
+            case String.split(techne, ":", parts: 2) do
+              [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
+              [name] -> %{name: String.trim(name), desc: ""}
+            end
+          end)
+      end
+
+    if user != nil do
+      %{user | techne: techne}
+    else
+      nil
+    end
   end
 
   def assign_defaults(session, socket) do

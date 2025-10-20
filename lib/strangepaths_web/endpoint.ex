@@ -19,7 +19,7 @@ defmodule StrangepathsWeb.Endpoint do
   plug(Plug.Static,
     at: "/",
     from: :strangepaths,
-    gzip: false,
+    gzip: true,
     only: ~w(assets fonts images uploads favicon.ico robots.txt)
   )
 

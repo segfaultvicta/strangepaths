@@ -5,6 +5,10 @@
 
 /* This file is for your main application CSS */
 
+@function random-range($min, $max) {
+    @return floor(random() * ($max - $min + 1))+$min;
+}
+
 .activenav {
     @apply bg-gray-900 text-white;
 }
@@ -152,6 +156,13 @@
     transform: translate(-50%, -50%);
 }
 
+.tippy-content {
+    background-color: #330033;
+    color: #fff;
+    border: 2px solid #ff00ff;
+    font-size: 24pt;
+}
+
 .glow {
     -webkit-animation: glow 3s ease-in;
     -moz-animation: glow 3s ease-in;
@@ -169,6 +180,29 @@
         filter: blur(1px);
         color: rgb(234, 0, 255);
         text-shadow: 0 0 20px rgb(255, 2, 149), 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 0 0 60px #cc00c2, 0 0 70px #ff4da6, 0 0 80px #000000;
+    }
+}
+
+.areteglow {
+    -webkit-animation: areteglow 3s ease-in-out infinite alternate;
+    -moz-animation: areteglow 3s ease-in-out infinite alternate;
+    animation: areteglow 3s ease-in-out infinite alternate;
+}
+
+@keyframes areteglow {
+    from {
+        filter: saturate(5);
+        font-weight: 900;
+        text-shadow: 0 0 2px #FFF;
+        //text-shadow: 0 0 20px #FFF, 0 0 25px #666;
+
+    }
+
+    to {
+        filter: saturate(3);
+        font-weight: 100;
+        text-shadow: 0 0 10px #000, 0 0 15px #222, 0 0 20px #555, 0 0 25px #999, 0 0 30px #AAA, 0 0 40px #CCC;
+
     }
 }
 
