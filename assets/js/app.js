@@ -54,21 +54,20 @@ Hooks.MusicPlayer = {
         this.isMainTab = true;
 
         // Check if another tab exists
+        console.log("ping")
         this.channel.postMessage({ type: 'ping' });
-
-        console.log("breadcrumb #1: " + audio.volume);
-
         // Listen for responses
         this.channel.onmessage = (event) => {
             if (event.data.type === 'pong') {
                 // Another tab exists and responded - we should mute
-                console.log("I got ponged, that means I am NOT the main tab, oh fuck oh shit oh piss oh damn");
+                console.log("get ponged, nerd");
                 this.isMainTab = false;
                 document.getElementById("manual-play-btn")?.classList.remove("hidden");
                 volumeControl.value = 0;
                 audio.volume = 0;
             } else if (event.data.type === 'ping') {
                 // New tab is asking if we exist - respond
+                console.log("pong")
                 this.channel.postMessage({ type: 'pong' });
             }
         };
@@ -107,7 +106,6 @@ Hooks.MusicPlayer = {
         volumeControl.addEventListener("input", (e) => {
             const volume = e.target.value / 100;
             audio.volume = volume;
-            console.log("breadcrumb #2: " + audio.volume);
             localStorage.setItem("volume", volume);
 
             if (volume == 0) {
@@ -116,17 +114,13 @@ Hooks.MusicPlayer = {
         });
         const savedVolume = localStorage.getItem("volume");
         audio.volume = savedVolume !== null ? parseFloat(savedVolume) : 0.5;
-        console.log("breadcrumb #3: " + audio.volume);
         volumeControl.value = audio.volume * 100;
 
         // Handle incoming broadcasts
         this.handleEvent("play_song", ({ song_id, title, link, queued_by, start_position }) => {
-            console.log("Playing:", title, "at position:", start_position, "seconds");
             currentSongId = song_id; // Store the song ID
             audio.src = link;
             audio.currentTime = start_position || 0;
-
-            console.log("breadcrumb #4: " + audio.volume);
             if (audio.volume == 0) {
                 // TODO FIXME i'm not sure this is doing what I want it to be doing and I'm too tired to fix it.
                 // I want the Manual Play button to un-hide itself at the appropriate times.
@@ -135,7 +129,6 @@ Hooks.MusicPlayer = {
 
             // Wait for metadata to load before seeking
             audio.addEventListener('loadeddata', () => {
-                console.log("breadcrumb #5: " + audio.volume);
                 audio.play().catch(err => {
                     console.warn("Autoplay blocked:", err);
                     document.getElementById("manual-play-btn")?.classList.remove("hidden");

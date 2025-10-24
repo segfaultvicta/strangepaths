@@ -12,6 +12,10 @@ processes = []
   PHX_HOST = "strangepaths.aludel.xyz"
   PORT = "8080"
 
+[mounts]
+  source="strangepaths_fileupload"
+  destination="/priv/static/uploads"
+
 [experimental]
   allowed_public_ports = []
   auto_rollback = true

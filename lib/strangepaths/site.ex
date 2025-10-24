@@ -262,7 +262,7 @@ defmodule Strangepaths.Site do
     song = get_song!(song_id)
     guid = Ecto.UUID.generate()
 
-    music_dir = Path.join([:code.priv_dir(:strangepaths), "static", "music"])
+    music_dir = Path.join([:code.priv_dir(:strangepaths), "static", "uploads", "music"])
     File.mkdir_p!(music_dir)
 
     dest_path = Path.join(music_dir, "#{guid}.mp3")
@@ -272,7 +272,7 @@ defmodule Strangepaths.Site do
         # Update song with new GUID and link
         case update_song(song, %{
                file_guid: guid,
-               link: "/music/#{guid}"
+               link: "/static/uploads/music/#{guid}.mp3"
              }) do
           {:ok, _song} -> {:ok, guid}
           error -> error
