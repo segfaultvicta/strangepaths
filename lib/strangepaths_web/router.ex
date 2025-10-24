@@ -23,9 +23,11 @@ defmodule StrangepathsWeb.Router do
 
     get("/", PageController, :index)
 
-    resources("/ost", SongController)
+    # Secure music file serving
+    get("/music/:guid", MusicFileController, :serve)
 
-    post("/ost/:id/unlock", SongController, :unlock)
+    live("/ost", OstLive)
+    live("/ost/:id", SongLive)
 
     live("/ascension", Ascension)
 

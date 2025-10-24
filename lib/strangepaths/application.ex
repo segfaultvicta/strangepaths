@@ -20,6 +20,7 @@ defmodule Strangepaths.Application do
       # {Strangepaths.Worker, arg}
       Strangepaths.Cards.Ceremony,
       Strangepaths.Presence,
+      Strangepaths.Site.MusicQueue,
       {Nostrum.Bot,
        %{
          consumer: Strangepaths.DiscordHandler,

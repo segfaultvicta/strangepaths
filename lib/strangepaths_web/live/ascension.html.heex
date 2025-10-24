@@ -1,3 +1,4 @@
+
 <nav class="bg-gray-900 shadow">
   <hr style="border-top: double; border-top-color: blueviolet">
 </nav>
@@ -7,7 +8,7 @@
     <div>
       <h3 x-data x-tooltip.raw="Hewwo!">Ascended Stars</h3>
       <%= for user <- @ascended_users do %>
-        <div tabindex="0" phx-value-id={@current_user.id} phx-keydown="toggle" phx-key="Enter" phx-click="toggle" class="p-2 m-2 bg-gray-900">
+        <div tabindex="0" phx-value-id={user.id} phx-keydown="toggle" phx-key="Enter" phx-click="toggle" class="p-2 m-2 bg-gray-900">
           <%= if @role == :admin || @role == :god do %>
             <div>
               <div class="text-2xl">
@@ -75,185 +76,172 @@
     </div>
 
     <div class="col-span-2">
-      <div>
-        <span class="text-2xl text-white my-1">ARETE — <%= @current_user.arete %>
-          <%= if @current_user.arete > 0 do %>
-            <label class="pl-20 pr-3" for="spend_arete"> Spend: </label>
-            <form phx-change="spend_arete_external" class="inline">
-              <select name="spend_arete" phx-change="spend_arete" class="bg-gray-800" id="spend_arete">
-                <option>0</option>
-                <option value="1">1</option>
-                <%= if @current_user.arete > 1 do %>
-                  <option value="2">2</option>
-                <% end %>
-                <%= if @current_user.arete > 2 do %>
-                  <option value="3">3</option>
-                <% end %>
-                <%= if @current_user.arete > 3 do %>      
-                  <option value="4">4</option>
-                <% end %>
-                <%= if @current_user.arete > 4 do %>      
-                  <option value="5">5</option>
-                <% end %>
-                <%= if @current_user.arete > 5 do %>
-                  <option value="6">6</option>
-                <% end %>
-                <%= if @current_user.arete > 6 do %>
-                  <option value="7">7</option>
-                <% end %>
-                <%= if @current_user.arete > 7 do %>
-                  <option value="8">8</option>
-                <% end %>
-                <%= if @current_user.arete > 8 do %>
-                  <option value="9">9</option>
-                <% end %>
-                <%= if @current_user.arete > 9 do %>
-                  <option value="10">10</option>
-                <% end %>
-                <%= if @current_user.arete > 10 do %>
-                  <option value="11">11</option>
-                <% end %>
-                <%= if @current_user.arete > 11 do %>
-                  <option value="12">12</option>
-                <% end %>
-                <%= if @current_user.arete > 12 do %>
-                  <option value="13">13</option>
-                <% end %>
-                <%= if @current_user.arete > 13 do %>
-                  <option value="14">14</option>
-                <% end %>
-                <%= if @current_user.arete > 14 do %>
-                  <option value="15">15</option>
-                <% end %>
-                <%= if @current_user.arete > 15 do %>
-                  <option value="16">16</option>
-                <% end %>
-                <%= if @current_user.arete > 16 do %>
-                  <option value="17">17</option>
-                <% end %>
-                <%= if @current_user.arete > 17 do %>
-                  <option value="18">18</option>
-                <% end %>
-                <%= if @current_user.arete > 18 do %>
-                  <option value="19">19</option>
-                <% end %>
-              </select>
-            </form>
-          <% end %>
-        </span>        
-      </div>
+      <%= if @role == nil do %>
+        <h1 class="text-center"> Please log in to see and interact with your own dice pool. </h1>
+      <% else %>
+        <div>
+          <span class="text-2xl text-white my-1">ARETE — <%= @current_user.arete %>
+            <%= if @current_user.arete > 0 do %>
+              <label class="pl-20 pr-3" for="spend_arete"> Spend: </label>
+              <%= form_for :arete_extern, "#", [id: "spend-arete-form-#{@crimes}", phx_submit: "spend_arete", class: "inline"], fn f -> %>
+                <%= select f, :spend_arete, Enum.to_list(0..20), value: @selected_expenditure, class: "bg-gray-800" %>
+                <%= submit "Arete", class: "btn border border-white rounded pb-1 px-2 ml-2", phx_disable_with: "Processing..." %>
+              <% end %>
+            <% end %>
+          </span>        
+        </div>
 
-      <div class="grid grid-rows-6 gap-4 pt-8">
-        <div class="grid grid-cols-5">
-          <div><img class="object-scale-down h-18" src="/images/red2.png"></div>
-          <div class="text-xl">
-            <span>d<%= @current_user.primary_red %></span>
-            <%= if @current_user.alethic_red > 0 do %>
-              <br><span>[redacted] unto d<%= @current_user.alethic_red %></span>
+        <div class="grid grid-rows-6 gap-4 pt-8">
+          <div class="grid grid-cols-5">
+            <div><img class="object-scale-down h-18" src="/images/red2.png"></div>
+            <div class="text-lg">
+              <span>d<%= @current_user.primary_red %></span>
+              <%= if @current_user.alethic_red > 0 do %>
+                <br><span>[redacted] unto d<%= @current_user.alethic_red %></span>
+              <% end %>
+            </div>
+            <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
+              <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="red">Roll</button>
+              <%= if @current_user.primary_red == 20 do %>
+                <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="red" data-confirm="Is it thy will to perform a terrible, and beautiful, magic?">[redacted] Sacrifice</button>
+                <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="red" data-confirm="Are you sure you want to sacrifice that die?">Sacrifice</button>
+              <% else %>
+                <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="red" data-confirm="Are you sure you want to ascend that die?">Ascend</button>
+              <% end %>
+            </div>
+            <div class="col-span-2">Red actions are impulsive, physical, brave or foolish; they are sparked by passion and emotions running high and a love of freedom above all else.</div>
+          </div>
+          <div>
+            <hr class="border-t-2 border-dashed border-gray-600 py-2">
+            <div class="grid grid-cols-5">
+              <div><img class="object-scale-down h-18" src="/images/green2.png"></div>
+              <div class="text-lg">
+                <span>d<%= @current_user.primary_green %></span>
+                <%= if @current_user.alethic_green > 0 do %>
+                  <br><span>[redacted] unto d<%= @current_user.alethic_green %></span>
+                <% end %>
+              </div>
+              <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
+                <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="green">Roll</button>
+                <%= if @current_user.primary_green == 20 do %>
+                  <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="green" data-confirm="Is it thy will to perform a terrible, and beautiful, magic?">[redacted] Sacrifice</button>
+                  <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="green" data-confirm="Are you sure you want to sacrifice that die?">Sacrifice</button>
+                <% else %> 
+                  <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="green" data-confirm="Are you sure you want to ascend that die?">Ascend</button>
+                <% end %>
+              </div>
+              <div class="col-span-2">Green actions are instinctive, harmonious and accepting of the world as it is; they are focused on growth, interdependence and deep context.</div>
+            </div>
+          </div>
+          <div>
+            <hr class="border-t-2 border-dashed border-gray-600 py-2">
+            <div class="grid grid-cols-5">
+              <div><img class="object-scale-down h-18" src="/images/blue2.png"></div>
+              <div class="text-lg">
+                <span>d<%= @current_user.primary_blue %></span>
+                <%= if @current_user.alethic_blue > 0 do %>
+                  <br><span>[redacted] unto d<%= @current_user.alethic_blue %></span>
+                <% end %>
+              </div>
+              <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
+                <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="blue">Roll</button>
+                <%= if @current_user.primary_blue == 20 do %>
+                  <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="blue" data-confirm="Is it thy will to perform a terrible, and beautiful, magic?">[redacted] Sacrifice</button>
+                  <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="blue" data-confirm="Are you sure you want to sacrifice that die?">Sacrifice</button>
+                <% else %>
+                  <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="blue" data-confirm="Are you sure you want to ascend that die?">Ascend</button>
+                <% end %>
+              </div>
+              <div class="col-span-2">Blue actions are clever, cunning, and logical; they are taken towards achieving perfection and certainty, understanding the world through analysis and study, or fulfilling one's inherent potential.</div>
+            </div>
+          </div>
+          <div>
+            <hr class="border-t-2 border-dashed border-gray-600 py-2">  
+            <div class="grid grid-cols-5">
+              <div><img class="object-scale-down h-18" src="/images/white2.png"></div>
+              <div class="text-lg">
+                <span>d<%= @current_user.primary_white %></span>
+                <%= if @current_user.alethic_white > 0 do %>
+                  <br><span>[redacted] unto d<%= @current_user.alethic_white %></span>
+                <% end %>
+              </div>
+              <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
+                <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="roll" phx-value-color="white">Roll</button>
+                <%= if @current_user.primary_white == 20 do %>
+                  <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="ascend" phx-value-color="white" data-confirm="Is it thy will to perform a terrible, and beautiful, magic?">[redacted] Sacrifice</button>
+                  <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="white" data-confirm="Are you sure you want to sacrifice that die?">Sacrifice</button>
+                <% else %>
+                  <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="ascend" phx-value-color="white" data-confirm="Are you sure you want to ascend that die?">Ascend</button>
+                <% end %>
+              </div>
+              <div class="col-span-2">White actions are lawful and selfless; they advance the community rather than the individual, and are concerned with morality, fairness, and symmetry..</div>
+            </div>
+          </div>
+          <div>
+            <hr class="border-t-2 border-dashed border-gray-600 py-2">
+            <div class="grid grid-cols-5">
+              <div><img class="object-scale-down h-18" src="/images/black2.png"></div>
+              <div class="text-lg">
+                <span>d<%= @current_user.primary_black %></span>
+                <%= if @current_user.alethic_black > 0 do %>
+                  <br><span>[redacted] unto d<%= @current_user.alethic_black %></span>
+                <% end %>
+              </div>
+              <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
+                <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="roll" phx-value-color="black">Roll</button>
+                <%= if @current_user.primary_black == 20 do %>
+                  <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="ascend" phx-value-color="black" data-confirm="Is it thy will to perform a terrible, and beautiful, magic?">[Redacted] Sacrifice</button>
+                  <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="sacrifice" phx-value-color="black" data-confirm="Are you sure you want to sacrifice that die?">Sacrifice</button>
+                <% else %>
+                  <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="ascend" phx-value-color="black" data-confirm="Are you sure you want to ascend that die?">Ascend</button>
+                <% end %>
+                </div>
+              <div class="col-span-2">Black actions are powerful and selfish; ambitious, willing to treat anything and everything as a resource to be spent; willing to sacrifice for gain.</div>
+            </div>
+          </div>
+          <div>
+            <hr class="border-t-2 border-dashed border-gray-600 py-2">
+            <div class="grid grid-cols-5">
+              <div><img class="object-scale-down h-20" src="/images/eye/7.png"></div>
+              <div class="text-l">
+                <span>d<%= @current_user.primary_void %></span>
+                <%= if @current_user.alethic_void > 0 do %>
+                  <br><span>[redacted] unto d<%= @current_user.alethic_void %></span>
+                <% end %>
+              </div>
+              <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
+                <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="empty">Roll</button>
+                <%= if @current_user.primary_void == 20 do %>
+                <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="empty" data-confirm="Is it thy will to perform a terrible, and beautiful, magic?">[Redacted] Sacrifice</button>
+                  <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="empty" data-confirm="Are you sure you want to sacrifice that die?">Sacrifice</button>
+                <% else %>
+                  <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="empty" data-confirm="Are you sure you want to ascend that die?">Ascend</button>
+                <% end %>
+                </div>
+              <div class="col-span-2">Empty actions are mysterious and defy systematising ontologies; they concern magic, metaphysics, the will to overcome and transgress the bounds of reality.</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3>Techne</h3>
+          <ul>
+            <%= for techne <- @current_user.techne do %>
+              <li class="py-2 text-xl">
+                <button class="text-underline btn rounded outline outline-gray-700 p-2 mr-2" phx-click="invoke_techne" phx-value-name={techne.name} phx-value-desc={techne.desc}> <%= techne.name %> — <%= techne.desc %> </button>
+                <button class="text-red-400 shadow" phx-keydown="delete_techne" phx-key="Enter" phx-click="delete_techne" phx-value-name={techne.name} data-confirm="Are you sure you want to delete that techne?">X</button>
+              </li>
             <% end %>
+          </ul>
+          <div class="mt-8">
+            <form phx-change="validate_techne" phx-submit="add_techne">
+              <label class="mr-2" for="techne_name">Add Techne: </label>
+              <input type="text" name="new_techne_name" id="new_techne_name" class="bg-gray-800 mr-2" value={@new_techne_name} />
+              <input type="text" name="new_techne_desc" id="new_techne_desc" class="bg-gray-800 mr-4" value={@new_techne_desc}/>
+              <button type="submit" class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded">Add Techne</button>
+            </form>
           </div>
-          <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
-            <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="red">Roll</button>
-            <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="red">Ascend</button>
-            <button class="bg-transparent hover:bg-red-700 text-red-500 hover:text-white py-1 px-2 border border-red-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="red">Sacrifice</button>
-          </div>
-          <div class="col-span-2">Red actions are impulsive, physical, brave or foolish; they are sparked by passion and emotions running high and a love of freedom above all else.</div>
         </div>
-        <div class="grid grid-cols-5">
-          <div><img class="object-scale-down h-18" src="/images/green2.png"></div>
-          <div class="text-xl">
-            <span>d<%= @current_user.primary_green %></span>
-            <%= if @current_user.alethic_green > 0 do %>
-              <br><span>[redacted] unto d<%= @current_user.alethic_green %></span>
-            <% end %>
-          </div>
-          <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
-            <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="green">Roll</button>
-            <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="green">Ascend</button>
-            <button class="bg-transparent hover:bg-green-700 text-green-500 hover:text-white py-1 px-2 border border-green-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="green">Sacrifice</button>
-          </div>
-          <div class="col-span-2">Green actions are instinctive, harmonious and accepting of the world as it is; they are focused on growth, interdependence and deep context.</div>
-        </div>
-        <div class="grid grid-cols-5">
-          <div><img class="object-scale-down h-18" src="/images/blue2.png"></div>
-          <div class="text-xl">
-            <span>d<%= @current_user.primary_blue %></span>
-            <%= if @current_user.alethic_blue > 0 do %>
-              <br><span>[redacted] unto d<%= @current_user.alethic_blue %></span>
-            <% end %>
-          </div>
-          <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
-            <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="blue">Roll</button>
-            <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="blue">Ascend</button>
-            <button class="bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white py-1 px-2 border border-blue-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="blue">Sacrifice</button>
-          </div>
-          <div class="col-span-2">Blue actions are clever, cunning, and logical; they are taken towards achieving perfection and certainty, understanding the world through analysis and study, or fulfilling one's inherent potential.</div>
-        </div>
-        <div class="grid grid-cols-5">
-          <div><img class="object-scale-down h-18" src="/images/white2.png"></div>
-          <div class="text-xl">
-            <span>d<%= @current_user.primary_white %></span>
-            <%= if @current_user.alethic_white > 0 do %>
-              <br><span>[redacted] unto d<%= @current_user.alethic_white %></span>
-            <% end %>
-          </div>
-          <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
-            <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="roll" phx-value-color="white">Roll</button>
-            <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="ascend" phx-value-color="white">Ascend</button>
-            <button class="bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 py-1 px-2 border border-gray-300 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="white">Sacrifice</button>
-          </div>
-          <div class="col-span-2">White actions are lawful and selfless; they advance the community rather than the individual, and are concerned with morality, fairness, and symmetry..</div>
-        </div>
-        <div class="grid grid-cols-5">
-          <div><img class="object-scale-down h-18" src="/images/black2.png"></div>
-          <div class="text-xl">
-            <span>d<%= @current_user.primary_black %></span>
-            <%= if @current_user.alethic_black > 0 do %>
-              <br><span>[redacted] unto d<%= @current_user.alethic_black %></span>
-            <% end %>
-          </div>
-          <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
-            <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="roll" phx-value-color="black">Roll</button>
-            <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="ascend" phx-value-color="black">Ascend</button>
-            <button class="bg-black hover:bg-black text-white hover:font-bold py-1 px-2 border border-transparent hover:border-white rounded" phx-click="sacrifice" phx-value-color="black">Sacrifice</button>
-          </div>
-          <div class="col-span-2">Black actions are powerful and selfish; ambitious, willing to treat anything and everything as a resource to be spent; willing to sacrifice for gain.</div>
-        </div>
-        <div class="grid grid-cols-5">
-          <div><img class="object-scale-down h-20" src="/images/eye/7.png"></div>
-          <div class="text-xl">
-            <span>d<%= @current_user.primary_void %></span>
-            <%= if @current_user.alethic_void > 0 do %>
-              <br><span>[redacted] unto d<%= @current_user.alethic_void %></span>
-            <% end %>
-          </div>
-          <div class="pt-2 grid grid-rows-3 gap-4 mx-10">
-            <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="roll" phx-value-color="empty">Roll</button>
-            <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="ascend" phx-value-color="empty">Ascend</button>
-            <button class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded" phx-click="sacrifice" phx-value-color="empty">Sacrifice</button>
-          </div>
-          <div class="col-span-2">Empty actions are mysterious and defy systematising ontologies; they concern magic, metaphysics, the will to overcome and transgress the bounds of reality.</div>
-        </div>
-      </div>
-      <div>
-        <h3>Techne</h3>
-        <ul>
-          <%= for techne <- @current_user.techne do %>
-            <li class="text-xl">
-            <%= techne.name %> — <%= techne.desc %> 
-            <button class="text-red-400 shadow" phx-keydown="delete_techne" phx-key="Enter" phx-click="delete_techne" phx-value-name={techne.name} data-confirm="Are you sure you want to delete that techne?">X</button>
-            </li>
-          <% end %>
-        </ul>
-        <div class="mt-8">
-          <form phx-submit="add_techne">
-            <label class="mr-2" for="techne_name">Add Techne: </label>
-            <input type="text" name="name" id="techne_name" class="bg-gray-800 mr-2" value={@new_techne_name} />
-            <input type="text" name="desc" id="techne_desc" class="bg-gray-800 mr-4" value={@new_techne_desc}/>
-            <button type="submit" class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded">Add Techne</button>
-          </form>
-        </div>
-      </div>
+      <% end %>
     </div>
   </div>
 </div>

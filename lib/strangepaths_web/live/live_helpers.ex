@@ -14,17 +14,23 @@ defmodule StrangepathsWeb.LiveHelpers do
            do: user
 
     techne =
-      case user.techne do
+      case user do
         nil ->
           [{"", ""}]
 
-        _ ->
-          Enum.map(user.techne, fn techne ->
-            case String.split(techne, ":", parts: 2) do
-              [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
-              [name] -> %{name: String.trim(name), desc: ""}
-            end
-          end)
+        user ->
+          case user.techne do
+            nil ->
+              [{"", ""}]
+
+            _ ->
+              Enum.map(user.techne, fn techne ->
+                case String.split(techne, ":", parts: 2) do
+                  [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
+                  [name] -> %{name: String.trim(name), desc: ""}
+                end
+              end)
+          end
       end
 
     if user != nil do

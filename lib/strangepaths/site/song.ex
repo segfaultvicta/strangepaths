@@ -7,14 +7,17 @@ defmodule Strangepaths.Site.Song do
     field(:title, :string)
     field(:text, :string)
     field(:disc, :integer)
+    field(:order, :integer)
     field(:unlocked, :boolean, default: false)
+    field(:file_guid, :string)
 
     timestamps()
   end
 
   def changeset(song, attrs) do
     song
-    |> cast(attrs, [:title, :text, :link, :disc, :unlocked])
-    |> validate_required([:title, :disc, :unlocked])
+    |> cast(attrs, [:title, :text, :link, :disc, :order, :unlocked, :file_guid])
+    |> validate_required([:title, :disc])
+    |> unique_constraint(:file_guid)
   end
 end

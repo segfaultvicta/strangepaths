@@ -1,5 +1,0 @@
-<h1>Edit Song</h1>
-
-<%= render "form.html", Map.put(assigns, :action, Routes.song_path(@conn, :update, @song)) %>
-
-<span><%= link "Back", to: Routes.song_path(@conn, :index) %></span>

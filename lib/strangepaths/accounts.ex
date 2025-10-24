@@ -60,6 +60,10 @@ defmodule Strangepaths.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  def get_user_by_nickname(nickname) do
+    Repo.get_by(User, nickname: nickname)
+  end
+
   def get_ascended_users() do
     users =
       User
@@ -146,10 +150,218 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
+  def update_user_arete(user, attrs \\ %{}) do
+    user
+    |> User.arete_changeset(attrs)
+    |> Repo.update()
+  end
+
   def update_user_techne(user, attrs \\ %{}) do
     user
     |> User.techne_changeset(attrs)
     |> Repo.update()
+  end
+
+  def update_user_die(user, attrs \\ %{}) do
+    user
+    |> User.die_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def player_driven_sacrifice(user, color) do
+    case color do
+      "red" ->
+        user
+        |> update_user_die(%{primary_red: 10, alethic_red: max(user.alethic_red, 10)})
+
+      "green" ->
+        user
+        |> update_user_die(%{primary_green: 10, alethic_green: max(user.alethic_green, 10)})
+
+      "blue" ->
+        user
+        |> update_user_die(%{primary_blue: 10, alethic_blue: max(user.alethic_blue, 10)})
+
+      "white" ->
+        user
+        |> update_user_die(%{primary_white: 10, alethic_white: max(user.alethic_white, 10)})
+
+      "black" ->
+        user
+        |> update_user_die(%{primary_black: 10, alethic_black: max(user.alethic_black, 10)})
+
+      "empty" ->
+        user
+        |> update_user_die(%{primary_void: 10, alethic_void: max(user.alethic_void, 10)})
+
+      _ ->
+        {:error, "Invalid color"}
+    end
+  end
+
+  def sacrifice_diff(start, finish) do
+    round(
+      if start == 20 do
+        (start - finish) / 2 - 3
+      else
+        (start - finish) / 2
+      end
+    )
+  end
+
+  def gm_driven_sacrifice(user, color, degree) do
+    case color do
+      "red" ->
+        diff = sacrifice_diff(user.primary_red, degree)
+
+        user
+        |> update_user_die(%{
+          primary_red: degree,
+          alethic_red: max(user.alethic_red, user.primary_red)
+        })
+
+        diff
+
+      "green" ->
+        diff = sacrifice_diff(user.primary_green, degree)
+
+        user
+        |> update_user_die(%{
+          primary_green: degree,
+          alethic_green: max(user.alethic_green, user.primary_green)
+        })
+
+        diff
+
+      "blue" ->
+        diff = sacrifice_diff(user.primary_blue, degree)
+
+        user
+        |> update_user_die(%{
+          primary_blue: degree,
+          alethic_blue: max(user.alethic_blue, user.primary_blue)
+        })
+
+        diff
+
+      "white" ->
+        diff = sacrifice_diff(user.primary_white, degree)
+
+        user
+        |> update_user_die(%{
+          primary_white: degree,
+          alethic_white: max(user.alethic_white, user.primary_white)
+        })
+
+        diff
+
+      "black" ->
+        diff = sacrifice_diff(user.primary_black, degree)
+
+        user
+        |> update_user_die(%{
+          primary_black: degree,
+          alethic_black: max(user.alethic_black, user.primary_black)
+        })
+
+        diff
+
+      "empty" ->
+        diff = sacrifice_diff(user.primary_void, degree)
+
+        user
+        |> update_user_die(%{
+          primary_void: degree,
+          alethic_void: max(user.alethic_void, user.primary_void)
+        })
+
+        diff
+
+      _ ->
+        {:error, "Invalid color"}
+    end
+  end
+
+  def ascend(dieval) do
+    cond do
+      dieval >= 20 -> {:alethic_sacrifice, 20}
+      dieval >= 12 -> {:ok, 20}
+      dieval >= 10 -> {:ok, 12}
+      dieval >= 8 -> {:ok, 10}
+      dieval >= 6 -> {:ok, 8}
+      dieval >= 4 -> {:ok, 6}
+      true -> {:ok, 4}
+    end
+  end
+
+  def ascend(user, color) do
+    case color do
+      "red" ->
+        case ascend(user.primary_red) do
+          {:alethic_sacrifice, _} ->
+            user |> update_user_die(%{primary_red: 4, alethic_red: 20})
+            :alethic_sacrifice
+
+          {:ok, new_die} ->
+            user |> update_user_die(%{primary_red: new_die})
+            {:ascension_successful, new_die}
+        end
+
+      "green" ->
+        case ascend(user.primary_green) do
+          {:alethic_sacrifice, _} ->
+            user |> update_user_die(%{primary_green: 4, alethic_green: 20})
+            :alethic_sacrifice
+
+          {:ok, new_die} ->
+            user |> update_user_die(%{primary_green: new_die})
+            {:ascension_successful, new_die}
+        end
+
+      "blue" ->
+        case ascend(user.primary_blue) do
+          {:alethic_sacrifice, _} ->
+            user |> update_user_die(%{primary_blue: 4, alethic_blue: 20})
+            :alethic_sacrifice
+
+          {:ok, new_die} ->
+            user |> update_user_die(%{primary_blue: new_die})
+            {:ascension_successful, new_die}
+        end
+
+      "white" ->
+        case ascend(user.primary_white) do
+          {:alethic_sacrifice, _} ->
+            user |> update_user_die(%{primary_white: 4, alethic_white: 20})
+            :alethic_sacrifice
+
+          {:ok, new_die} ->
+            user |> update_user_die(%{primary_white: new_die})
+            {:ascension_successful, new_die}
+        end
+
+      "black" ->
+        case ascend(user.primary_black) do
+          {:alethic_sacrifice, _} ->
+            user |> update_user_die(%{primary_black: 4, alethic_black: 20})
+            :alethic_sacrifice
+
+          {:ok, new_die} ->
+            user |> update_user_die(%{primary_black: new_die})
+            {:ascension_successful, new_die}
+        end
+
+      "empty" ->
+        case ascend(user.primary_void) do
+          {:alethic_sacrifice, _} ->
+            user |> update_user_die(%{primary_void: 4, alethic_void: 20})
+            :alethic_sacrifice
+
+          {:ok, new_die} ->
+            user |> update_user_die(%{primary_void: new_die})
+            {:ascension_successful, new_die}
+        end
+    end
   end
 
   @doc """

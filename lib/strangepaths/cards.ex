@@ -224,8 +224,6 @@ defmodule Strangepaths.Cards do
       |> Enum.map(&String.capitalize/1)
       |> Enum.join(" ")
 
-    IO.puts(base)
-
     if glory do
       "/images/" <> base <> " G.png"
     else
@@ -462,8 +460,6 @@ defmodule Strangepaths.Cards do
   end
 
   def deckglory(deck_id) do
-    IO.puts("in deckglory for deck #{deck_id}")
-    IO.inspect((get_deck!(deck_id) |> Enum.at(0) |> Tuple.to_list() |> Enum.at(0)).deck)
     (get_deck!(deck_id) |> Enum.at(0) |> Tuple.to_list() |> Enum.at(0)).deck.glory
   end
 
@@ -480,7 +476,6 @@ defmodule Strangepaths.Cards do
 
   """
   def delete_deck(%Deck{} = deck) do
-    IO.puts("in delete deck function")
     Repo.delete(deck)
   end
 
@@ -739,7 +734,6 @@ defmodule Strangepaths.Cards do
 
     def removeEntity(truename, entity) do
       {ok, ceremony} = get(truename)
-      ceremony.entities |> Enum.each(fn e -> IO.puts("#{e.name}: #{e.uuid}") end)
       entities = ceremony.entities |> Enum.reject(fn e -> e.uuid == entity.uuid end)
 
       if ok == :ok do

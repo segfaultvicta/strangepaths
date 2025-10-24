@@ -1,56 +1,32 @@
 defmodule StrangepathsWeb.DeckLive.Show do
   use StrangepathsWeb, :live_view
 
+  import StrangepathsWeb.MusicBroadcast
+
   alias Strangepaths.Cards
 
   @impl true
   def mount(_params, session, socket) do
+    # Subscribe to music broadcasts
+    subscribe_to_music(socket)
+
     {:ok, assign_defaults(session, socket)}
   end
 
   @impl true
-  def handle_params(%{"id" => id}, _, socket) do
-    # THIS IS STUPID
-    [{%{deck: deck, aspect: aspect}}] = Cards.get_deck!(id)
-    deck = Map.put(Strangepaths.Repo.preload(deck, :cards), :aspect, aspect)
+  def handle_event(event, params, socket) do
+    # Try forwarding music client events first
+    case forward_music_client_event(event, params, socket) do
+      :not_music_event ->
+        # Handle our own events
+        handle_deck_event(event, params, socket)
 
-    {:noreply,
-     socket
-     |> assign(eye: nil, eye_img: nil, alethics: false)
-     |> assign(:page_title, deck.name)
-     |> recalc(deck)}
+      result ->
+        result
+    end
   end
 
-  defp manabalance_div(deck) do
-    Enum.reduce(deck.manabalance, "", fn {color, cardinality}, acc ->
-      acc <>
-        Enum.reduce(0..cardinality, "", fn
-          i, acc2 ->
-            case i do
-              0 ->
-                ""
-
-              _ ->
-                acc2 <>
-                  "<img class='object-scale-down h-8 mr-4" <>
-                  if sidereal_satiation(
-                       deck.cards,
-                       Cards.get_aspect_id(String.capitalize(color)),
-                       i
-                     ) do
-                    ""
-                  else
-                    " blur-lg"
-                  end <>
-                  "' src='/images/" <>
-                  color <> "2.png'>"
-            end
-        end)
-    end)
-  end
-
-  @impl true
-  def handle_event("swap", %{"card" => card, "value" => _, "with" => into}, socket) do
+  defp handle_deck_event("swap", %{"card" => card, "value" => _, "with" => into}, socket) do
     deck =
       socket.assigns.deck
       |> Cards.remove_card_from_deck(String.to_integer(card))
@@ -59,29 +35,29 @@ defmodule StrangepathsWeb.DeckLive.Show do
     {:noreply, recalc(socket, deck)}
   end
 
-  def handle_event("add", %{"value" => card}, socket) do
+  defp handle_deck_event("add", %{"value" => card}, socket) do
     deck = Cards.add_card_to_deck(socket.assigns.deck, String.to_integer(card))
 
     {:noreply, recalc(socket, deck)}
   end
 
-  def handle_event("remove", %{"value" => card}, socket) do
+  defp handle_deck_event("remove", %{"value" => card}, socket) do
     deck = Cards.remove_card_from_deck(socket.assigns.deck, String.to_integer(card))
 
     {:noreply, recalc(socket, deck)}
   end
 
-  def handle_event("adjust_glory", %{"value" => adjustment}, socket) do
+  defp handle_deck_event("adjust_glory", %{"value" => adjustment}, socket) do
     {:ok, deck} = Cards.adjust_glory(socket.assigns.deck, String.to_integer(adjustment))
 
     {:noreply, recalc(socket, deck)}
   end
 
-  def handle_event("truth", _, socket) do
+  defp handle_deck_event("truth", _, socket) do
     {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
   end
 
-  def handle_event("key", value, socket) do
+  defp handle_deck_event("key", value, socket) do
     value = value["key"]
     IO.inspect(value)
 
@@ -126,7 +102,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
     end
   end
 
-  def handle_event("libra", value, socket) do
+  defp handle_deck_event("libra", value, socket) do
     IO.inspect(value)
 
     {res, card_id} =
@@ -147,9 +123,63 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   @impl true
-  def handle_info(:alethics, socket) do
+  def handle_info(msg, socket) do
+    # Try forwarding music events first
+    case forward_music_event(msg, socket) do
+      :not_music_event ->
+        # Handle our own events
+        handle_deck_info(msg, socket)
+
+      result ->
+        result
+    end
+  end
+
+  defp handle_deck_info(:alethics, socket) do
     {:noreply, assign(socket, eye: nil, eye_img: nil, alethics: true)}
   end
+
+  @impl true
+  def handle_params(%{"id" => id}, _, socket) do
+    # THIS IS STUPID
+    [{%{deck: deck, aspect: aspect}}] = Cards.get_deck!(id)
+    deck = Map.put(Strangepaths.Repo.preload(deck, :cards), :aspect, aspect)
+
+    {:noreply,
+     socket
+     |> assign(eye: nil, eye_img: nil, alethics: false)
+     |> assign(:page_title, deck.name)
+     |> recalc(deck)}
+  end
+
+  defp manabalance_div(deck) do
+    Enum.reduce(deck.manabalance, "", fn {color, cardinality}, acc ->
+      acc <>
+        Enum.reduce(0..cardinality, "", fn
+          i, acc2 ->
+            case i do
+              0 ->
+                ""
+
+              _ ->
+                acc2 <>
+                  "<img class='object-scale-down h-8 mr-4" <>
+                  if sidereal_satiation(
+                       deck.cards,
+                       Cards.get_aspect_id(String.capitalize(color)),
+                       i
+                     ) do
+                    ""
+                  else
+                    " blur-lg"
+                  end <>
+                  "' src='/images/" <>
+                  color <> "2.png'>"
+            end
+        end)
+    end)
+  end
+
 
   defp recalc(socket, deck) do
     deck_ids = Enum.map(deck.cards, fn c -> c.id end)

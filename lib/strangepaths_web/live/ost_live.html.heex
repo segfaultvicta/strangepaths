@@ -1,0 +1,192 @@
+<div id="music" class="grid grid-cols-2 gap-16 p-10">
+  <div id="disc1" class="col-span-1">
+    <div id="disc1-sortable" phx-hook={if @role == :admin || @role == :god do "Sortable" else "" end} class="flex flex-col items-center h-full">
+      <h1 class="text-3xl font-bold mb-6"> Disc 1 </h1>
+      <%= for song <- @disc1 do %>
+        <div data-id={song.id} class="m-2 flex items-center gap-4 w-full max-w-2xl">
+          <%= if @editing_song == song.id do %>
+            <form phx-submit="update_title" class="flex-1">
+              <input type="hidden" name="song-id" value={song.id} />
+              <input
+                type="text"
+                name="title"
+                value={song.title}
+                class="text-2xl bg-gray-800 text-purple-300 border border-purple-500 rounded px-2 py-1 w-full"
+                autofocus
+              />
+            </form>
+            <button
+              phx-click="cancel_edit_title"
+              class="text-sm text-gray-400 hover:text-gray-300"
+            >
+              Cancel
+            </button>
+          <% else %>
+            <%= if (song.unlocked && @role != nil) || @role == :admin || @role == :god do %>
+              <%= live_redirect song.title,
+                  to: "/ost/#{song.id}",
+                  class: "text-2xl text-purple-300 hover:text-purple-200 flex-1" %>
+            <% else %>
+              <span class="text-2xl text-gray-400 flex-1"><%= song.title %></span>
+            <% end %>
+          <% end %>
+
+          <% # Admin controls %>
+          <%= if @role == :admin || @role == :god do %>
+            <div class="flex gap-2 text-sm">
+              <%= if @editing_song != song.id do %>
+                <button
+                  phx-click="start_edit_title"
+                  phx-value-song-id={song.id}
+                  class="text-yellow-400 hover:text-yellow-300"
+                  title="Rename song"
+                >
+                  <i class="fa-solid fa-pencil"></i>
+                </button>
+              <% end %>
+
+              <button
+                phx-click="toggle_lock"
+                phx-value-song-id={song.id}
+                class={"#{if song.unlocked, do: "text-green-400", else: "text-red-400"} hover:opacity-75"}
+                title={"#{if song.unlocked, do: "Lock", else: "Unlock"} song"}
+              >
+                <i class={"fa-solid #{if song.unlocked, do: "fa-lock-open", else: "fa-lock"}"}></i>
+              </button>
+            </div>
+          <% end %>
+
+          <% # Queue and Listen buttons %>
+          <%= if (song.unlocked && @role != nil) || @role == :admin || @role == :god do %>
+            <button
+              phx-click="queue_song"
+              phx-value-song-id={song.id}
+              class="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded-full text-lg"
+              title="Add to Queue"
+            >
+              ♪
+            </button>
+          <% else %>
+            <%= if @role != nil do %>
+              <span class="text-xs text-gray-500">(locked)</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%= if @role == :admin || @role == :god do %>
+        <%= if @creating_song == 1 do %>
+          <form phx-submit="create_song" class="m-2 flex items-center gap-4 w-full max-w-2xl">
+            <input type="hidden" name="disc" value="1" />
+            <input type="text" name="title" placeholder="New song title..." 
+                  class="text-2xl bg-gray-800 text-purple-300 border border-purple-500 rounded px-2 py-1 flex-1" autofocus />
+            <button type="submit" class="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm">Create</button>
+            <button type="button" phx-click="cancel_create_song" class="text-sm text-gray-400">Cancel</button>
+          </form>
+        <% else %>
+          <button phx-click="start_create_song" phx-value-disc="1" 
+                  class="m-2 text-green-400 hover:text-green-300" title="Add new song">
+            <i class="fa-solid fa-plus"></i> New Song
+          </button>
+        <% end %>
+      <% end %>
+
+    </div>
+  </div>
+
+  <div id="disc2" class="col-span-1">
+    <div id="disc2-sortable" phx-hook={if @role == :admin || @role == :god do "Sortable" else "" end} class="flex flex-col items-center h-full">
+      <h1 class="text-3xl font-bold mb-6"> Disc 2 </h1>
+      <%= for song <- @disc2 do %>
+        <div data-id={song.id} class="m-2 flex items-center gap-4 w-full max-w-2xl">
+          <% # Song title - clickable link or inline edit %>
+          <%= if @editing_song == song.id do %>
+            <form phx-submit="update_title" class="flex-1">
+              <input type="hidden" name="song-id" value={song.id} />
+              <input
+                type="text"
+                name="title"
+                value={song.title}
+                class="text-2xl bg-gray-800 text-purple-300 border border-purple-500 rounded px-2 py-1 w-full"
+                autofocus
+              />
+            </form>
+            <button
+              phx-click="cancel_edit_title"
+              class="text-sm text-gray-400 hover:text-gray-300"
+            >
+              Cancel
+            </button>
+          <% else %>
+            <%= if (song.unlocked && @role != nil) || @role == :admin || @role == :god do %>
+              <%= live_redirect song.title,
+                  to: "/ost/#{song.id}",
+                  class: "text-2xl text-purple-300 hover:text-purple-200 flex-1" %>
+            <% else %>
+              <span class="text-2xl text-gray-400 flex-1"><%= song.title %></span>
+            <% end %>
+          <% end %>
+
+          <% # Admin controls %>
+          <%= if @role == :admin || @role == :god do %>
+            <div class="flex gap-2 text-sm">
+              <%= if @editing_song != song.id do %>
+                <button
+                  phx-click="start_edit_title"
+                  phx-value-song-id={song.id}
+                  class="text-yellow-400 hover:text-yellow-300"
+                  title="Rename song"
+                >
+                  <i class="fa-solid fa-pencil"></i>
+                </button>
+              <% end %>
+
+              <button
+                phx-click="toggle_lock"
+                phx-value-song-id={song.id}
+                class={"#{if song.unlocked, do: "text-green-400", else: "text-red-400"} hover:opacity-75"}
+                title={"#{if song.unlocked, do: "Lock", else: "Unlock"} song"}
+              >
+                <i class={"fa-solid #{if song.unlocked, do: "fa-lock-open", else: "fa-lock"}"}></i>
+              </button>
+            </div>
+          <% end %>
+
+          <% # Queue and Listen buttons %>
+          <%= if (song.unlocked && @role != nil) || @role == :admin || @role == :god do %>
+            <button
+              phx-click="queue_song"
+              phx-value-song-id={song.id}
+              class="px-3 py-1 bg-purple-600 hover:bg-purple-500 rounded-full text-lg"
+              title="Add to queue"
+            >
+              ♪
+            </button>
+          <% else %>
+            <%= if @role != nil do %>
+              <span class="text-xs text-gray-500">(locked)</span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <%= if @role == :admin || @role == :god do %>
+        <%= if @creating_song == 2 do %>
+          <form phx-submit="create_song" phx-value-disc="2" class="m-2 flex items-center gap-4 w-full max-w-2xl">
+            <input type="hidden" name="disc" value="2" />
+            <input type="text" name="title" placeholder="New song title..." 
+                  class="text-2xl bg-gray-800 text-purple-300 border border-purple-500 rounded px-2 py-1 flex-1" autofocus />
+            <button type="submit" class="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm">Create</button>
+            <button type="button" phx-click="cancel_create_song" class="text-sm text-gray-400">Cancel</button>
+          </form>
+        <% else %>
+          <button phx-click="start_create_song" phx-value-disc="2" 
+                  class="m-2 text-green-400 hover:text-green-300" title="Add new song">
+            <i class="fa-solid fa-plus"></i> New Song
+          </button>
+        <% end %>
+      <% end %>
+
+    </div>
+  </div>
+</div>

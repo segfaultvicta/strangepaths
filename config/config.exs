@@ -8,8 +8,11 @@
 import Config
 
 config :strangepaths,
-  ecto_repos: [Strangepaths.Repo],
-  discord_channel: 1_427_456_465_332_994_2
+  ecto_repos: [Strangepaths.Repo]
+
+# ic_channel: 1_429_574_745_980_010_587,
+# bot_channel: 1_429_573_151_272_206_499
+# seekrit channel: 1428210573648203807
 
 # Configures the endpoint
 config :strangepaths, StrangepathsWeb.Endpoint,

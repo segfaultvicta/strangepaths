@@ -1,11 +1,16 @@
 defmodule StrangepathsWeb.CeremonyLive.Show do
   use StrangepathsWeb, :live_view
 
+  import StrangepathsWeb.MusicBroadcast
+
   alias Strangepaths.Cards
 
   @impl true
   def mount(_params, session, socket) do
     socket = assign_defaults(session, socket)
+
+    # Subscribe to music broadcasts
+    subscribe_to_music(socket)
 
     {:ok,
      socket
@@ -37,25 +42,38 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:presenceList, [])}
   end
 
-  def handle_event("context", data, socket) do
+  @impl true
+  def handle_event(event, params, socket) do
+    # Try forwarding music client events first
+    case forward_music_client_event(event, params, socket) do
+      :not_music_event ->
+        # Handle our own events
+        handle_ceremony_event(event, params, socket)
+
+      result ->
+        result
+    end
+  end
+
+  defp handle_ceremony_event("context", data, socket) do
     {:noreply, socket |> assign(:context, data)}
   end
 
   # setupEntity
 
-  def handle_event("dismiss_setupEntity_click", _, socket) do
+  defp handle_ceremony_event("dismiss_setupEntity_click", _, socket) do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
-  def handle_event("dismiss_setupEntity_key", %{"key" => "Escape"}, socket) do
+  defp handle_ceremony_event("dismiss_setupEntity_key", %{"key" => "Escape"}, socket) do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
-  def handle_event("dismiss_setupEntity_key", _, socket) do
+  defp handle_ceremony_event("dismiss_setupEntity_key", _, socket) do
     {:noreply, socket}
   end
 
-  def handle_event("validateAvatar", data, socket) do
+  defp handle_ceremony_event("validateAvatar", data, socket) do
     # special-case the fiends
     {name, tolerance, avatar} =
       case data["entity"]["deck"] do
@@ -128,8 +146,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  @impl true
-  def handle_event("setupAvatar", data, socket) do
+  defp handle_ceremony_event("setupAvatar", data, socket) do
     # we'll either have a name, or a deck - if we have a deck, derive the name from the deck
     # if we don't have a deck, send nil
 
@@ -149,7 +166,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("selectAvatar", data, socket) do
+  defp handle_ceremony_event("selectAvatar", data, socket) do
     socket = socket |> assign(:selectedAvatarID, String.to_integer(data["id"]))
 
     newAvatars =
@@ -162,7 +179,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:avatars, newAvatars)}
   end
 
-  def handle_event("selectCounter", data, socket) do
+  defp handle_ceremony_event("selectCounter", data, socket) do
     {:noreply,
      socket
      |> assign(:state, :placeEntity)
@@ -175,8 +192,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   # placeEntity
 
-  @impl true
-  def handle_event("move", data, socket) when socket.assigns.state == :placeEntity do
+  defp handle_ceremony_event("move", data, socket) when socket.assigns.state == :placeEntity do
     placingEntity = %{socket.assigns.placingEntity | x: data["x"], y: data["y"]}
 
     {:noreply,
@@ -186,8 +202,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:placingY, Cards.Entity.screen_y(placingEntity, data["context"]))}
   end
 
-  @impl true
-  def handle_event("placeEntity", _data, socket) do
+  defp handle_ceremony_event("placeEntity", _data, socket) do
     socket =
       if socket.assigns.placedBy != nil do
         # we're placing a card that was placed by placedBy, so we need to remove the card from that hand
@@ -209,13 +224,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   # AVATAR MENU
 
-  def handle_event("entityClick", %{"id" => uuid}, socket)
-      when socket.assigns.state == :setupTarget and socket.assigns.targetSource == nil do
+  defp handle_ceremony_event("entityClick", %{"id" => uuid}, socket)
+       when socket.assigns.state == :setupTarget and socket.assigns.targetSource == nil do
     {:noreply, socket |> assign(:targetSource, uuid)}
   end
 
-  def handle_event("entityClick", %{"id" => uuid}, socket)
-      when socket.assigns.state == :setupTarget and socket.assigns.targetSource != nil do
+  defp handle_ceremony_event("entityClick", %{"id" => uuid}, socket)
+       when socket.assigns.state == :setupTarget and socket.assigns.targetSource != nil do
     # trigger a target draw between source and target
     StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "leaderLine", %{
       src: socket.assigns.targetSource,
@@ -225,8 +240,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
-  def handle_event("entityClick", data, socket)
-      when socket.assigns.state == :avatarClickDiscard do
+  defp handle_ceremony_event("entityClick", data, socket)
+       when socket.assigns.state == :avatarClickDiscard do
     Cards.Ceremony.discard_from_field(
       socket.assigns.ceremony.id,
       socket.assigns.selectedCard,
@@ -242,8 +257,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:state, :ready)}
   end
 
-  def handle_event("entityClick", data, socket)
-      when socket.assigns.state == :avatarClickToDeck do
+  defp handle_ceremony_event("entityClick", data, socket)
+       when socket.assigns.state == :avatarClickToDeck do
     Cards.Ceremony.card_to_deck(
       socket.assigns.ceremony.id,
       socket.assigns.selectedCard,
@@ -259,8 +274,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:state, :ready)}
   end
 
-  def handle_event("entityClick", data, socket)
-      when socket.assigns.state == :avatarClickToTopDeck do
+  defp handle_ceremony_event("entityClick", data, socket)
+       when socket.assigns.state == :avatarClickToTopDeck do
     Cards.Ceremony.card_to_top_deck(
       socket.assigns.ceremony.id,
       socket.assigns.selectedCard,
@@ -276,8 +291,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:state, :ready)}
   end
 
-  def handle_event("entityClick", data, socket)
-      when socket.assigns.state == :avatarClickToHand do
+  defp handle_ceremony_event("entityClick", data, socket)
+       when socket.assigns.state == :avatarClickToHand do
     Cards.Ceremony.card_to_hand(
       socket.assigns.ceremony.id,
       socket.assigns.selectedCard,
@@ -293,7 +308,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:state, :ready)}
   end
 
-  def handle_event("entityClick", data, socket) do
+  defp handle_ceremony_event("entityClick", data, socket) do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
     if(entity.owner_id == socket.assigns.current_user.id) do
@@ -310,7 +325,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_event("menuClick", %{"e" => "avatarHand"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarHand"}, socket) do
     handData = %{}
 
     {:noreply,
@@ -321,12 +336,12 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("menuClick", %{"e" => "avatarMove"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarMove"}, socket) do
     socket = socket |> assign(:placingEntity, socket.assigns.selectedEntity)
     {:noreply, push_event(socket |> assign(:state, :placeEntity), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "avatarStress"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarStress"}, socket) do
     if(socket.assigns.selectedEntity.defence == 0) do
       if socket.assigns.selectedEntity.stress < socket.assigns.selectedEntity.tolerance do
         Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
@@ -345,7 +360,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "avatarPierce"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarPierce"}, socket) do
     Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
       socket.assigns.selectedEntity
       | stress: socket.assigns.selectedEntity.stress + 1
@@ -355,7 +370,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "avatarRecover"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarRecover"}, socket) do
     if(socket.assigns.selectedEntity.stress > 0) do
       Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
         socket.assigns.selectedEntity
@@ -368,13 +383,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "avatarDelete"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarDelete"}, socket) do
     Cards.Ceremony.removeEntity(socket.assigns.ceremony.id, socket.assigns.selectedEntity)
     StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "avatarDefend"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "avatarDefend"}, socket) do
     if(socket.assigns.selectedEntity.defence < socket.assigns.selectedEntity.tolerance) do
       Cards.Ceremony.placeEntity(socket.assigns.ceremony.id, %{
         socket.assigns.selectedEntity
@@ -387,7 +402,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("click", _data, socket) when socket.assigns.state == :avatarMenu do
+  defp handle_ceremony_event("click", _data, socket) when socket.assigns.state == :avatarMenu do
     # if temenos receives a click when the avatar menu is open, close the avatar menu
 
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadAvatarMenu", %{})}
@@ -395,7 +410,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   # TEMENOS READY MENU
 
-  def handle_event("click", data, socket) when socket.assigns.state == :ready do
+  defp handle_ceremony_event("click", data, socket) when socket.assigns.state == :ready do
     menuEntity = Cards.Entity.create(:Radial, data["x"], data["y"])
     socket = socket |> assign(:state, :temenosMenu)
 
@@ -406,7 +421,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      })}
   end
 
-  def handle_event("menuClick", %{"e" => "temenosPlace"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "temenosPlace"}, socket) do
     {:noreply,
      push_event(
        socket
@@ -418,7 +433,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("menuClick", %{"e" => "temenosCounter"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "temenosCounter"}, socket) do
     {:noreply,
      push_event(
        socket
@@ -429,7 +444,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("counterClick", %{"id" => uuid, "owner" => owner_id}, socket) do
+  defp handle_ceremony_event("counterClick", %{"id" => uuid, "owner" => owner_id}, socket) do
     owner_id = owner_id |> String.to_integer()
 
     if(
@@ -447,7 +462,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket}
   end
 
-  def handle_event("menuClick", %{"e" => "temenosToggleHide"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "temenosToggleHide"}, socket) do
     if(socket.assigns.ceremony.owner_id == socket.assigns.current_user.id) do
       Cards.Ceremony.gm_screen_toggle(socket.assigns.ceremony.id)
       StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
@@ -464,7 +479,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_event("menuClick", %{"e" => "temenosTarget"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "temenosTarget"}, socket) do
     {:noreply,
      push_event(
        socket |> assign(:state, :setupTarget) |> assign(:targetSource, nil),
@@ -473,17 +488,18 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("click", _data, socket) when socket.assigns.state == :temenosMenu do
+  defp handle_ceremony_event("click", _data, socket) when socket.assigns.state == :temenosMenu do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadTemenosMenu", %{})}
   end
 
   # HAND MENU
 
-  def handle_event("handViewHand", _data, socket) do
+  defp handle_ceremony_event("handViewHand", _data, socket) do
     {:noreply, socket |> assign(:handView, :Hand) |> assign(:handMode, nil)}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 1 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 1 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -494,7 +510,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 2 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 2 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -505,7 +522,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 3 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 3 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -516,7 +534,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 4 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 4 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -527,7 +546,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 5 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 5 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -538,7 +558,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 6 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 6 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -549,7 +570,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 7 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 7 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -560,7 +582,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 8 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 8 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -571,7 +594,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 9 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 9 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -582,7 +606,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 10 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 10 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -593,7 +618,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 11 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 11 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -604,7 +630,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 12 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 12 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -615,7 +642,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 13 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 13 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -626,7 +654,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 14 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 14 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -637,7 +666,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 15 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 15 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -648,7 +678,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 16 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 16 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -659,7 +690,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) when socket.assigns.cheat == 17 do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket)
+       when socket.assigns.cheat == 17 do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -669,7 +701,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handViewHandSpecial", _data, socket) do
+  defp handle_ceremony_event("handViewHandSpecial", _data, socket) do
     {:noreply,
      socket
      |> assign(:state, :ready)
@@ -682,7 +714,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("dismiss_cheat", _, socket) do
+  defp handle_ceremony_event("dismiss_cheat", _, socket) do
     {:noreply,
      socket
      |> assign(:state, :ownHand)
@@ -691,19 +723,19 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:handMode, nil)}
   end
 
-  def handle_event("handViewDraw", _data, socket) do
+  defp handle_ceremony_event("handViewDraw", _data, socket) do
     {:noreply, socket |> assign(:handView, :Draw) |> assign(:handMode, nil)}
   end
 
-  def handle_event("handViewDiscard", _data, socket) do
+  defp handle_ceremony_event("handViewDiscard", _data, socket) do
     {:noreply, socket |> assign(:handView, :Discard) |> assign(:handMode, nil)}
   end
 
-  def handle_event("buttonPlay", _data, socket) do
+  defp handle_ceremony_event("buttonPlay", _data, socket) do
     {:noreply, socket |> assign(:handMode, :Play)}
   end
 
-  def handle_event("buttonDraw", _data, socket) do
+  defp handle_ceremony_event("buttonDraw", _data, socket) do
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.draw(cid, socket.assigns.selectedEntity)
 
@@ -717,11 +749,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("buttonDiscard", _data, socket) do
+  defp handle_ceremony_event("buttonDiscard", _data, socket) do
     {:noreply, socket |> assign(:handMode, :Discard)}
   end
 
-  def handle_event("buttonCurse", _data, socket) do
+  defp handle_ceremony_event("buttonCurse", _data, socket) do
     socket.assigns.ceremony.id
     |> Cards.Ceremony.add_card_to_entity_hand(socket.assigns.selectedEntity, 256, 1)
 
@@ -735,7 +767,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("buttonPoison", _data, socket) do
+  defp handle_ceremony_event("buttonPoison", _data, socket) do
     socket.assigns.ceremony.id
     |> Cards.Ceremony.add_card_to_entity_hand(socket.assigns.selectedEntity, 257, 1)
 
@@ -749,7 +781,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("buttonExpose", _data, socket) do
+  defp handle_ceremony_event("buttonExpose", _data, socket) do
     socket.assigns.ceremony.id
     |> Cards.Ceremony.add_card_to_entity_hand(socket.assigns.selectedEntity, 258, 1)
 
@@ -763,7 +795,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("buttonWound", _data, socket) do
+  defp handle_ceremony_event("buttonWound", _data, socket) do
     socket.assigns.ceremony.id
     |> Cards.Ceremony.add_card_to_entity_hand(socket.assigns.selectedEntity, 259, 1)
 
@@ -777,7 +809,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("buttonFlurry", _data, socket) do
+  defp handle_ceremony_event("buttonFlurry", _data, socket) do
     socket.assigns.ceremony.id
     |> Cards.Ceremony.add_card_to_entity_hand(socket.assigns.selectedEntity, 187, 4)
 
@@ -791,11 +823,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("buttonScry", _data, socket) do
+  defp handle_ceremony_event("buttonScry", _data, socket) do
     {:noreply, socket |> assign(:handMode, :Scry)}
   end
 
-  def handle_event("buttonShuffle", _data, socket) do
+  defp handle_ceremony_event("buttonShuffle", _data, socket) do
     # TODO shuffle the deck
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.shuffle(cid, socket.assigns.selectedEntity)
@@ -811,11 +843,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:handView, :Hand)}
   end
 
-  def handle_event("buttonReturn", _data, socket) do
+  defp handle_ceremony_event("buttonReturn", _data, socket) do
     {:noreply, socket |> assign(:handMode, :Return)}
   end
 
-  def handle_event("buttonReturnRandom", _data, socket) do
+  defp handle_ceremony_event("buttonReturnRandom", _data, socket) do
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.return_random(cid, socket.assigns.selectedEntity)
 
@@ -830,7 +862,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:handView, :Hand)}
   end
 
-  def handle_event("handCardClick", data, socket) when socket.assigns.handMode == :Play do
+  defp handle_ceremony_event("handCardClick", data, socket)
+       when socket.assigns.handMode == :Play do
     IO.puts("PLAYING:")
 
     card =
@@ -851,7 +884,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handCardClick", data, socket) when socket.assigns.handMode == :Discard do
+  defp handle_ceremony_event("handCardClick", data, socket)
+       when socket.assigns.handMode == :Discard do
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.discard(cid, socket.assigns.selectedEntity, data["card"])
 
@@ -865,7 +899,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("handCardClick", data, socket) when socket.assigns.handMode == :Scry do
+  defp handle_ceremony_event("handCardClick", data, socket)
+       when socket.assigns.handMode == :Scry do
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.scry(cid, socket.assigns.selectedEntity, data["card"])
 
@@ -881,7 +916,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:handView, :Hand)}
   end
 
-  def handle_event("handCardClick", data, socket) when socket.assigns.handMode == :Return do
+  defp handle_ceremony_event("handCardClick", data, socket)
+       when socket.assigns.handMode == :Return do
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.return(cid, socket.assigns.selectedEntity, data["card"])
 
@@ -897,12 +933,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:handView, :Hand)}
   end
 
-  def handle_event("handCardClick", _data, socket) when socket.assigns.handMode == nil do
+  defp handle_ceremony_event("handCardClick", _data, socket)
+       when socket.assigns.handMode == nil do
     IO.puts("NOOP")
     {:noreply, socket}
   end
 
-  def handle_event("ownhandKey", %{"key" => "Escape"}, socket) do
+  defp handle_ceremony_event("ownhandKey", %{"key" => "Escape"}, socket) do
     {:noreply,
      push_event(
        socket |> assign(:state, :ready) |> assign(:handMode, :Play),
@@ -911,31 +948,31 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("dismissOwnhand", _data, socket) do
+  defp handle_ceremony_event("dismissOwnhand", _data, socket) do
     {:noreply, socket |> assign(:state, :ready) |> assign(:handMode, :Play)}
   end
 
-  def handle_event("ownhandKey", _data, socket) do
+  defp handle_ceremony_event("ownhandKey", _data, socket) do
     {:noreply, socket}
   end
 
-  def handle_event("dismissOthershand", _data, socket) do
+  defp handle_ceremony_event("dismissOthershand", _data, socket) do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
-  def handle_event("othershandKey", _data, socket) do
+  defp handle_ceremony_event("othershandKey", _data, socket) do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
   # CARD MENU
 
-  def handle_event("cardClick", %{"id" => uuid}, socket)
-      when socket.assigns.state == :setupTarget and socket.assigns.targetSource == nil do
+  defp handle_ceremony_event("cardClick", %{"id" => uuid}, socket)
+       when socket.assigns.state == :setupTarget and socket.assigns.targetSource == nil do
     {:noreply, socket |> assign(:targetSource, uuid)}
   end
 
-  def handle_event("cardClick", %{"id" => uuid}, socket)
-      when socket.assigns.state == :setupTarget and socket.assigns.targetSource != nil do
+  defp handle_ceremony_event("cardClick", %{"id" => uuid}, socket)
+       when socket.assigns.state == :setupTarget and socket.assigns.targetSource != nil do
     # trigger a target draw between source and target
     StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "leaderLine", %{
       src: socket.assigns.targetSource,
@@ -945,7 +982,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
-  def handle_event("cardClick", data, socket) do
+  defp handle_ceremony_event("cardClick", data, socket) do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
     socket = socket |> assign(:state, :cardMenu) |> assign(:selectedEntity, entity)
@@ -958,12 +995,12 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      })}
   end
 
-  def handle_event("menuClick", %{"e" => "cardMove"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardMove"}, socket) do
     socket = socket |> assign(:placingEntity, socket.assigns.selectedEntity)
     {:noreply, push_event(socket |> assign(:state, :placeEntity), "unloadAvatarMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "cardDiscard"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardDiscard"}, socket) do
     card = socket.assigns.selectedEntity
 
     eligibleAvatars =
@@ -997,7 +1034,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_event("menuClick", %{"e" => "cardDestroy"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardDestroy"}, socket) do
     card = socket.assigns.selectedEntity
 
     Cards.Ceremony.removeEntity(socket.assigns.ceremony.id, card)
@@ -1006,7 +1043,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadCardMenu", %{})}
   end
 
-  def handle_event("menuClick", %{"e" => "cardCopy"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardCopy"}, socket) do
     card = socket.assigns.selectedEntity
 
     copy = %{card | uuid: Ecto.UUID.generate()}
@@ -1019,7 +1056,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_event("menuClick", %{"e" => "cardToDeck"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardToDeck"}, socket) do
     card = socket.assigns.selectedEntity
 
     eligibleAvatars =
@@ -1053,7 +1090,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_event("menuClick", %{"e" => "cardToTopDeck"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardToTopDeck"}, socket) do
     card = socket.assigns.selectedEntity
 
     eligibleAvatars =
@@ -1087,7 +1124,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_event("menuClick", %{"e" => "cardToHand"}, socket) do
+  defp handle_ceremony_event("menuClick", %{"e" => "cardToHand"}, socket) do
     card = socket.assigns.selectedEntity
 
     eligibleAvatars =
@@ -1121,30 +1158,43 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_event("click", _data, socket) when socket.assigns.state == :cardMenu do
+  defp handle_ceremony_event("click", _data, socket) when socket.assigns.state == :cardMenu do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadCardMenu", %{})}
   end
 
   # DEFAULT NOOP CLICK AND MOVE HANDLERS
 
-  def handle_event("click", _data, socket) do
+  defp handle_ceremony_event("click", _data, socket) do
     # noop a click if we're not in a state that accepts clicks
     {:noreply, socket}
   end
 
-  def handle_event("move", _data, socket) when socket.assigns.pendingCeremonyUpdate == true do
+  defp handle_ceremony_event("move", _data, socket)
+       when socket.assigns.pendingCeremonyUpdate == true do
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
     {:noreply, socket |> assign(:pendingCeremonyUpdate, false) |> assign(:ceremony, ceremony)}
   end
 
-  def handle_event("move", _data, socket) do
+  defp handle_ceremony_event("move", _data, socket) do
     # noop a mouse movement event if we're not in a state that accepts moves
     {:noreply, socket}
   end
 
   @impl true
-  def handle_info(info, socket)
-      when info.topic == socket.assigns.ceremony.id and info.event == "updateEntities" do
+  def handle_info(msg, socket) do
+    # Try forwarding music events first
+    case forward_music_event(msg, socket) do
+      :not_music_event ->
+        # Handle our own events
+        handle_ceremony_info(msg, socket)
+
+      result ->
+        result
+    end
+  end
+
+  defp handle_ceremony_info(info, socket)
+       when info.topic == socket.assigns.ceremony.id and info.event == "updateEntities" do
     # query Ceremony agent for up-to-date data for this Ceremony and update accordingly
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
     state = socket.assigns.state
@@ -1156,10 +1206,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  def handle_info(info, socket)
-      when info.topic == socket.assigns.ceremony.id and info.event == "leaderLine" do
-    IO.inspect(info)
-
+  defp handle_ceremony_info(info, socket)
+       when info.topic == socket.assigns.ceremony.id and info.event == "leaderLine" do
     {:noreply,
      push_event(
        socket,
@@ -1168,7 +1216,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      )}
   end
 
-  def handle_info(%{event: "presence_diff", payload: _wev}, socket) do
+  defp handle_ceremony_info(%{event: "presence_diff", payload: _wev}, socket) do
     {:noreply,
      socket
      |> assign(
@@ -1185,8 +1233,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
       if ok == :ok do
         StrangepathsWeb.Endpoint.subscribe(id)
         nickname = socket.assigns.current_user.nickname
-        IO.puts("NICKNAME IS >>>#{nickname}<<<")
-        IO.inspect(nickname)
 
         nick =
           if nickname != nil do

@@ -54,6 +54,7 @@ defmodule Strangepaths.MixProject do
       {:dart_sass, "~> 0.7", runtime: Mix.env() == :dev},
       {:slugify, "~> 1.3"},
       {:petal_components, "~> 0.17"},
+      {:earmark, "~> 1.4.3"},
       {:nostrum, github: "Kraigie/nostrum"}
     ]
   end

@@ -27,6 +27,153 @@ import topbar from "../vendor/topbar"
 
 let Hooks = {}
 
+Hooks.Sortable = {
+    mounted() {
+        new Sortable(this.el, {
+            animation: 150,
+            ghostClass: "opacity-50",
+            onEnd: (event) => {
+                this.pushEvent("reorder_song", {
+                    new_order: event.newIndex,
+                    song_id: event.item.dataset.id
+                });
+            }
+        });
+    }
+}
+
+Hooks.MusicPlayer = {
+    mounted() {
+        const audio = document.getElementById("audio-player");
+        const volumeControl = document.getElementById("volume-control");
+        const songTitle = document.getElementById("song-title");
+        const queuedBy = document.getElementById("queued-by");
+        const queueList = document.getElementById("queue-list");
+
+        this.channel = new BroadcastChannel('strangepaths_music');
+        this.isMainTab = true;
+
+        // Check if another tab exists
+        this.channel.postMessage({ type: 'ping' });
+
+        console.log("breadcrumb #1: " + audio.volume);
+
+        // Listen for responses
+        this.channel.onmessage = (event) => {
+            if (event.data.type === 'pong') {
+                // Another tab exists and responded - we should mute
+                console.log("I got ponged, that means I am NOT the main tab, oh fuck oh shit oh piss oh damn");
+                this.isMainTab = false;
+                document.getElementById("manual-play-btn")?.classList.remove("hidden");
+                volumeControl.value = 0;
+                audio.volume = 0;
+            } else if (event.data.type === 'ping') {
+                // New tab is asking if we exist - respond
+                this.channel.postMessage({ type: 'pong' });
+            }
+        };
+
+        // Respond to pings from new tabs
+        setTimeout(() => {
+            if (this.isMainTab) {
+                // If no one responded to our ping, we're the main tab
+                console.log("I am the main tab");
+            }
+        }, 100);
+
+        // Add click handler for manual play
+        const manualPlayBtn = document.getElementById("manual-play-btn");
+        manualPlayBtn.classList.add("hidden"); // hide by default, show if needed
+        manualPlayBtn.addEventListener("click", () => {
+            audio.volume = 0.5;
+            volumeControl.value = 50;
+            audio.play();
+            manualPlayBtn.classList.add("hidden");
+        });
+
+        // Track the current song ID
+        let currentSongId = null;
+
+        // Progress bar (read-only, just for display)
+        audio.addEventListener("timeupdate", () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            const progressFill = document.getElementById("progress-fill");
+            if (progressFill) {
+                progressFill.style.width = `${progress || 0}%`;
+            }
+        });
+
+        // Volume control
+        volumeControl.addEventListener("input", (e) => {
+            const volume = e.target.value / 100;
+            audio.volume = volume;
+            console.log("breadcrumb #2: " + audio.volume);
+            localStorage.setItem("volume", volume);
+
+            if (volume == 0) {
+                manualPlayBtn.classList.remove("hidden");
+            }
+        });
+        const savedVolume = localStorage.getItem("volume");
+        audio.volume = savedVolume !== null ? parseFloat(savedVolume) : 0.5;
+        console.log("breadcrumb #3: " + audio.volume);
+        volumeControl.value = audio.volume * 100;
+
+        // Handle incoming broadcasts
+        this.handleEvent("play_song", ({ song_id, title, link, queued_by, start_position }) => {
+            console.log("Playing:", title, "at position:", start_position, "seconds");
+            currentSongId = song_id; // Store the song ID
+            audio.src = link;
+            audio.currentTime = start_position || 0;
+
+            console.log("breadcrumb #4: " + audio.volume);
+            if (audio.volume == 0) {
+                // TODO FIXME i'm not sure this is doing what I want it to be doing and I'm too tired to fix it.
+                // I want the Manual Play button to un-hide itself at the appropriate times.
+                manualPlayBtn.classList.remove("hidden");
+            }
+
+            // Wait for metadata to load before seeking
+            audio.addEventListener('loadeddata', () => {
+                console.log("breadcrumb #5: " + audio.volume);
+                audio.play().catch(err => {
+                    console.warn("Autoplay blocked:", err);
+                    document.getElementById("manual-play-btn")?.classList.remove("hidden");
+                });
+            }, { once: true }); // once: true removes listener after first call
+
+            songTitle.textContent = title;
+            queuedBy.textContent = `Queued by ${queued_by}`;
+        });
+
+        // When queue updates
+        this.handleEvent("queue_update", ({ now_playing, queue, queue_length }) => {
+            // Update queue display
+            if (queueList) {
+                queueList.innerHTML = queue.map((item, i) =>
+                    `<li>${i + 1}. ${item.title} (by ${item.queued_by})</li>`
+                ).join('');
+            }
+        });
+
+        // Auto-advance when song ends
+        audio.addEventListener("ended", () => {
+            // Tell server to advance to next song, including the song ID
+            if (currentSongId) {
+                console.log("Song ended:", currentSongId);
+                this.pushEvent("song_ended", { song_id: currentSongId });
+            }
+        });
+    },
+
+    destroyed() {
+        if (this.channel) {
+            this.channel.close();
+        }
+    }
+
+};
+
 Hooks.Temenos = {
     mounted() {
         this.handleEvent("loadAvatarMenu", e => {

@@ -1,6 +1,8 @@
 defmodule StrangepathsWeb.DeckLive.Index do
   use StrangepathsWeb, :live_view
 
+  import StrangepathsWeb.MusicBroadcast
+
   alias Strangepaths.Cards
   alias Strangepaths.Cards.Deck
 
@@ -11,6 +13,9 @@ defmodule StrangepathsWeb.DeckLive.Index do
       |> assign(sortcol: :name)
       |> assign(direction: :asc)
 
+    # Subscribe to music broadcasts
+    subscribe_to_music(socket)
+
     {:ok,
      assign(socket,
        decks:
@@ -20,6 +25,61 @@ defmodule StrangepathsWeb.DeckLive.Index do
            list_decks_of(socket)
          end
      )}
+  end
+
+  @impl true
+  def handle_event(event, params, socket) do
+    # Try forwarding music client events first
+    case forward_music_client_event(event, params, socket) do
+      :not_music_event ->
+        # Handle our own events
+        handle_deck_event(event, params, socket)
+
+      result ->
+        result
+    end
+  end
+
+  defp handle_deck_event("sort", %{"sortcol" => sortcol}, socket) do
+    direction =
+      if socket.assigns.sortcol == String.to_atom(sortcol) do
+        IO.puts("sortcal invariant")
+
+        if socket.assigns.direction == :asc do
+          :desc
+        else
+          :asc
+        end
+      else
+        IO.puts("sortcal variant, defaulting to desc")
+        :desc
+      end
+
+    socket = assign(socket, sortcol: String.to_atom(sortcol)) |> assign(direction: direction)
+
+    {:noreply,
+     socket
+     |> assign(decks: list_decks_of(socket))}
+  end
+
+  defp handle_deck_event("delete", %{"id" => id}, socket) do
+    [{%{aspect: _, deck: deck}}] = Cards.get_deck!(id)
+    {:ok, _} = Cards.delete_deck(deck)
+
+    {:noreply, assign(socket, :decks, list_decks_of(socket))}
+  end
+
+  @impl true
+  def handle_info(msg, socket) do
+    # Forward music broadcasts to the component
+    case forward_music_event(msg, socket) do
+      :not_music_event ->
+        # Handle other non-music events here if needed
+        {:noreply, socket}
+
+      result ->
+        result
+    end
   end
 
   def get_owner_name_by_id(id) do
@@ -52,35 +112,6 @@ defmodule StrangepathsWeb.DeckLive.Index do
     |> assign(:deck, nil)
   end
 
-  def handle_event("sort", %{"sortcol" => sortcol}, socket) do
-    direction =
-      if socket.assigns.sortcol == String.to_atom(sortcol) do
-        IO.puts("sortcal invariant")
-
-        if socket.assigns.direction == :asc do
-          :desc
-        else
-          :asc
-        end
-      else
-        IO.puts("sortcal variant, defaulting to desc")
-        :desc
-      end
-
-    socket = assign(socket, sortcol: String.to_atom(sortcol)) |> assign(direction: direction)
-
-    {:noreply,
-     socket
-     |> assign(decks: list_decks_of(socket))}
-  end
-
-  @impl true
-  def handle_event("delete", %{"id" => id}, socket) do
-    [{%{aspect: _, deck: deck}}] = Cards.get_deck!(id)
-    {:ok, _} = Cards.delete_deck(deck)
-
-    {:noreply, assign(socket, :decks, list_decks_of(socket))}
-  end
 
   defp manabalance_div(manabalance) do
     Enum.reduce(manabalance, "", fn {color, cardinality}, acc ->

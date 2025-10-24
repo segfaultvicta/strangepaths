@@ -135,6 +135,11 @@ defmodule Strangepaths.Accounts.User do
     end
   end
 
+  def arete_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:arete])
+  end
+
   def ascension_changeset(user, attrs) do
     user
     |> cast(attrs, [:public_ascension])
@@ -143,6 +148,25 @@ defmodule Strangepaths.Accounts.User do
   def techne_changeset(user, attrs) do
     user
     |> cast(attrs, [:techne])
+  end
+
+  # Change user's primary and alethic die values
+  def die_changeset(user, attrs) do
+    user
+    |> cast(attrs, [
+      :primary_red,
+      :primary_green,
+      :primary_blue,
+      :primary_white,
+      :primary_black,
+      :primary_void,
+      :alethic_red,
+      :alethic_green,
+      :alethic_blue,
+      :alethic_white,
+      :alethic_black,
+      :alethic_void
+    ])
   end
 
   @doc """

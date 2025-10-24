@@ -1,11 +1,16 @@
 <main>
-  <p class="alert alert-info" role="alert"
-    phx-click="lv:clear-flash"
-    phx-value-key="info"><%= live_flash(@flash, :info) %></p>
+  <%= if live_flash(@flash, :info) do %>
+    <p class="bg-blue-900 border border-blue-500 text-blue-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
+      phx-click="lv:clear-flash"
+      phx-value-key="info"><%= live_flash(@flash, :info) %></p>
+  <% end %>
 
-  <p class="alert alert-danger" role="alert"
-    phx-click="lv:clear-flash"
-    phx-value-key="error"><%= live_flash(@flash, :error) %></p>
+  <%= if live_flash(@flash, :error) do %>
+    <p class="bg-red-900 border border-red-500 text-red-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
+      phx-click="lv:clear-flash"
+      phx-value-key="error"><%= live_flash(@flash, :error) %></p>
+  <% end %>
 
+  <.live_component module={StrangepathsWeb.MusicPlayerComponent} id="music-player" />
   <%= @inner_content %>
 </main>

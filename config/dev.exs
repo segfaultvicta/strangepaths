@@ -9,7 +9,8 @@ config :strangepaths, Strangepaths.Repo,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10,
-  log: false
+  log: false,
+  discord_channel: 1_428_210_573_648_203_807
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

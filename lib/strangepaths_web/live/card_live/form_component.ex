@@ -51,8 +51,6 @@ defmodule StrangepathsWeb.CardLive.FormComponent do
   end
 
   defp save_card(socket, :new, card_params) do
-    IO.inspect(card_params)
-
     imgpath =
       consume_uploaded_entries(socket, :image, fn %{path: path}, _e ->
         dest =

@@ -1,0 +1,125 @@
+<%= if @role == nil do %>
+  <h1 class="text-center"> Please log in to view song details. </h1>
+<% else %>
+
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <%= if @can_view do %>
+      <div class="mb-8">
+        <% # Back link %>
+        <%= live_redirect "← Back to OST", to: "/ost", class: "text-purple-400 hover:text-purple-300" %>
+        
+        <% # Song header %>
+        <div class="flex justify-between items-start">
+          <h1 class="text-4xl font-bold text-purple-300 mt-8"><%= @song.title %></h1>
+
+          <div class="flex gap-4 mt-6">
+            <button
+              phx-click="delete_song"
+              phx-value-id={@song.id}
+              data-confirm="Are you sure you want to delete this song?"
+              class="px-4 py-2 mb-2 bg-red-600 hover:bg-red-500 rounded-lg">
+              Delete
+            </button>
+
+            <button
+              phx-click="queue_song"
+              class="px-4 py-2 mb-2 bg-purple-600 hover:bg-purple-500 rounded-lg">
+              Enqueue
+            </button>
+
+            <%= if @role == :admin || @role == :god do %>
+              <button
+                phx-click="start_edit_lyrics"
+                class="text-sm text-yellow-400 hover:text-yellow-300">
+                <i class="fa-solid fa-pencil"></i> Edit Lyrics
+              </button>
+            <% end %>
+          </div>
+        </div>
+
+        <% # MP3 Link section (admin only) %>
+        <%= if @role == :admin || @role == :god do %>
+          <div class="mt-4 p-4 bg-gray-800 rounded-lg space-y-4">
+            <div class="flex items-center gap-4">
+              <span class="text-sm text-gray-400">MP3 Link:</span>
+              <code class="flex-1 text-sm text-purple-300"><%= @song.link || "(not set)" %></code>
+            </div>
+
+            <% # File upload section %>
+            <div class="border-t border-gray-700 pt-4">
+              <span class="text-sm text-gray-400 block mb-2">Upload MP3 File (generates secure GUID):</span>
+              <form phx-submit="upload_mp3" phx-change="validate">
+                <div class="flex items-center gap-4">
+                  <%= live_file_input(@uploads.mp3_file, class: "text-lg text-gray-400") %>
+                  <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded text-sm">
+                    Upload
+                  </button>
+                </div>
+              </form>
+              
+              <%= for entry <- @uploads.mp3_file.entries do %>
+                <div class="mt-2 flex items-center gap-2 text-sm">
+                  <span class="text-gray-400"><%= entry.client_name %></span>
+                  <span class="text-gray-500">(<%= trunc(entry.client_size / 1024 / 1024) %> MB)</span>
+                  <button
+                    phx-click="cancel_upload"
+                    phx-value-ref={entry.ref}
+                    class="text-red-400 hover:text-red-300">
+                    ✕
+                  </button>
+                </div>
+              <% end %>
+
+              <%= for err <- upload_errors(@uploads.mp3_file) do %>
+                <p class="text-red-400 text-sm mt-2"><%= error_to_string(err) %></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <% # Lyrics section %>
+      <div style="min-height: 800px;" class="bg-gray-900 rounded-lg p-6 mt-8">
+        <%= if @editing_lyrics do %>
+          <% # Edit mode (admin only) %>
+          <form phx-submit="save_lyrics" class="space-y-4">
+            <textarea
+              name="text"
+              rows="15"
+              class="w-full bg-gray-900 text-white p-4 rounded border border-gray-700 font-mono"
+              ><%= @song.text %></textarea>
+            <div class="flex gap-2">
+              <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded">
+                Save
+              </button>
+              <button 
+                type="button"
+                phx-click="cancel_edit_lyrics" 
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded">
+                Cancel
+              </button>
+            </div>
+          </form>
+        <% else %>
+          <% # Display mode %>
+          <%= if @song.text && @song.text != "" do %>
+            <div id="lyrics-display">
+              <%= raw(Earmark.as_html!(@song.text)) %>
+            </div>
+          <% else %>
+            <p class="text-gray-500 italic">No lyrics available yet.</p>
+          <% end %>
+        <% end %>
+      </div>
+      
+    <% else %>
+      <% # Locked song view %>
+      <div class="text-center py-16">
+        <i class="fa-solid fa-lock text-6xl text-gray-600 mb-4"></i>
+        <h1 class="text-3xl font-bold text-gray-600"><%= @song.title %></h1>
+        <p class="text-gray-500 mt-4">This song is locked.</p>
+        <%= live_redirect "← Back to OST", to: "/ost", class: "text-purple-400 hover:text-purple-300 mt-6 inline-block" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
