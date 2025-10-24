@@ -45,7 +45,9 @@ defmodule StrangepathsWeb.Ascension do
   end
 
   defp handle_ascension_event("toggle", %{"id" => user_id}, socket) do
+    IO.puts(user_id)
     user = Strangepaths.Accounts.get_user!(user_id)
+    IO.puts(user.nickname)
 
     {:ok, _user} =
       Strangepaths.Accounts.update_user_ascension(user, %{
