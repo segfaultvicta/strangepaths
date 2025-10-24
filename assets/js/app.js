@@ -42,6 +42,49 @@ Hooks.Sortable = {
     }
 }
 
+Hooks.TooltipUpdater = {
+    mounted() {
+        const templateId = this.el.dataset.tooltipTemplate;
+        const template = document.getElementById(templateId);
+
+        // Create Tippy instance directly
+        if (template && window.tippy) {
+            this.tippy = window.tippy(this.el, {
+                content: template.innerHTML,
+                allowHTML: true,
+                theme: 'light-border',
+                placement: 'bottom'
+            });
+        } else {
+            console.warn('Tippy not available or template not found:', templateId);
+        }
+    },
+    updated() {
+        const templateId = this.el.dataset.tooltipTemplate;
+        const template = document.getElementById(templateId);
+
+        // Update the Tippy content with fresh template HTML
+        if (template && this.tippy) {
+            console.log("interior of tooltip updater");
+            console.log("Template HTML:", template.innerHTML);
+
+            // Force Tippy to update by destroying and recreating
+            this.tippy.destroy();
+            this.tippy = window.tippy(this.el, {
+                content: template.innerHTML,
+                allowHTML: true,
+                theme: 'light-border',
+                placement: 'bottom'
+            });
+        }
+    },
+    destroyed() {
+        if (this.tippy) {
+            this.tippy.destroy();
+        }
+    }
+}
+
 Hooks.MusicPlayer = {
     mounted() {
         const audio = document.getElementById("audio-player");
@@ -147,6 +190,13 @@ Hooks.MusicPlayer = {
                     `<li>${i + 1}. ${item.title} (by ${item.queued_by})</li>`
                 ).join('');
             }
+        });
+
+        this.handleEvent("stopped", () => {
+            console.log("handling stopped message, pausing audio");
+            audio.pause();
+            audio.src = "";
+            currentSongId = null;
         });
 
         // Auto-advance when song ends

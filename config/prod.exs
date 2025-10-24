@@ -5,7 +5,8 @@ import Config
 # when generating URLs.
 
 config :strangepaths,
-  discord_channel: 1_429_574_745_980_010_587
+  discord_channel: 1_429_574_745_980_010_587,
+  environment_name: "Lively Rainbow"
 
 # Note we also include the path to a cache manifest
 # containing the digested version of static files. This

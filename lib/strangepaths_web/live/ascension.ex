@@ -59,6 +59,17 @@ defmodule StrangepathsWeb.Ascension do
     {:noreply, socket}
   end
 
+  defp handle_ascension_event("clear", %{"id" => user_id}, socket) do
+    IO.puts("handling clear for #{user_id}")
+    user = Strangepaths.Accounts.get_user!(user_id)
+
+    Strangepaths.Accounts.clear_user(user)
+
+    StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
+
+    {:noreply, socket}
+  end
+
   defp handle_ascension_event(
          "spend_arete",
          %{"arete_extern" => %{"spend_arete" => arete}},
@@ -68,6 +79,7 @@ defmodule StrangepathsWeb.Ascension do
     # Decrement user's arete by arete
     if arete >= 0 do
       new_arete = max(user.arete - String.to_integer(arete), 0)
+      spent_arete = min(user.arete, String.to_integer(arete))
 
       {:ok, _user} =
         Strangepaths.Accounts.update_user_arete(user, %{
@@ -76,9 +88,10 @@ defmodule StrangepathsWeb.Ascension do
 
       StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
 
-      arete_msg = "#{user.nickname} has spent #{arete} Arete and now has #{new_arete} remaining."
+      arete_msg =
+        "#{user.nickname} has spent #{spent_arete} Arete and now has #{new_arete} remaining."
+
       discord(user, arete_msg)
-      # Message.create(Application.get_env(:strangepaths, :discord_channel), arete_msg)
 
       {:noreply,
        assign(socket, :selected_expenditure, "0")
@@ -226,7 +239,6 @@ defmodule StrangepathsWeb.Ascension do
       end
 
     discord(user, roll_msg)
-    # Message.create(Application.get_env(:strangepaths, :discord_channel), roll_msg)
 
     {:noreply, socket}
   end
@@ -244,7 +256,6 @@ defmodule StrangepathsWeb.Ascension do
       end
 
     discord(user, resp)
-    # Message.create(Application.get_env(:strangepaths, :discord_channel), resp)
 
     StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
 
@@ -258,7 +269,6 @@ defmodule StrangepathsWeb.Ascension do
 
     msg = "#{user.nickname} made an offering of their mastery of #{color}."
     discord(user, msg)
-    # Message.create(Application.get_env(:strangepaths, :discord_channel), msg)
 
     StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
 
@@ -273,7 +283,6 @@ defmodule StrangepathsWeb.Ascension do
     invoke_msg = "#{user.nickname} invokes #{name} (#{desc})"
 
     discord(user, invoke_msg)
-    # Message.create(Application.get_env(:strangepaths, :discord_channel), invoke_msg)
 
     {:noreply, socket}
   end
@@ -307,8 +316,6 @@ defmodule StrangepathsWeb.Ascension do
     {:ok, _} = Strangepaths.Accounts.update_user_techne(user, %{techne: new_techne})
 
     discord(user, "#{user.nickname} added a new techne: #{name} (#{desc})")
-
-    # Message.create(Application.get_env(:strangepaths, :discord_channel), "#{user.nickname} added a new techne: #{name} (#{desc})")
 
     StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
 

@@ -12,13 +12,16 @@ defmodule Strangepaths.DiscordHandler do
          %{result: :award, arete: String.to_integer(n), nickname: k}
        end},
       {~r/, the world cries out: \"Devour me!\"/u, fn _ -> %{result: :devour} end},
-      {~r/Sacrifice (?<number>\d+) ranks of (?<nickname>.+)'s (?<color>.+)./,
+      {~r/Sacrifice (?<number>\d+) ranks? of (?<nickname>.+)'s (?<color>.+)./,
        fn %{"number" => n, "nickname" => k, "color" => c} ->
          %{result: :sacrifice, ranks: String.to_integer(n), nickname: k, color: c}
-       end}
+       end},
+      {~r/Which environment are you running on\?/u, fn _ -> %{result: :environment} end},
+      {~r/Clear the queue./u, fn _ -> %{result: :clear_queue} end}
     ]
 
-    if msg.author.username != "segfaultvicta" do
+    if msg.author.username != "segfaultvicta" or
+         msg.channel_id != Application.get_env(:strangepaths, :discord_channel) do
       # It might be the case that I want to enable bot commands for players, too.
       # If that is so, I can change things here accordingly.
     else
@@ -44,8 +47,15 @@ defmodule Strangepaths.DiscordHandler do
               %{result: :devour} ->
                 devour()
 
+              %{result: :environment} ->
+                "I am running on #{Application.get_env(:strangepaths, :environment_name)}.  "
+
               %{result: :sacrifice, ranks: ranks, nickname: nickname, color: color} ->
                 sacrifice(ranks, nickname, color)
+
+              %{result: :clear_queue} ->
+                Strangepaths.Site.MusicQueue.clear_queue()
+                "Queue cleared."
 
               :unrecognised_command ->
                 "Unrecognised command! :cry:"
@@ -71,9 +81,27 @@ defmodule Strangepaths.DiscordHandler do
     if user == nil do
       "Sacrifice failed: User #{nickname} not found."
     else
-      Strangepaths.Accounts.gm_driven_sacrifice(user, color, ranks)
-      StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
-      "#{user.nickname} sacrificed #{ranks} ranks of #{color}."
+      case Strangepaths.Accounts.gm_driven_sacrifice_of(user, color, ranks) do
+        {:ok, n} ->
+          StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
+          "#{user.nickname} sacrificed #{fancify(n)} of #{color}."
+
+        {:error, reason} ->
+          "ERROR: #{nickname}'s sacrifice failed: #{reason}"
+      end
+    end
+  end
+
+  defp fancify(n) do
+    case n do
+      # shouldn't? ever actually be the case? but hey
+      0 -> "naught"
+      1 -> "once"
+      2 -> "twice"
+      3 -> "thrice"
+      4 -> "deeply"
+      5 -> ", utterly and absolutely,"
+      _ -> ":poop:"
     end
   end
 
@@ -100,12 +128,14 @@ defmodule Strangepaths.DiscordHandler do
 
     msgs =
       Enum.map(users, fn user ->
-        red = Strangepaths.Accounts.gm_driven_sacrifice(user, "red", 4)
-        green = Strangepaths.Accounts.gm_driven_sacrifice(user, "green", 4)
-        blue = Strangepaths.Accounts.gm_driven_sacrifice(user, "blue", 4)
-        white = Strangepaths.Accounts.gm_driven_sacrifice(user, "white", 4)
-        black = Strangepaths.Accounts.gm_driven_sacrifice(user, "black", 4)
-        void = Strangepaths.Accounts.gm_driven_sacrifice(user, "empty", 4)
+        {:ok, red} = Strangepaths.Accounts.gm_driven_sacrifice_to(user, "red", 4)
+        {:ok, green} = Strangepaths.Accounts.gm_driven_sacrifice_to(user, "green", 4)
+        {:ok, blue} = Strangepaths.Accounts.gm_driven_sacrifice_to(user, "blue", 4)
+        {:ok, white} = Strangepaths.Accounts.gm_driven_sacrifice_to(user, "white", 4)
+        {:ok, black} = Strangepaths.Accounts.gm_driven_sacrifice_to(user, "black", 4)
+        {:ok, void} = Strangepaths.Accounts.gm_driven_sacrifice_to(user, "empty", 4)
+
+        IO.inspect(red)
 
         # insert an 'and' between the last two elements if there's more than one rank
         ranks =
@@ -118,7 +148,7 @@ defmodule Strangepaths.DiscordHandler do
             {void, "empty"}
           ]
           |> Enum.reject(fn {val, _} -> val == 0 end)
-          |> Enum.map(fn {val, color} -> "#{round(val)} #{color}" end)
+          |> Enum.map(fn {val, color} -> "#{fancify(round(val))} of #{color}" end)
           |> case do
             [] ->
               ""
@@ -134,12 +164,16 @@ defmodule Strangepaths.DiscordHandler do
               Enum.join(rest, ", ") <> ", and #{last}"
           end
 
-        "* #{user.nickname}, you have lost #{ranks} ranks of ascension."
+        if ranks == "" do
+          nil
+        else
+          "* #{user.nickname}, you have sacrificed #{ranks}.\n"
+        end
       end)
 
     StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
 
-    "The world has been consumed, in overgrowth, in madness, and in fire.\n" <>
+    "The worlds have been consumed, in overgrowth, in madness, and in fire.\n" <>
       Enum.join(msgs, "")
   end
 end

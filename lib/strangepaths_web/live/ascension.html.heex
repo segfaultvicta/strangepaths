@@ -8,16 +8,16 @@
     <div>
       <h3>Ascended Stars</h3>
       <%= for user <- @ascended_users do %>
-        <div tabindex="0" phx-value-id={user.id} phx-keydown="toggle" phx-key="Enter" phx-click="toggle" class="p-2 m-2 bg-gray-900">
+        <div class="p-2 m-2 bg-gray-900">
           <%= if @role == :admin || @role == :god do %>
-            <div>
-              <div class="text-2xl">
-                <strong><%= user.nickname %></strong> — <%= user.arete %> Arete
-              </div>
+            <div tabindex="0" phx-value-id={user.id} phx-keydown="toggle" phx-key="Enter" phx-click="toggle" 
+              class="text-2xl cursor-pointer flex items-center justify-between text-2xl">
+              <span><strong><%= user.nickname %></strong> — <%= user.arete %> Arete</span>
+              <button class="text-red-500 underline" phx-value-id={user.id} phx-click="clear">Clear</button>
             </div>
           <% else %>
             <div>
-              <strong><%= user.nickname %></strong>
+              <span><strong><%= user.nickname %></strong> — <%= user.arete %> Arete</span>
             </div>
           <% end %>
           <div class="flex justify-between mx-2">
@@ -84,7 +84,7 @@
             <%= if @current_user.arete > 0 do %>
               <label class="pl-20 pr-3" for="spend_arete"> Spend: </label>
               <%= form_for :arete_extern, "#", [id: "spend-arete-form-#{@crimes}", phx_submit: "spend_arete", class: "inline"], fn f -> %>
-                <%= select f, :spend_arete, Enum.to_list(0..20), value: @selected_expenditure, class: "bg-gray-800" %>
+                <%= select f, :spend_arete, Enum.to_list(0..@current_user.arete), value: @selected_expenditure, class: "bg-gray-800" %>
                 <%= submit "Arete", class: "btn border border-white rounded pb-1 px-2 ml-2", phx_disable_with: "Processing..." %>
               <% end %>
             <% end %>
@@ -223,6 +223,7 @@
           </div>
         </div>
         <div>
+          <%= if @current_user.techne != [] do %>
           <h3>Techne</h3>
           <ul>
             <%= for techne <- @current_user.techne do %>
@@ -232,10 +233,13 @@
               </li>
             <% end %>
           </ul>
+          <% end %>
           <div class="mt-8">
+            <h3> Add Techne </h3>
             <form phx-change="validate_techne" phx-submit="add_techne">
-              <label class="mr-2" for="techne_name">Add Techne: </label>
-              <input type="text" name="new_techne_name" id="new_techne_name" class="bg-gray-800 mr-2" value={@new_techne_name} />
+              <label class="mr-2" for="new_techne_name">Name: </label>
+              <input type="text" name="new_techne_name" id="new_techne_name" class="bg-gray-800 mr-2" value={@new_techne_name}/>
+              <label class="mr-2" for="new_techne_desc">Description: </label>
               <input type="text" name="new_techne_desc" id="new_techne_desc" class="bg-gray-800 mr-4" value={@new_techne_desc}/>
               <button type="submit" class="bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white py-1 px-2 border border-purple-500 hover:border-transparent rounded">Add Techne</button>
             </form>

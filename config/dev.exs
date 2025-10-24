@@ -1,5 +1,9 @@
 import Config
 
+config :strangepaths,
+  discord_channel: 1_428_210_573_648_203_807,
+  environment_name: "Shadowhunter"
+
 # Configure your database
 config :strangepaths, Strangepaths.Repo,
   username: "postgres",
@@ -9,8 +13,7 @@ config :strangepaths, Strangepaths.Repo,
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10,
-  log: false,
-  discord_channel: 1_428_210_573_648_203_807
+  log: false
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

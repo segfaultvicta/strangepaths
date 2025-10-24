@@ -128,6 +128,15 @@ defmodule StrangepathsWeb.MusicBroadcast do
     {:noreply, socket}
   end
 
+  def forward_music_event(%{event: "stopped"}, socket) do
+    Phoenix.LiveView.send_update(StrangepathsWeb.MusicPlayerComponent,
+      id: "music-player",
+      stopped: true
+    )
+
+    {:noreply, socket}
+  end
+
   def forward_music_event(_msg, _socket) do
     # Not a music event
     :not_music_event

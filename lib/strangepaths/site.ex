@@ -164,10 +164,6 @@ defmodule Strangepaths.Site do
     MusicQueue.get_state()
   end
 
-  def skip_current_song do
-    MusicQueue.skip()
-  end
-
   def next_song(song_id) do
     MusicQueue.next_song(song_id)
   end
@@ -263,22 +259,29 @@ defmodule Strangepaths.Site do
     guid = Ecto.UUID.generate()
 
     music_dir = Path.join([:code.priv_dir(:strangepaths), "static", "uploads", "music"])
+    IO.puts("IN UPLOAD_SONG_FILE: #{music_dir}")
+    IO.inspect(upload)
     File.mkdir_p!(music_dir)
 
-    dest_path = Path.join(music_dir, "#{guid}.mp3")
+    dest_path = Path.join(music_dir, "#{guid}")
+
+    IO.puts("Destination path: #{dest_path}")
 
     case File.cp(upload.path, dest_path) do
       :ok ->
         # Update song with new GUID and link
+        IO.puts("file alleged to have copied correctly")
+
         case update_song(song, %{
                file_guid: guid,
-               link: "/static/uploads/music/#{guid}.mp3"
+               link: "/uploads/music/#{guid}"
              }) do
           {:ok, _song} -> {:ok, guid}
           error -> error
         end
 
       {:error, reason} ->
+        IO.puts("Failed to copy file: #{inspect(reason)}")
         {:error, "Failed to copy file: #{inspect(reason)}"}
     end
   end

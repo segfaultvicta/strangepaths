@@ -169,6 +169,28 @@ defmodule Strangepaths.Accounts.User do
     ])
   end
 
+  # set arete to 0, public_ascension to false, techne to [], primary dice to 4, alethic dice to 0
+  def clear_changeset(user, attrs) do
+    user
+    |> cast(attrs, [
+      :arete,
+      :public_ascension,
+      :techne,
+      :primary_red,
+      :primary_green,
+      :primary_blue,
+      :primary_white,
+      :primary_black,
+      :primary_void,
+      :alethic_red,
+      :alethic_green,
+      :alethic_blue,
+      :alethic_white,
+      :alethic_black,
+      :alethic_void
+    ])
+  end
+
   @doc """
   A user changeset for changing the password.
 

@@ -14,7 +14,7 @@ processes = []
 
 [mounts]
   source="strangepaths_fileupload"
-  destination="/priv/static/uploads"
+  destination="/app/lib/strangepaths-0.1.0/priv/static/uploads"
 
 [experimental]
   allowed_public_ports = []

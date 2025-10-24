@@ -168,6 +168,28 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
+  def clear_user(user) do
+    user
+    |> User.clear_changeset(%{
+      arete: 0,
+      public_ascension: false,
+      techne: [],
+      primary_red: 4,
+      primary_green: 4,
+      primary_blue: 4,
+      primary_white: 4,
+      primary_black: 4,
+      primary_void: 4,
+      alethic_red: 0,
+      alethic_green: 0,
+      alethic_blue: 0,
+      alethic_white: 0,
+      alethic_black: 0,
+      alethic_void: 0
+    })
+    |> Repo.update()
+  end
+
   def player_driven_sacrifice(user, color) do
     case color do
       "red" ->
@@ -209,76 +231,73 @@ defmodule Strangepaths.Accounts do
     )
   end
 
-  def gm_driven_sacrifice(user, color, degree) do
-    case color do
-      "red" ->
-        diff = sacrifice_diff(user.primary_red, degree)
-
-        user
-        |> update_user_die(%{
-          primary_red: degree,
-          alethic_red: max(user.alethic_red, user.primary_red)
-        })
-
-        diff
-
-      "green" ->
-        diff = sacrifice_diff(user.primary_green, degree)
-
-        user
-        |> update_user_die(%{
-          primary_green: degree,
-          alethic_green: max(user.alethic_green, user.primary_green)
-        })
-
-        diff
-
-      "blue" ->
-        diff = sacrifice_diff(user.primary_blue, degree)
-
-        user
-        |> update_user_die(%{
-          primary_blue: degree,
-          alethic_blue: max(user.alethic_blue, user.primary_blue)
-        })
-
-        diff
-
-      "white" ->
-        diff = sacrifice_diff(user.primary_white, degree)
-
-        user
-        |> update_user_die(%{
-          primary_white: degree,
-          alethic_white: max(user.alethic_white, user.primary_white)
-        })
-
-        diff
-
-      "black" ->
-        diff = sacrifice_diff(user.primary_black, degree)
-
-        user
-        |> update_user_die(%{
-          primary_black: degree,
-          alethic_black: max(user.alethic_black, user.primary_black)
-        })
-
-        diff
-
-      "empty" ->
-        diff = sacrifice_diff(user.primary_void, degree)
-
-        user
-        |> update_user_die(%{
-          primary_void: degree,
-          alethic_void: max(user.alethic_void, user.primary_void)
-        })
-
-        diff
-
-      _ ->
+  def gm_driven_sacrifice_of(user, color, ranks) do
+    case get_die_value(user, color) do
+      :wrong_color ->
         {:error, "Invalid color"}
+
+      current_die ->
+        final_die = reduce_die(current_die, ranks)
+        attrs = build_sacrifice(color, final_die, current_die, user)
+        update_user_die(user, attrs)
+        {:ok, sacrifice_diff(current_die, final_die)}
+    end
+  end
+
+  defp get_die_value(user, color) do
+    case color do
+      "red" -> user.primary_red
+      "green" -> user.primary_green
+      "blue" -> user.primary_blue
+      "white" -> user.primary_white
+      "black" -> user.primary_black
+      "empty" -> user.primary_void
+      _ -> :wrong_color
+    end
+  end
+
+  defp build_sacrifice(color, new_val, old_val, user) do
+    {primary_key, alethic_key} =
+      case color do
+        "red" -> {:primary_red, :alethic_red}
+        "green" -> {:primary_green, :alethic_green}
+        "blue" -> {:primary_blue, :alethic_blue}
+        "white" -> {:primary_white, :alethic_white}
+        "black" -> {:primary_black, :alethic_black}
+        "empty" -> {:primary_void, :alethic_void}
+      end
+
+    alethic_val = Map.get(user, alethic_key)
+
+    %{
+      primary_key => new_val,
+      alethic_key => max(alethic_val, old_val)
+    }
+  end
+
+  defp reduce_die(die, 0), do: die
+  # Can't go below d4
+  defp reduce_die(4, _ranks), do: 4
+  # d20 -> d12
+  defp reduce_die(20, ranks), do: reduce_die(12, ranks - 1)
+  defp reduce_die(die, ranks) when die > 4, do: reduce_die(die - 2, ranks - 1)
+  # Catch-all for safety
+  defp reduce_die(die, _ranks), do: die
+
+  def gm_driven_sacrifice_to(user, color, degree) do
+    IO.puts("in gm_driven_sacrifice_to #{user.nickname} #{color} #{degree}")
+
+    case get_die_value(user, color) do
+      :wrong_color ->
+        {:error, "Invalid color"}
+
+      current_die ->
+        IO.puts("current die is #{current_die}")
+        diff = sacrifice_diff(current_die, degree)
+        IO.puts("diff is #{diff}")
+        attrs = build_sacrifice(color, degree, current_die, user)
+        update_user_die(user, attrs)
+        {:ok, diff}
     end
   end
 

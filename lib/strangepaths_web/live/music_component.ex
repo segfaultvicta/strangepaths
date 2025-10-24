@@ -34,6 +34,7 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
 
         Map.has_key?(assigns, :play_song) ->
           IO.puts("got play_song via send_update")
+          IO.inspect(assigns.play_song)
           push_event(socket, "play_song", assigns.play_song)
 
         Map.has_key?(assigns, :stopped) ->
@@ -95,8 +96,8 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
             </div>
           </div>
 
-          <!-- Hidden template for queue -->
-          <template id="queue-tooltip">
+          <!-- Hidden div for queue tooltip content -->
+          <div id="queue-tooltip" style="display: none;">
             <div class="text-left text-sm">
               <%= if length(@music_queue.queue) == 0 do %>
                 <div class="text-gray-400">Queue is empty</div>
@@ -106,22 +107,23 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
                 <% end %>
               <% end %>
             </div>
-          </template>
+          </div>
 
-          <!-- Hidden template with the tooltip content -->
-          <template id="listeners-tooltip">
+          <!-- Hidden div for listeners tooltip content -->
+          <div id="listeners-tooltip" style="display: none;">
             <div class="text-left text-sm">
               <%= for user <- @online_users do %>
                 <div>• <%= user %></div>
               <% end %>
             </div>
-          </template>
+          </div>
 
           <!-- Element with tooltip -->
           <span
-            x-data
-            x-tooltip.html="document.getElementById('queue-tooltip').innerHTML"
             class="text-xs cursor-help text-gray-600 hover:text-gray-500"
+            phx-hook="TooltipUpdater"
+            data-tooltip-template="queue-tooltip"
+            id="queue-tooltip-trigger"
           >
             <details class="text-xs">
               <summary class="cursor-pointer text-gray-500">Up next: <span id="queue-count"><%= length(@music_queue.queue) %></span> songs</summary>
@@ -136,9 +138,10 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
           <!-- Online Listeners -->
           <%= if assigns[:online_users] && length(@online_users) > 0 do %>
             <span
-              x-data
-              x-tooltip.html="document.getElementById('listeners-tooltip').innerHTML"
               class="text-xs cursor-help text-gray-500 hover:text-gray-300"
+              phx-hook="TooltipUpdater"
+              data-tooltip-template="listeners-tooltip"
+              id="listeners-tooltip-trigger"
             >
               <details class="text-xs">
                 <summary class="cursor-pointer text-gray-500">

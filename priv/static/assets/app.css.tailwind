@@ -226,9 +226,28 @@
   }
 }
 #lyrics-display {
-  @apply whitespace-pre-wrap text-gray-300;
+  @apply whitespace-pre-wrap text-gray-300 text-lg;
   position: relative;
   top: -80px;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-style: italic;
+  text-align: center;
+}
+
+#lyrics-display code {
+  @apply text-gray-300 text-lg;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-style: italic;
+  text-align: center;
+}
+
+.lyrics-edit {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-style: italic;
+  text-align: center;
 }
 
 #lyrics-display p {

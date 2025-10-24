@@ -24,11 +24,6 @@ defmodule Strangepaths.Site.MusicQueue do
     GenServer.call(__MODULE__, {:next_song, song_id})
   end
 
-  @doc "Skip current song (admin only)"
-  def skip do
-    GenServer.call(__MODULE__, :skip)
-  end
-
   @doc "Clear the entire queue"
   def clear_queue do
     GenServer.call(__MODULE__, :clear_queue)
@@ -114,15 +109,25 @@ defmodule Strangepaths.Site.MusicQueue do
   end
 
   @impl true
-  def handle_call(:skip, _from, state) do
-    new_state = advance_queue(state)
-    broadcast_skip(state.now_playing)
-    {:reply, {:ok, new_state}, new_state}
-  end
-
-  @impl true
   def handle_call(:clear_queue, _from, state) do
-    new_state = %{state | queue: []}
+    history =
+      if state.now_playing do
+        # Keep last 50
+        [state.now_playing | state.history] |> Enum.take(50)
+      else
+        state.history
+      end
+
+    new_state = %{
+      state
+      | queue: [],
+        now_playing: nil,
+        started_at: nil,
+        history: history,
+        timer_ref: nil
+    }
+
+    broadcast_stopped()
     broadcast_queue_update(new_state)
     {:reply, {:ok, new_state}, new_state}
   end
@@ -231,12 +236,6 @@ defmodule Strangepaths.Site.MusicQueue do
 
   defp broadcast_stopped do
     StrangepathsWeb.Endpoint.broadcast("music:broadcast", "stopped", %{})
-  end
-
-  defp broadcast_skip(queue_item) do
-    StrangepathsWeb.Endpoint.broadcast("music:broadcast", "skipped", %{
-      song: format_queue_item(queue_item)
-    })
   end
 
   defp format_queue_item(nil), do: nil

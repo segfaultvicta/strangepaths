@@ -1087,8 +1087,8 @@ a:hover {
   max-width: 42rem;
 }
 
-.max-w-4xl {
-  max-width: 56rem;
+.max-w-7xl {
+  max-width: 80rem;
 }
 
 .max-w-xl {
@@ -1130,12 +1130,12 @@ a:hover {
           animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.cursor-help {
-  cursor: help;
-}
-
 .cursor-pointer {
   cursor: pointer;
+}
+
+.cursor-help {
+  cursor: help;
 }
 
 .appearance-none {
@@ -2436,10 +2436,34 @@ a:hover {
 
 #lyrics-display {
   white-space: pre-wrap;
+  font-size: 1.125rem;
+  line-height: 1.75rem;
   --tw-text-opacity: 1;
   color: rgb(209 213 219 / var(--tw-text-opacity));
   position: relative;
   top: -80px;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-style: italic;
+  text-align: center;
+}
+
+#lyrics-display code {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  --tw-text-opacity: 1;
+  color: rgb(209 213 219 / var(--tw-text-opacity));
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-style: italic;
+  text-align: center;
+}
+
+.lyrics-edit {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 100;
+  font-style: italic;
+  text-align: center;
 }
 
 #lyrics-display p {
