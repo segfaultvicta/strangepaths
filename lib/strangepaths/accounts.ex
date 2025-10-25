@@ -114,9 +114,25 @@ defmodule Strangepaths.Accounts do
 
   """
   def register_user(attrs) do
+    default_nick = generate_default_nickname()
+
     %User{}
-    |> User.registration_changeset(attrs)
+    |> User.registration_changeset(%{
+      email: attrs["email"],
+      password: attrs["password"],
+      nickname: default_nick
+    })
     |> Repo.insert()
+  end
+
+  def generate_default_nickname do
+    adjective =
+      ~w(aggressive agreeable ambidextrous ambitious brave breezy calm content dapper delightful eager easy faithful frabjous friendly gentle grateful happy helpful irate irenic jolly kind lovely lively neighborly nice obedient opulent odd polite proud punctual quirky quiet rad rambunctious shy silly towering unctuous victorious vorpal witty wonderful xeric xenial yowling zealous)
+
+    noun =
+      ~w(aardvark antelope armadillo alligator aquerne axolotl badger beaver booby blobfish brontosaur capybara cheetah crocodile crow cuttlefish dingo dragon ermine emu eel ferret falcon fox gerbil heron impala ibex jackalope jellyfish koala leopard lion lobster lynx matamata meerkat narwhal ocelot octopus otter pangolin panther puffin quetzal ringtail salamander snek squirrel tiger titmouse tortoise unicorn vulture wolf werewolf xoloitzcuintle yak zebra)
+
+    "#{String.capitalize(Enum.take_random(adjective, 1) |> List.first())} #{String.capitalize(Enum.take_random(noun, 1) |> List.first())}"
   end
 
   @doc """

@@ -23,30 +23,95 @@
 
   <%= if @decks != nil && @decks != [] do %>
     <div class="container mx-auto p-5">
-      <table class="table-fixed">
-        <thead>
-          <tr class="deckrow">
-            <th class="fooby" style="width: 365px;" phx-click="sort" phx-value-sortcol="name">NAME <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
-            <th class="fooby" phx-click="sort" phx-value-sortcol="aspect_id">ASPECT <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
-            <th class="fooby" phx-click="sort" phx-value-sortcol="glory">GLORY <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
-            <th class="fooby" phx-click="sort" phx-value-sortcol="manabalance">MANA BALANCE <i class={if @sortcol != :manabalance do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
-            <%= if @role == :god do %> <th>OWNER</th><% else %><th /><% end %>
-            <th>DELETE</th>
-          </tr>
-        </thead>
-        <tbody>
-          <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
-            <tr class="odd:bg-gray-800 even:bg-gray-700 deckrow">
-              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.name %><% end %></td>
-              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= aspect %><% end %></td>
-              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.glory %><% end %></td>
-              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "flex hover:text-white" do %><%= raw(manabalance_div(deck.manabalance)) %><% end %></td>
-              <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= if @role == :god do %><%= get_owner_name_by_id(deck.owner) %><% else %><% end %><% end %></td>
-              <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?">X</div></td>
+      <!-- Desktop: Table view -->
+      <div class="hidden lg:block overflow-x-auto">
+        <table class="table-auto w-full">
+          <thead>
+            <tr class="deckrow">
+              <th class="fooby" style="min-width: 200px; max-width: 365px;" phx-click="sort" phx-value-sortcol="name">NAME <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+              <th class="fooby" style="min-width: 80px;" phx-click="sort" phx-value-sortcol="aspect_id">ASPECT <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+              <th class="fooby" style="min-width: 60px;" phx-click="sort" phx-value-sortcol="glory">GLORY <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+              <th class="fooby" style="min-width: 300px;" phx-click="sort" phx-value-sortcol="manabalance">MANA BALANCE <i class={if @sortcol != :manabalance do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
+              <%= if @role == :god do %> <th style="min-width: 100px;">OWNER</th><% else %><th /><% end %>
+              <th style="min-width: 60px;">DELETE</th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
+              <tr class="odd:bg-gray-800 even:bg-gray-700 deckrow">
+                <td class="break-words"><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.name %><% end %></td>
+                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= aspect %><% end %></td>
+                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= deck.glory %><% end %></td>
+                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "inline-flex flex-wrap hover:text-white" do %><%= raw(manabalance_div(deck.manabalance)) %><% end %></td>
+                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "hover:text-white" do %><%= if @role == :god do %><%= get_owner_name_by_id(deck.owner) %><% else %><% end %><% end %></td>
+                <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?">X</div></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile: Card view -->
+      <div class="lg:hidden space-y-4">
+        <!-- Sort controls for mobile -->
+        <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
+          <div class="text-sm text-gray-400 mb-2">Sort by:</div>
+          <div class="grid grid-cols-2 gap-2">
+            <button phx-click="sort" phx-value-sortcol="name" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">
+              Name <i class={if @sortcol != :name do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i>
+            </button>
+            <button phx-click="sort" phx-value-sortcol="aspect_id" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">
+              Aspect <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i>
+            </button>
+            <button phx-click="sort" phx-value-sortcol="glory" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">
+              Glory <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i>
+            </button>
+            <button phx-click="sort" phx-value-sortcol="manabalance" class="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm">
+              Mana <i class={if @sortcol != :manabalance do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Deck cards -->
+        <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
+          <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+            <%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "block p-4 hover:bg-gray-700" do %>
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="text-lg font-bold text-white break-words flex-grow"><%= deck.name %></h3>
+                <div class="text-red-400 ml-2 flex-shrink-0" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?" onclick="event.stopPropagation();">
+                  <i class="fa-solid fa-trash"></i>
+                </div>
+              </div>
+
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Aspect:</span>
+                  <span class="text-white"><%= aspect %></span>
+                </div>
+
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Glory:</span>
+                  <span class="text-white"><%= deck.glory %></span>
+                </div>
+
+                <%= if @role == :god do %>
+                  <div class="flex justify-between">
+                    <span class="text-gray-400">Owner:</span>
+                    <span class="text-white"><%= get_owner_name_by_id(deck.owner) %></span>
+                  </div>
+                <% end %>
+
+                <div>
+                  <div class="text-gray-400 mb-1">Mana Balance:</div>
+                  <div class="flex flex-wrap gap-1">
+                    <%= raw(manabalance_div(deck.manabalance)) %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
     </div>
   <% else %>
     <div class="text-center"><h1>No decks yet exist.</h1></div>

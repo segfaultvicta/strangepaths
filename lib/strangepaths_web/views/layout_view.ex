@@ -6,7 +6,7 @@ defmodule StrangepathsWeb.LayoutView do
   @compile {:no_warn_undefined, {Routes, :live_dashboard_path, 2}}
 
   def navclass(conn, item) do
-    "my-1 text-lg font-large md:mx-4 md:my-0 hover:text-sky-300 " <>
+    "my-1 text-lg font-large lg:mx-4 lg:my-0 hover:text-sky-300 " <>
       if conn.request_path =~ Atom.to_string(item), do: "activenav", else: "inactivenav"
   end
 end

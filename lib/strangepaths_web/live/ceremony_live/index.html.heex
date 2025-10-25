@@ -1,8 +1,8 @@
 <%= if @role == nil do %>
-  <h1 class="text-center"> Please log in to view or create ceremonies. </h1>
+  <h1 class="text-center"> Please log in to view or create rites. </h1>
 <% else %>
   <nav class="bg-gray-900 shadow">
-    <div class="text-center p-2"><%= live_patch "New Ceremony", to: Routes.ceremony_index_path(@socket, :new) %></div>
+    <div class="text-center p-2"><%= live_patch "New Rite of the Dragon", to: Routes.ceremony_index_path(@socket, :new) %></div>
   </nav>
 
   <%= if @live_action in [:new] do %>

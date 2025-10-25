@@ -32,46 +32,67 @@
       }
     </script>
   </head>
-  <body>
-    <nav class="fixed inset-x-0 z-50 bg-gray-900 shadow">
-      <div class="container mx-auto px-6 py-3 md:flex md:justify-between md:items-center">
-        <div class="flex justify-between items-center">
-          <div class="inline-block">
-            <%= link "SANCTUARY", to: "/", class: "my-1 text-lg text-gray-300 hover:text-green-500 font-large md:mx-4 md:my-0"%>
-          </div>
+  <body x-data="{ mobileMenuOpen: false }">
+    <nav class="fixed inset-x-0 z-50 bg-gray-900 shadow h-[100px] overflow-hidden">
+      <div class="container mx-auto px-6 h-full flex items-center justify-between">
+        <!-- Desktop nav links (hidden on mobile) -->
+        <div class="hidden lg:flex items-center gap-4">
+          <%= live_redirect "RITES", to: "/ceremony", class: "inactivenav" %>
+          <%= live_redirect "DECKS", to: "/codex", class: "inactivenav" %>
+          <%= live_redirect "CARDS", to: "/cosmos", class: "inactivenav" %>
+          <%= live_redirect "ASCEND", to: "/ascension", class: "inactivenav" %>
+          <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav" %>
         </div>
 
-        <div class="flex items-center">
-          <div class="flex flex-col md:flex-row md:mx-6">
-            <%= live_redirect "RITES", to: "/ceremony", class: "inactivenav" %>
-            <%= live_redirect "DECKS", to: "/codex", class: "inactivenav" %>
-            <%= live_redirect "CARDS", to: "/cosmos", class: "inactivenav" %>
-            <%= live_redirect "ASCEND", to: "/ascension", class: "inactivenav" %>
-            <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav" %>
-          </div>
-        </div>
+        <!-- Mobile: just hamburger on left -->
+        <button @click="mobileMenuOpen = !mobileMenuOpen" class="lg:hidden text-gray-300 hover:text-white focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
 
-        <div class="flex items-center">
-          <div class="flex flex-col md:flex-row md:mx-6">
-            <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :god do %>
-              <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
-            <% end %>
-            <%= if @current_user do %>
-              <span class="my-1 text-sm text-gray-300 font-medium md:mx-4 md:my-0 uppercase">Hello, <%= @current_user.nickname %>!</span>
-              <%= link "SETTINGS", to: Routes.user_settings_path(@conn, :edit), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
-              <%= link "LOG OUT", to: Routes.user_session_path(@conn, :delete), method: :delete, class: "my-1 text-sm text-gray-300 font-medium hover:text-red-500 md:mx-4 md:my-0" %>
-            <% else %>
-              <%= link "REGISTER", to: Routes.user_registration_path(@conn, :new), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
-              <%= link "LOG IN", to: Routes.user_session_path(@conn, :new), class: "my-1 text-sm text-gray-300 font-medium hover:text-indigo-500 md:mx-4 md:my-0" %>
-            <% end %>
-          </div>
+        <!-- Right side: user info stacked -->
+        <div class="flex flex-col gap-1 items-end text-sm ml-auto">
+          <%= if @current_user do %>
+            <div class="flex gap-3 items-center">
+              <%= if @role == :god do %>
+                <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap hidden lg:inline" %>
+              <% end %>
+              <span class="text-gray-300 font-medium uppercase whitespace-nowrap hidden sm:inline">Hello, <%= @current_user.nickname %>!</span>
+            </div>
+            <div class="flex gap-3 items-center">
+              <%= link "SETTINGS", to: Routes.user_settings_path(@conn, :edit), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap" %>
+              <%= link "LOG OUT", to: Routes.user_session_path(@conn, :delete), method: :delete, class: "text-gray-300 font-medium hover:text-red-500 whitespace-nowrap" %>
+            </div>
+          <% else %>
+            <div class="flex gap-3 items-center">
+              <%= link "REGISTER", to: Routes.user_registration_path(@conn, :new), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap" %>
+              <%= link "LOG IN", to: Routes.user_session_path(@conn, :new), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap" %>
+            </div>
+          <% end %>
         </div>
       </div>
-
-
-
     </nav>
-    <main class="pt-12 pb-24">
+
+    <!-- Mobile menu dropdown (positioned absolutely below nav, outside the nav element) -->
+    <div x-show="mobileMenuOpen"
+         x-transition
+         class="lg:hidden fixed top-[100px] left-0 right-0 z-40 bg-gray-900 border-t border-gray-700 shadow-lg">
+      <div class="container mx-auto px-6 py-4">
+        <div class="flex flex-col gap-2">
+          <%= live_redirect "RITES", to: "/ceremony", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "DECKS", to: "/codex", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "CARDS", to: "/cosmos", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "ASCEND", to: "/ascension", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :god do %>
+            <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "inactivenav lg:hidden", "x-on:click": "mobileMenuOpen = false" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <main class="pt-[100px] pb-24">
       <%= @inner_content %>
     </main>
   </body>

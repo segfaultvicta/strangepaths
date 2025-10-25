@@ -1,29 +1,37 @@
-<div class="container mx-auto">
-  <h1>Register</h1>
+<div class="container mx-auto px-4 py-6">
+  <h1 class="mb-8">Register</h1>
 
-  <.form let={f} for={@changeset} action={Routes.user_registration_path(@conn, :create)} class="formstyle pl-4">
-    <%= if @changeset.action do %>
-      <div class="alert alert-danger">
-        <p>Oops, something went wrong! Please check the errors below.</p>
-      </div>
-    <% end %>
+  <div class="max-w-md mx-auto">
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <.form let={f} for={@changeset} action={Routes.user_registration_path(@conn, :create)} class="formstyle">
+        <%= if @changeset.action do %>
+          <div class="bg-red-900 border border-red-700 rounded p-3 mb-4">
+            <p class="text-red-200">Oops, something went wrong! Please check the errors below.</p>
+          </div>
+        <% end %>
 
-    <%= label f, :email %>
-    <%= email_input f, :email, required: true, class: "text"  %>
-    <%= error_tag f, :email %>
+        <div class="mb-4">
+          <%= label f, :email, class: "block mb-2" %>
+          <%= email_input f, :email, required: true, class: "text w-full" %>
+          <%= error_tag f, :email %>
+        </div>
 
-    <%= label f, :password %>
-    <%= password_input f, :password, required: true, class: "text"  %>
-    <%= error_tag f, :password %>
+        <div class="mb-4">
+          <%= label f, :password, class: "block mb-2" %>
+          <%= password_input f, :password, required: true, class: "text w-full" %>
+          <%= error_tag f, :password %>
+        </div>
 
-    <div class="pt-4">
-      <%= submit "Register", class: "submit" %>
+        <div class="pt-2">
+          <%= submit "Register", class: "submit" %>
+        </div>
+      </.form>
     </div>
-  </.form>
 
-  <p class="text-center">
-    <%= link "Log in", to: Routes.user_session_path(@conn, :new) %> |
-    <%= link "Forgot your password?", to: Routes.user_reset_password_path(@conn, :new) %>
-  </p>
-
+    <div class="text-center mt-6 space-x-2">
+      <%= link "Log in", to: Routes.user_session_path(@conn, :new), class: "text-indigo-400 hover:text-indigo-300" %>
+      <span class="text-gray-500">|</span>
+      <%= link "Forgot your password?", to: Routes.user_reset_password_path(@conn, :new), class: "text-indigo-400 hover:text-indigo-300" %>
+    </div>
+  </div>
 </div>

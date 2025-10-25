@@ -163,6 +163,63 @@
     font-size: 24pt;
 }
 
+.ascension-control {
+    @apply grid grid-rows-1 grid-cols-1 lg:grid-cols-5
+}
+
+.ascension-signal {
+    @apply flex flex-col
+}
+
+.ascension-signal img {
+    @apply object-scale-down h-16
+}
+
+.ascension-dice {
+    @apply grid grid-rows-3 gap-4 mx-2
+}
+
+.ascension-dicetext-primary {
+    @apply text-2xl mx-2
+}
+
+// Base class with common button properties
+.ascension-button-base {
+    @apply py-1 px-2 border rounded hover:border-transparent
+}
+
+.ascension-button-red {
+    @apply ascension-button-base bg-transparent hover:bg-red-700 text-red-500 hover:text-white border-red-500
+}
+
+.ascension-button-green {
+    @apply ascension-button-base bg-transparent hover:bg-green-700 text-green-500 hover:text-white border-green-500
+}
+
+.ascension-button-blue {
+    @apply ascension-button-base bg-transparent hover:bg-blue-700 text-blue-500 hover:text-white border-blue-500
+}
+
+.ascension-button-white {
+    @apply ascension-button-base bg-yellow-900 hover:bg-white text-yellow-200 hover:text-yellow-900 border-gray-300
+}
+
+.ascension-button-black {
+    @apply ascension-button-base bg-black hover:bg-black text-white hover:font-bold border-transparent hover:border-white
+}
+
+.ascension-button-void {
+    @apply ascension-button-base bg-transparent hover:bg-purple-700 text-purple-500 hover:text-white border-purple-500
+}
+
+.ascension-explanation {
+    @apply col-span-3
+}
+
+.ascension-dice-hr {
+    @apply border-t-2 border-dashed border-gray-600 py-2
+}
+
 .glow {
     -webkit-animation: glow 3s ease-in;
     -moz-animation: glow 3s ease-in;
