@@ -49,9 +49,18 @@
                 phx-click="toggle_lock"
                 phx-value-song-id={song.id}
                 class={"#{if song.unlocked, do: "text-green-400", else: "text-red-400"} hover:opacity-75"}
-                title={"#{if song.unlocked, do: "Lock", else: "Unlock"} song"}
+                title={"#{if song.unlocked, do: "Unlock", else: "Lock"} playback"}
               >
-                <i class={"fa-solid #{if song.unlocked, do: "fa-lock-open", else: "fa-lock"}"}></i>
+                <i class={"fa-solid #{if song.unlocked, do: "fa-music", else: "fa-music"}"}></i>
+              </button>
+
+              <button
+                phx-click="toggle_lyrics_lock"
+                phx-value-song-id={song.id}
+                class={"#{if song.lyrics_unlocked, do: "text-green-400", else: "text-red-400"} hover:opacity-75"}
+                title={"#{if song.lyrics_unlocked, do: "Lock", else: "Unlock"} lyrics"}
+              >
+                <i class={"fa-solid #{if song.lyrics_unlocked, do: "fa-file-lines", else: "fa-file-lines"}"}></i>
               </button>
             </div>
           <% end %>
@@ -145,9 +154,18 @@
                 phx-click="toggle_lock"
                 phx-value-song-id={song.id}
                 class={"#{if song.unlocked, do: "text-green-400", else: "text-red-400"} hover:opacity-75"}
-                title={"#{if song.unlocked, do: "Lock", else: "Unlock"} song"}
+                title={"#{if song.unlocked, do: "Unlock", else: "Lock"} playback"}
               >
-                <i class={"fa-solid #{if song.unlocked, do: "fa-lock-open", else: "fa-lock"}"}></i>
+                <i class={"fa-solid #{if song.unlocked, do: "fa-music", else: "fa-music"}"}></i>
+              </button>
+
+              <button
+                phx-click="toggle_lyrics_lock"
+                phx-value-song-id={song.id}
+                class={"#{if song.lyrics_unlocked, do: "text-green-400", else: "text-red-400"} hover:opacity-75"}
+                title={"#{if song.lyrics_unlocked, do: "Lock", else: "Unlock"} lyrics"}
+              >
+                <i class={"fa-solid #{if song.lyrics_unlocked, do: "fa-file-lines", else: "fa-file-lines"}"}></i>
               </button>
             </div>
           <% end %>

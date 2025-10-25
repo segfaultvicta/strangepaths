@@ -8,6 +8,7 @@ defmodule Strangepaths.Site do
 
   alias Strangepaths.Site.MusicQueue
   alias Strangepaths.Site.Song
+  alias Strangepaths.Site.ContentPage
 
   @doc """
   Returns the list of songs.
@@ -179,12 +180,26 @@ defmodule Strangepaths.Site do
     if !song.unlocked do
       # Discord shout that a song has been unlocked, and link to its OST page
       msg =
-        "You hear — and your Star hears — a song, echoing from the stillness: #{song.title} (Details at: https://strangepaths.com/ost/#{song.id})"
+        "You hear — and your Star hears — a song, echoing from the stillness: #{song.title}"
 
       Nostrum.Api.Message.create(Application.get_env(:strangepaths, :discord_channel), msg)
     end
 
     update_song(song, %{unlocked: !song.unlocked})
+  end
+
+  def toggle_song_lyrics_lock(song_id) do
+    song = get_song!(song_id)
+
+    if !song.lyrics_unlocked do
+      # Discord shout that lyrics have been unlocked
+      msg =
+        "The lyrics of '#{song.title}' have been illuminated. (https://strangepaths.aludel.xyz/ost/#{song.id})"
+
+      Nostrum.Api.Message.create(Application.get_env(:strangepaths, :discord_channel), msg)
+    end
+
+    update_song(song, %{lyrics_unlocked: !song.lyrics_unlocked})
   end
 
   @doc """
@@ -248,6 +263,42 @@ defmodule Strangepaths.Site do
   def render_lyrics(song_id) do
     song = get_song!(song_id)
     Earmark.as_html!(song.text)
+  end
+
+  def list_content_pages do
+    Repo.all(ContentPage)
+  end
+
+  def list_published_content_pages do
+    ContentPage
+    |> where(published: true)
+    |> order_by(:title)
+    |> Repo.all()
+  end
+
+  def get_content_page!(id), do: Repo.get!(ContentPage, id)
+
+  def get_content_page_by_slug(slug) do
+    Repo.get_by(ContentPage, slug: slug)
+  end
+
+  def create_content_page(attrs \\ %{}) do
+    IO.puts("in create_content_page")
+    IO.inspect(attrs)
+
+    %ContentPage{}
+    |> ContentPage.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_content_page(page, attrs) do
+    page
+    |> ContentPage.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_content_page(page) do
+    Repo.delete(page)
   end
 
   @doc """

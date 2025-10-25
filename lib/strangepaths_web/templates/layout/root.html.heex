@@ -42,6 +42,7 @@
           <%= live_redirect "CARDS", to: "/cosmos", class: "inactivenav" %>
           <%= live_redirect "ASCEND", to: "/ascension", class: "inactivenav" %>
           <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav" %>
+          <%= live_redirect "CODEX", to: "/content", class: "inactivenav" %>
         </div>
 
         <!-- Mobile: just hamburger on left -->
@@ -86,6 +87,7 @@
           <%= live_redirect "CARDS", to: "/cosmos", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "ASCEND", to: "/ascension", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "CODEX", to: "/content", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :god do %>
             <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "inactivenav lg:hidden", "x-on:click": "mobileMenuOpen = false" %>
           <% end %>

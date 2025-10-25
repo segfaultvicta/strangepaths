@@ -12,8 +12,8 @@ defmodule StrangepathsWeb.SongLive do
     song = Site.get_song!(id)
     user = socket.assigns.current_user
 
-    # Check if user can view (unlocked OR admin)
-    can_view = song.unlocked || user.role in [:admin, :god]
+    # Check if user can view lyrics (lyrics_unlocked OR admin)
+    can_view = song.lyrics_unlocked || user.role in [:admin, :god]
 
     {:ok,
      socket

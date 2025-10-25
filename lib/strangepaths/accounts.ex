@@ -285,9 +285,22 @@ defmodule Strangepaths.Accounts do
 
     alethic_val = Map.get(user, alethic_key)
 
+    # all alethic dice setting is one rank lower than the rank the
+    # primary was at before shenanigans occurred
+
+    new_alethic_val =
+      case old_val do
+        20 -> 12
+        12 -> 10
+        10 -> 8
+        8 -> 6
+        6 -> 4
+        _ -> 4
+      end
+
     %{
       primary_key => new_val,
-      alethic_key => max(alethic_val, old_val)
+      alethic_key => max(alethic_val, new_alethic_val)
     }
   end
 

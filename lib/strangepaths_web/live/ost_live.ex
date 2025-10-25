@@ -50,6 +50,7 @@ defmodule StrangepathsWeb.OstLive do
              title: title,
              disc: String.to_integer(disc),
              unlocked: false,
+             lyrics_unlocked: false,
              text: "",
              link: ""
            }) do
@@ -103,6 +104,26 @@ defmodule StrangepathsWeb.OstLive do
 
         {:error, _} ->
           {:noreply, socket |> put_flash(:error, "Failed to toggle lock")}
+      end
+    else
+      {:noreply, socket |> put_flash(:error, "Unauthorized")}
+    end
+  end
+
+  defp handle_ost_event("toggle_lyrics_lock", %{"song-id" => song_id}, socket) do
+    user = socket.assigns.current_user
+
+    if user.role in [:admin, :god] do
+      case Site.toggle_song_lyrics_lock(String.to_integer(song_id)) do
+        {:ok, _song} ->
+          {:noreply,
+           socket
+           |> assign(:disc1, Site.disc1())
+           |> assign(:disc2, Site.disc2())
+           |> put_flash(:info, "Lyrics lock toggled")}
+
+        {:error, _} ->
+          {:noreply, socket |> put_flash(:error, "Failed to toggle lyrics lock")}
       end
     else
       {:noreply, socket |> put_flash(:error, "Unauthorized")}

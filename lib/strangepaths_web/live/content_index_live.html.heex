@@ -1,0 +1,31 @@
+<div class="container mx-auto px-4 py-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Codex</h1>
+    <%= if @is_admin do %>
+      <%= live_redirect to: "/content/admin", class: "px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded" do %>
+        <i class="fa-solid fa-cog"></i> Manage Content
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="grid gap-2 max-w-2xl">
+    <%= for page <- @pages do %>
+      <div class="bg-gray-800 rounded-lg hover:bg-gray-900 transition">
+        <%= live_redirect to: "/content/#{page.slug}", class: "block" do %>
+          <h2 class="text-xl mx-4 text-purple-300 hover:text-purple-200">
+            <%= page.title %>
+          </h2>
+          <%= if @is_admin and not page.published do %>
+            <span class="inline-block mt-2 px-2 py-0.5 bg-gray-600 text-white text-xs rounded">Draft</span>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= if @pages == [] do %>
+      <div class="text-center text-gray-400 py-12">
+        The Dragon hasn't written anything yet. Check back later.
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -1,0 +1,49 @@
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+  <div class="mb-2">
+    <%= live_redirect to: "/content", class: "text-sm text-purple-400 hover:text-purple-300" do %>
+      <i class="fa-solid fa-arrow-left"></i> Back to Codex
+    <% end %>
+  </div>
+  <%= if @can_edit do %>
+    <div class="mb-2">
+      <%= live_redirect to: "/content/admin", class: "text-sm text-purple-400 hover:text-purple-300" do %>
+        Content Admin<i class="fa-solid fa-arrow-right"></i>
+      <% end %>
+    </div>
+    <div class="mb-4 flex justify-between items-center">
+      <h1 class="text-3xl uppercase"><%= @page.title %></h1>
+      <%= if not @editing do %>
+        <button phx-click="start_edit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded">
+          <i class="fa-solid fa-pencil"></i> Edit
+        </button>
+      <% end %>
+    </div>
+  <% else %>
+    <h1 class="text-3xl uppercase mb-4"><%= @page.title %></h1>
+  <% end %>
+
+  <%= if @editing do %>
+    <div class="mb-4">
+      <form phx-submit="save">
+        <textarea
+          name="body"
+          rows="20"
+          class="w-full bg-gray-800 text-gray-100 border border-gray-600 rounded p-4 font-mono"
+          autofocus
+        ><%= @page.body %></textarea>
+        <div class="mt-4 flex gap-2">
+          <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded">
+            Save
+          </button>
+          <button type="button" phx-click="cancel_edit" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  <% else %>
+    <div id="content-body" class="prose prose-invert prose-lg max-w-none">
+      <%= raw Earmark.as_html!(@page.body) %>
+    </div>
+  <% end %>
+</div>

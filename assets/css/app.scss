@@ -72,6 +72,33 @@
     }
 }
 
+#content-body h1 {
+    @apply text-4xl text-white my-5;
+}
+
+#content-body h2 {
+    @apply text-3xl text-white my-3;
+    text-transform: none;
+    text-decoration-line: underline;
+}
+
+#content-body h3 {
+    @apply text-2xl font-bold text-white my-1;
+}
+
+#content-body h4 {
+    @apply text-xl text-white;
+    font-weight: unset;
+}
+
+#content-body ul {
+    list-style: inside;
+}
+
+#content-body ol {
+    list-style: decimal;
+}
+
 .formstyle {
     & .text {
         @apply bg-gray-50 border border-gray-800 text-gray-900 text-sm focus:border-blue-500 mx-3 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500

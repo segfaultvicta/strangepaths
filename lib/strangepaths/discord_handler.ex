@@ -100,7 +100,7 @@ defmodule Strangepaths.DiscordHandler do
       2 -> "twice"
       3 -> "thrice"
       4 -> "deeply"
-      5 -> ", utterly and absolutely,"
+      5 -> "utterly and absolutely"
       _ -> ":poop:"
     end
   end
