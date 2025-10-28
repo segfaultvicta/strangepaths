@@ -6,9 +6,14 @@ defmodule Strangepaths.Cards.Deck do
     field(:name, :string)
     field(:aspect_id, :id)
     field(:glory, :integer)
+    field(:tolerance, :integer)
+    field(:blockcap, :integer)
+    field(:avatar_id, :integer)
     field(:glory_used, :integer, virtual: true)
     field(:manabalance, :map)
     belongs_to(:user, Strangepaths.Accounts.User, foreign_key: :owner)
+
+    has_one(:avatar, Strangepaths.Accounts.Avatar, foreign_key: :id, references: :avatar_id)
 
     many_to_many(:cards, Strangepaths.Cards.Card,
       join_through: "cards_decks",
@@ -35,6 +40,16 @@ defmodule Strangepaths.Cards.Deck do
   def glory_changeset(deck, adjustment) do
     deck
     |> cast(%{"glory" => deck.glory + adjustment}, [:glory])
+  end
+
+  def tolerance_changeset(deck, adjustment) do
+    deck
+    |> cast(%{"tolerance" => deck.tolerance + adjustment}, [:tolerance])
+  end
+
+  def blockcap_changeset(deck, adjustment) do
+    deck
+    |> cast(%{"blockcap" => deck.blockcap + adjustment}, [:blockcap])
   end
 
   def cards_changeset(deck, cards) do

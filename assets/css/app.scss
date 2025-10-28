@@ -183,6 +183,10 @@
     transform: translate(-50%, -50%);
 }
 
+.avatar-dim {
+    filter: saturate(0);
+}
+
 .tippy-content {
     background-color: #330033;
     color: #fff;

@@ -55,6 +55,7 @@ defmodule Strangepaths.MixProject do
       {:slugify, "~> 1.3"},
       {:petal_components, "~> 0.17"},
       {:earmark, "~> 1.4.3"},
+      {:image, "~> 0.62.1"},
       {:nostrum, github: "Kraigie/nostrum"}
     ]
   end

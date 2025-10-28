@@ -367,6 +367,7 @@ defmodule Strangepaths.Cards do
 
   def get_deck(id) do
     Repo.get(Deck, id)
+    |> Repo.preload(:avatar)
   end
 
   def get_full_deck(id) do
@@ -434,6 +435,18 @@ defmodule Strangepaths.Cards do
 
     deck
     |> Deck.glory_changeset(adjustment)
+    |> Repo.update()
+  end
+
+  def adjust_tolerance(deck, adjustment) do
+    deck
+    |> Deck.tolerance_changeset(adjustment)
+    |> Repo.update()
+  end
+
+  def adjust_blockcap(deck, adjustment) do
+    deck
+    |> Deck.blockcap_changeset(adjustment)
     |> Repo.update()
   end
 
@@ -546,7 +559,8 @@ defmodule Strangepaths.Cards do
               img: "",
               deckID: nil,
               cards: %{draw: [], discard: [], hand: [], graces: []},
-              tolerance: 10,
+              tolerance: 15,
+              blockcap: 10,
               stress: 7,
               defence: 0,
               glory: 0,
@@ -556,35 +570,55 @@ defmodule Strangepaths.Cards do
               card_id: nil,
               glorified: false,
               gnosis: false,
+              smol: false,
+              bright: true,
               owner_id: 0
 
     def to_string(self) do
       self.uuid <> ":" <> self.name
     end
 
-    def create(:Avatar, name, deckID, tolerance, avatarID, owner) do
-      deckID =
-        if Strangepaths.Cards.deck_exists?(deckID) do
-          deckID
-        else
-          nil
-        end
+    def create(:Avatar, name, deckID, tolerance, blockcap, avatar, owner) do
+      IO.puts(
+        "creating avatar. tolerance is #{inspect(tolerance)} and blockcap is #{inspect(blockcap)}"
+      )
 
-      %Entity{
-        name: name,
-        uuid: Ecto.UUID.generate(),
-        x: 0,
-        y: 0,
-        img: Strangepaths.Accounts.get_avatar!(avatarID).filepath,
-        tolerance: String.to_integer(tolerance),
-        stress: 0,
-        glory: Strangepaths.Cards.deckglory(deckID),
-        defence: 0,
-        deckID: deckID,
-        deckmana: Strangepaths.Cards.deckmana(deckID),
-        type: :Avatar,
-        owner_id: owner.id
-      }
+      if Strangepaths.Cards.deck_exists?(deckID) do
+        %Entity{
+          name: name,
+          uuid: Ecto.UUID.generate(),
+          x: 0,
+          y: 0,
+          img: avatar.filepath,
+          tolerance: tolerance,
+          blockcap: blockcap,
+          stress: 0,
+          glory: Strangepaths.Cards.deckglory(deckID),
+          defence: 0,
+          deckID: deckID,
+          deckmana: Strangepaths.Cards.deckmana(deckID),
+          type: :Avatar,
+          owner_id: owner.id
+        }
+      else
+        # we're a fiend
+        %Entity{
+          name: name,
+          uuid: Ecto.UUID.generate(),
+          x: 0,
+          y: 0,
+          img: avatar.filepath,
+          tolerance: tolerance,
+          blockcap: blockcap,
+          stress: 0,
+          glory: 0,
+          defence: 0,
+          deckID: deckID,
+          deckmana: [],
+          type: :Avatar,
+          owner_id: owner.id
+        }
+      end
     end
 
     def create(:Card, card, owner) do
@@ -706,7 +740,13 @@ defmodule Strangepaths.Cards do
         if !Enum.find(ceremony.entities, fn e -> e.uuid == entity.uuid end) &&
              entity.type == :Avatar &&
              entity.deckID != nil do
-          deck = Strangepaths.Cards.get_full_deck(entity.deckID).cards
+          deck =
+            if(Strangepaths.Cards.deck_exists?(entity.deckID)) do
+              Strangepaths.Cards.get_full_deck(entity.deckID).cards
+            else
+              []
+            end
+
           graces = deck |> Enum.filter(fn c -> c.type == :Grace end)
 
           rites =
@@ -748,6 +788,54 @@ defmodule Strangepaths.Cards do
 
       if ok == :ok do
         Enum.find(ceremony.entities, fn e -> e.uuid == uuid end)
+      else
+        {:error, ceremony}
+      end
+    end
+
+    def toggle_brightness(truename, uuid) do
+      IO.puts("toggle_brightness called for #{truename} #{uuid}")
+      {ok, ceremony} = get(truename)
+
+      if ok == :ok do
+        entity = Enum.find(ceremony.entities, fn e -> e.uuid == uuid end)
+        entity = %{entity | bright: !entity.bright}
+
+        {:ok,
+         save(truename, %{
+           ceremony
+           | entities: [entity | Enum.reject(ceremony.entities, fn e -> e.uuid == uuid end)]
+         })}
+      else
+        {:error, ceremony}
+      end
+    end
+
+    def brighten_all_entities(truename) do
+      {ok, ceremony} = get(truename)
+
+      if ok == :ok do
+        entities = Enum.map(ceremony.entities, fn e -> %{e | bright: true} end)
+
+        {:ok, save(truename, %{ceremony | entities: entities})}
+      else
+        {:error, ceremony}
+      end
+    end
+
+    def toggle_smolness(truename, uuid) do
+      IO.puts("toggle_smol happening for #{truename} #{uuid}")
+      {ok, ceremony} = get(truename)
+
+      if ok == :ok do
+        entity = Enum.find(ceremony.entities, fn e -> e.uuid == uuid end)
+        entity = %{entity | smol: !entity.smol}
+
+        {:ok,
+         save(truename, %{
+           ceremony
+           | entities: [entity | Enum.reject(ceremony.entities, fn e -> e.uuid == uuid end)]
+         })}
       else
         {:error, ceremony}
       end

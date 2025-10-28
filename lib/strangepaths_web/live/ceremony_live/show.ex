@@ -48,7 +48,17 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     case forward_music_client_event(event, params, socket) do
       :not_music_event ->
         # Handle our own events
-        handle_ceremony_event(event, params, socket)
+        if(event == "handle_keypress") do
+          handle_ceremony_event("key", Map.get(params, "key"), socket)
+        else
+          if event != "move" do
+            IO.puts(
+              "handling event #{event} with params #{inspect(params)} in state #{socket.assigns.state}"
+            )
+          end
+
+          handle_ceremony_event(event, params, socket)
+        end
 
       result ->
         result
@@ -73,7 +83,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket}
   end
 
+  defp handle_ceremony_event("validateDeckChoice", data, socket) do
+    {:noreply, socket |> assign(:selectedDeck, data["entity"]["deck"])}
+  end
+
   defp handle_ceremony_event("validateAvatar", data, socket) do
+    # deprecated - all of this should be being stored with decks
+
     # special-case the fiends
     {name, tolerance, avatar} =
       case data["entity"]["deck"] do
@@ -146,9 +162,53 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
-  defp handle_ceremony_event("setupAvatar", data, socket) do
-    # we'll either have a name, or a deck - if we have a deck, derive the name from the deck
-    # if we don't have a deck, send nil
+  defp handle_ceremony_event("setupAvatar", %{"entity" => %{"deck" => deck_id}}, socket) do
+    deck = Cards.get_deck(deck_id)
+
+    # should have avatar included
+    IO.inspect(deck)
+
+    # special-case the lil' fiendies
+    {name, tolerance, blockcap, avatar} =
+      case deck_id do
+        "99990" ->
+          {"Lithos", 4, 10, Strangepaths.Accounts.get_avatar!(44)}
+
+        "99991" ->
+          {"Glorified Lithos", 8, 10, Strangepaths.Accounts.get_avatar!(44)}
+
+        "99992" ->
+          {"Orichalca", 8, 10, Strangepaths.Accounts.get_avatar!(45)}
+
+        "99993" ->
+          {"Glorified Orichalca", 12, 10, Strangepaths.Accounts.get_avatar!(45)}
+
+        "99994" ->
+          {"Papyrus", 4, 10, Strangepaths.Accounts.get_avatar!(46)}
+
+        "99995" ->
+          {"Glorified Papyrus", 8, 10, Strangepaths.Accounts.get_avatar!(46)}
+
+        "99996" ->
+          {"Vitriol", 2, 10, Strangepaths.Accounts.get_avatar!(47)}
+
+        "99997" ->
+          {"Glorified Vitriol", 4, 10, Strangepaths.Accounts.get_avatar!(47)}
+
+        "99998" ->
+          {"Lutum", 5, 10, Strangepaths.Accounts.get_avatar!(48)}
+
+        "99999" ->
+          {"Glorified Lutum", 4, 10, Strangepaths.Accounts.get_avatar!(48)}
+
+        _ ->
+          {deck.name, deck.tolerance, deck.blockcap,
+           if deck.avatar != nil do
+             deck.avatar
+           else
+             Strangepaths.Accounts.get_avatar!(1)
+           end}
+      end
 
     {:noreply,
      socket
@@ -157,10 +217,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
        :placingEntity,
        Cards.Entity.create(
          :Avatar,
-         socket.assigns.avatarName,
-         data["entity"]["deck"],
-         data["entity"]["tolerance"],
-         socket.assigns.selectedAvatarID,
+         name,
+         deck_id,
+         tolerance,
+         blockcap,
+         avatar,
          socket.assigns.current_user
        )
      )}
@@ -202,6 +263,13 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:placingY, Cards.Entity.screen_y(placingEntity, data["context"]))}
   end
 
+  defp handle_ceremony_event("key", data, socket) when socket.assigns.state == :placeEntity do
+    # cancel placeEntity if key is Escape
+    if data == "Escape" do
+      {:noreply, socket |> assign(:state, :ready) |> assign(:placingEntity, %Cards.Entity{})}
+    end
+  end
+
   defp handle_ceremony_event("placeEntity", _data, socket) do
     socket =
       if socket.assigns.placedBy != nil do
@@ -238,6 +306,15 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     })
 
     {:noreply, socket |> assign(:state, :ready)}
+  end
+
+  # Technically this is a menuClick, but it belongs with entity clicks
+  defp handle_ceremony_event("menuClick", %{"e" => "catchall"}, socket)
+       when socket.assigns.state == :avatarMenu do
+    uuid = socket.assigns.selectedEntity.uuid
+    Cards.Ceremony.toggle_brightness(socket.assigns.ceremony.id, uuid)
+    StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
+    {:noreply, socket |> assign(:state, :ready) |> assign(:selectedEntity, nil)}
   end
 
   defp handle_ceremony_event("entityClick", data, socket)
@@ -480,15 +557,25 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   end
 
   defp handle_ceremony_event("menuClick", %{"e" => "temenosTarget"}, socket) do
-    {:noreply,
-     push_event(
-       socket |> assign(:state, :setupTarget) |> assign(:targetSource, nil),
-       "unloadAvatarMenu",
-       %{}
-     )}
+    # check to make sure there are at least two valid entities on the board to target
+    if(length(socket.assigns.ceremony.entities) > 1) do
+      {:noreply,
+       push_event(
+         socket |> assign(:state, :setupTarget) |> assign(:targetSource, nil),
+         "unloadAvatarMenu",
+         %{}
+       )}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp handle_ceremony_event("click", _data, socket) when socket.assigns.state == :temenosMenu do
+    {:noreply, push_event(socket |> assign(:state, :ready), "unloadTemenosMenu", %{})}
+  end
+
+  defp handle_ceremony_event("menuClick", %{"e" => "catchall"}, socket)
+       when socket.assigns.state == :temenosMenu do
     {:noreply, push_event(socket |> assign(:state, :ready), "unloadTemenosMenu", %{})}
   end
 
@@ -864,8 +951,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   defp handle_ceremony_event("handCardClick", data, socket)
        when socket.assigns.handMode == :Play do
-    IO.puts("PLAYING:")
-
     card =
       socket.assigns.selectedEntity.cards.hand |> Enum.find(fn c -> c.uuid == data["card"] end)
 
@@ -935,7 +1020,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   defp handle_ceremony_event("handCardClick", _data, socket)
        when socket.assigns.handMode == nil do
-    IO.puts("NOOP")
     {:noreply, socket}
   end
 
@@ -993,6 +1077,15 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
        x: Cards.Entity.screen_x(menuEntity, socket.assigns.context),
        y: Cards.Entity.screen_y(menuEntity, socket.assigns.context)
      })}
+  end
+
+  defp handle_ceremony_event("menuClick", %{"e" => "catchall"}, socket)
+       when socket.assigns.state == :cardMenu do
+    uuid = socket.assigns.selectedEntity.uuid
+    IO.puts("eep")
+    Cards.Ceremony.toggle_smolness(socket.assigns.ceremony.id, uuid)
+    StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
+    {:noreply, socket |> assign(:state, :ready) |> assign(:selectedEntity, nil)}
   end
 
   defp handle_ceremony_event("menuClick", %{"e" => "cardMove"}, socket) do
@@ -1169,6 +1262,10 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket}
   end
 
+  defp handle_ceremony_event("menuClick", %{"e" => "catchall"}, socket) do
+    {:noreply, socket}
+  end
+
   defp handle_ceremony_event("move", _data, socket)
        when socket.assigns.pendingCeremonyUpdate == true do
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
@@ -1177,6 +1274,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   defp handle_ceremony_event("move", _data, socket) do
     # noop a mouse movement event if we're not in a state that accepts moves
+    {:noreply, socket}
+  end
+
+  defp handle_ceremony_event("key", _data, socket) do
+    # noop a key event if we're not in a state that accepts keys
     {:noreply, socket}
   end
 

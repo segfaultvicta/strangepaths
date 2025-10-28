@@ -53,6 +53,18 @@ defmodule StrangepathsWeb.DeckLive.Show do
     {:noreply, recalc(socket, deck)}
   end
 
+  defp handle_deck_event("adjust_tolerance", %{"value" => adjustment}, socket) do
+    {:ok, deck} = Cards.adjust_tolerance(socket.assigns.deck, String.to_integer(adjustment))
+
+    {:noreply, recalc(socket, deck)}
+  end
+
+  defp handle_deck_event("adjust_blockcap", %{"value" => adjustment}, socket) do
+    {:ok, deck} = Cards.adjust_blockcap(socket.assigns.deck, String.to_integer(adjustment))
+
+    {:noreply, recalc(socket, deck)}
+  end
+
   defp handle_deck_event("truth", _, socket) do
     {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
   end
@@ -179,7 +191,6 @@ defmodule StrangepathsWeb.DeckLive.Show do
         end)
     end)
   end
-
 
   defp recalc(socket, deck) do
     deck_ids = Enum.map(deck.cards, fn c -> c.id end)

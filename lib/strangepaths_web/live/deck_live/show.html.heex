@@ -22,24 +22,53 @@
 <nav class="fixed bg-gray-900 inset-x-0 top-[100px] z-50 shadow-lg">
   <!-- Desktop: Single row layout -->
   <div class="hidden lg:flex flex-col justify-between items-center h-32">
-    <div><h1 class="text-center"><%= @deck.name %>, of the Dragon's <%= @deck.aspect %>
-    <button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
-    ❁<%= @deck.glory %>
-    <button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button></h1></div>
+    <div>
+      <h1 class="text-center"><%= @deck.name %>, of the <%= @deck.aspect %>
+        <span>
+          <button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+          ❁<%= @deck.glory %>
+          <button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button>
+        </span>
+        <span>
+          <button class="pl-5" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+          ♥<%= @deck.tolerance %>
+          <button phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button>
+        </span>
+        <span>
+          <button class="pl-5" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+          ⛨<%= @deck.blockcap %>
+          <button phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button>
+        </span>
+      </h1>
+    </div>
+
     <div class="pb-2 inline-flex"><%= raw(manabalance_div(@deck)) %></div>
   </div>
 
   <!-- Mobile: Compact layout -->
   <div class="lg:hidden">
-    <div class="flex items-center justify-between px-3 py-2">
+    <div>
+      <span class="text-lg text-white font-bold truncate mx-4"><%= @deck.name %></span>
+    </div>
+    <div class="flex items-center justify-between px-3 pb-2 gap-2">
       <div class="flex-1 min-w-0">
-        <h1 class="text-lg font-bold truncate"><%= @deck.name %></h1>
+        
         <div class="text-xs text-gray-400"><%= @deck.aspect %></div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <button class="text-xl" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
         <span class="text-lg">❁<%= @deck.glory %></span>
         <button class="text-xl" phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <button class="text-xl" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+        <span class="text-lg">♥<%= @deck.tolerance %></span>
+        <button class="text-xl" phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <button class="text-xl" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+        <span class="text-lg">⛨<%= @deck.blockcap %></span>
+        <button class="text-xl" phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button>
       </div>
     </div>
 
