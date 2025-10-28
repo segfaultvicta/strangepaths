@@ -1,5 +1,5 @@
 <%= if @eye != nil do %>
-  <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-6 phx-modal">
+  <div id="modal" class="overflow-y-auto fixed inset-0 z-[60] pt-6 phx-modal">
       <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center lg:block lg:p-0">
         <div class="fixed inset-0 transition-opacity" aria-hidden="true">
           <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
@@ -21,13 +21,13 @@
 
 <!-- Avatar Picker Modal -->
 <%= if @avatar_picker_open do %>
-  <div class="fixed inset-0 z-50 overflow-y-auto">
+  <div class="fixed inset-0 z-[60] overflow-y-auto">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black bg-opacity-75" phx-click="close_avatar_picker"></div>
 
     <!-- Modal Content -->
     <div class="flex items-center justify-center min-h-screen px-4 py-6">
-      <div class="relative bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div class="relative bg-indigo-200 dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
         <!-- Header -->
         <div class="flex justify-between items-center p-4 border-b border-gray-700">
           <h2 class="text-xl font-bold">Choose Avatar</h2>
@@ -44,7 +44,7 @@
               <button
                 phx-click="toggle_category"
                 phx-value-category={category}
-                class="w-full flex justify-between items-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg mb-2"
+                class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2"
               >
                 <span class="text-lg font-semibold capitalize"><%= category %></span>
                 <i class={"fa-solid #{if category in @open_categories, do: "fa-chevron-up", else: "fa-chevron-down"}"}></i>
@@ -84,7 +84,7 @@
   </div>
 <% end %>
 
-<nav class="fixed bg-gray-900 inset-x-0 top-[100px] z-50 shadow-lg">
+<nav class="fixed bg-indigo-200 dark:bg-gray-900 inset-x-0 top-[100px] z-50 shadow-lg">
   <!-- Desktop: Single row layout -->
   <div class="hidden lg:flex flex-col justify-between items-center h-32">
     <div>
@@ -113,12 +113,12 @@
   <!-- Mobile: Compact layout -->
   <div class="lg:hidden">
     <div>
-      <span class="text-lg text-white font-bold truncate mx-4"><%= @deck.name %></span>
+      <span class="text-lg text-indigo-800 dark:text-white font-bold truncate mx-4"><%= @deck.name %></span>
     </div>
     <div class="flex items-center justify-between px-3 pb-2 gap-2">
       <div class="flex-1 min-w-0">
         
-        <div class="text-xs text-gray-400"><%= @deck.aspect %></div>
+        <div class="text-sm dark:text-gray-400"><%= @deck.aspect %></div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <button class="text-xl" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
@@ -179,7 +179,7 @@
 </nav>
 
 <!-- Desktop: Fixed sidebar -->
-<aside class="hidden lg:block pt-16 w-64 bg-gray-700 fixed inset-y-0 overflow-x-hidden overflow-y-auto">
+<aside class="hidden lg:block pt-16 w-64 dark:bg-gray-700 fixed inset-y-0 overflow-x-hidden overflow-y-auto">
   <div class="pl-3 pt-2 min-h-full">
     <div class="mt-[190px]">
       <!-- Avatar Selection -->
@@ -251,7 +251,7 @@
        x-transition:leave="transition ease-in duration-200"
        x-transition:leave-start="translate-y-0"
        x-transition:leave-end="translate-y-full"
-       class="fixed inset-x-0 bottom-0 z-50 bg-gray-800 rounded-t-2xl shadow-2xl max-h-[75vh] overflow-hidden flex flex-col"
+       class="fixed inset-x-0 bottom-0 z-50 bg-indigo-200 dark:bg-gray-800 rounded-t-2xl shadow-2xl max-h-[75vh] overflow-hidden flex flex-col"
        style="display: none;">
     <!-- Drawer handle -->
     <div class="flex justify-center pt-3 pb-2">
@@ -282,10 +282,10 @@
             <i class="fa-solid fa-pencil text-white opacity-0 active:opacity-100 transition"></i>
           </div>
         </button>
-        <div class="text-xs text-gray-400 mt-1">Tap to change avatar</div>
+        <div class="text-xs mt-1">Tap to change avatar</div>
       </div>
 
-      <div class="text-center text-red-400 mb-3">
+      <div class="text-center text-red-600 dark:text-red-400 mb-3">
         <%= if @deck.glory_used > @deck.glory do %>
           <div class="font-bold">Too much glory</div>
         <% end %>
@@ -295,20 +295,20 @@
         <% end %>
       </div>
 
-      <div class={"text-center mb-4 text-lg font-bold " <> if @deck.glory_used > @deck.glory do "text-red-400" else "text-white" end}>
+      <div class={"text-center mb-4 text-lg font-bold " <> if @deck.glory_used > @deck.glory do "text-red-600 dark:text-red-400" else "text-indigo-800 dark:text-white" end}>
         Glory <%= @deck.glory_used %> / <%= @deck.glory %>
       </div>
 
       <!-- Mana Balance -->
       <div class="mb-4">
-        <div class="text-center text-sm text-gray-400 mb-2">Mana Balance</div>
+        <div class="text-center text-sm mb-2">Mana Balance</div>
         <div class="flex flex-wrap justify-center gap-1">
           <%= raw(manabalance_div(@deck)) %>
         </div>
       </div>
 
       <div class="border-t border-gray-700 pt-4 mb-2">
-        <div class="text-center text-sm text-gray-400 mb-2">Cards in Deck</div>
+        <div class="text-center text-sm mb-2">Cards in Deck</div>
       </div>
 
       <div class="space-y-1">
@@ -328,10 +328,10 @@
       <!-- Mobile: Horizontal scroll -->
       <div class="lg:hidden overflow-x-auto">
         <div class="flex gap-4 px-4 py-2 whitespace-nowrap">
-          <a href="#graces" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded">Graces</a>
-          <a href="#rites" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded">Rites</a>
+          <a href="#graces" class="px-3 py-1 bg-indigo-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded">Graces</a>
+          <a href="#rites" class="px-3 py-1 bg-indigo-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded">Rites</a>
           <%= for {color, _} <- @sidereals do %>
-            <a href={"#" <> (color |> Atom.to_string |> String.downcase)} class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"><%= color |> Atom.to_string |> String.capitalize %></a>
+            <a href={"#" <> (color |> Atom.to_string |> String.downcase)} class="px-3 py-1 bg-indigo-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded"><%= color |> Atom.to_string |> String.capitalize %></a>
           <% end %>
         </div>
       </div>
@@ -349,7 +349,7 @@
       <h2 class="text-center pb-4">Physis</h2>
       <div class="mx-4 lg:mx-24 grid grid-cols-2 lg:grid-cols-6 gap-5">
         <%= for card <- @basecards do %>
-          <div class={"p-2 hover:text-white " <> card.deckstatus}>
+          <div class={"p-2 dark:hover:text-white " <> card.deckstatus}>
             <div class="flex justify-center"><img class="zoom-physis object-scale-down h-auto" src={card.img}></div>
             <div class="deckbuttons">
               <%= if card.deckstatus == "glorified" do %>
@@ -372,7 +372,7 @@
       <div class="text-center"><a href="#toc">Return to Top</a></div>
       <div class="mx-4 lg:mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
         <%= for card <- @graces do %>
-          <div class={"p-2 hover:text-white " <> card.deckstatus}>
+          <div class={"p-2 dark:hover:text-white " <> card.deckstatus}>
             <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> card.deckstatus} src={card.img}></div>
             <div class="deckbuttons">
               <%= if card.deckstatus == "glorified" do %>
@@ -395,7 +395,7 @@
       <div class="text-center"><a href="#toc">Return to Top</a></div>
       <div class="mx-4 lg:mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
         <%= for card <- @aspectrites do %>
-          <div class={"p-2 hover:text-white " <> card.deckstatus}>
+          <div class={"p-2 dark:hover:text-white " <> card.deckstatus}>
             <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> card.deckstatus} src={card.img}></div>
             <div class="deckbuttons">
               <%= if card.deckstatus == "glorified" do %>
@@ -426,7 +426,7 @@
           <div class="text-center"><a href="#toc">Return to Top</a></div>
           <div class="mx-4 lg:mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
             <%= for rite <- rites do %>
-              <div class={"p-2 hover:text-white " <> rite.deckstatus}>
+              <div class={"p-2 dark:hover:text-white " <> rite.deckstatus}>
               <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> rite.deckstatus} src={rite.img}></div>
               <div class="deckbuttons">
               <%= if rite.deckstatus == "glorified" do %>
@@ -457,7 +457,7 @@
         <h2 class="text-center">Alethics</h2>
         <div class="mx-4 lg:mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
           <%= for card <- @aletheia do %>
-            <div class="p-2 hover:text-white extant">
+            <div class="p-2 dark:hover:text-white extant">
               <div class="flex justify-center"><img class={"zoom object-scale-down h-auto extant"} src={card.img}></div>
               <div class="deckbuttons">
                 <button phx-click="remove", value={card.id}><i class="fa-solid fa-minus"></i></button>

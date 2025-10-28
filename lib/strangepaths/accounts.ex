@@ -178,6 +178,12 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
+  def update_user_theme(user, attrs \\ %{}) do
+    user
+    |> User.theme_changeset(attrs)
+    |> Repo.update()
+  end
+
   def update_user_die(user, attrs \\ %{}) do
     user
     |> User.die_changeset(attrs)

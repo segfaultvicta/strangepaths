@@ -669,7 +669,11 @@ defmodule Strangepaths.Cards do
     end
 
     def screen_x(e, context) do
-      e.x * 0.01 * context["width"] + context["left"] - screenWidth(e.type) / 2
+      width = context["width"]
+      left = context["left"]
+      screenWidth = screenWidth(e.type, e.smol)
+
+      e.x * 0.01 * width + left - screenWidth / 2
     end
 
     def screen_y(_e, nil) do
@@ -677,25 +681,39 @@ defmodule Strangepaths.Cards do
     end
 
     def screen_y(e, context) do
-      e.y * 0.01 * context["height"] + context["top"] - screenHeight(e.type) / 2
+      height = context["height"]
+      top = context["top"]
+      screenHeight = screenHeight(e.type, e.smol)
+
+      e.y * 0.01 * height + top - screenHeight / 2
     end
 
     def screenWidth(type) do
-      case type do
-        :Avatar -> 120
-        :Card -> 200
-        :Counter -> 40
-        :Radial -> 400
+      screenWidth(type, false)
+    end
+
+    def screenWidth(type, smol) do
+      case {type, smol} do
+        {:Avatar, false} -> 120
+        {:Card, false} -> 200
+        {:Card, true} -> 100
+        {:Counter, false} -> 40
+        {:Radial, false} -> 400
         _ -> 1
       end
     end
 
     def screenHeight(type) do
-      case type do
-        :Avatar -> 120
-        :Card -> 300
-        :Counter -> 40
-        :Radial -> 400
+      screenHeight(type, false)
+    end
+
+    def screenHeight(type, smol) do
+      case {type, smol} do
+        {:Avatar, false} -> 120
+        {:Card, false} -> 300
+        {:Card, true} -> 150
+        {:Counter, false} -> 40
+        {:Radial, false} -> 400
         _ -> 1
       end
     end

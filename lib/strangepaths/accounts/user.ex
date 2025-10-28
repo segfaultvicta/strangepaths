@@ -24,6 +24,7 @@ defmodule Strangepaths.Accounts.User do
     field(:alethic_black, :integer, default: 0)
     field(:alethic_void, :integer, default: 0)
     field(:techne, {:array, :string}, default: [])
+    field(:theme, :string, default: "dark")
 
     timestamps()
   end
@@ -148,6 +149,12 @@ defmodule Strangepaths.Accounts.User do
   def techne_changeset(user, attrs) do
     user
     |> cast(attrs, [:techne])
+  end
+
+  def theme_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:theme])
+    |> validate_inclusion(:theme, ["light", "dark"])
   end
 
   # Change user's primary and alethic die values

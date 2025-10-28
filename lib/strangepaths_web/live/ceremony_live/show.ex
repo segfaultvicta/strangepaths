@@ -50,12 +50,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
         if(event == "handle_keypress") do
           handle_ceremony_event("key", Map.get(params, "key"), socket)
         else
-          if event != "move" do
-            IO.puts(
-              "handling event #{event} with params #{inspect(params)} in state #{socket.assigns.state}"
-            )
-          end
-
           handle_ceremony_event(event, params, socket)
         end
 
@@ -1071,17 +1065,27 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     socket = socket |> assign(:state, :cardMenu) |> assign(:selectedEntity, entity)
     menuEntity = %{entity | type: :Radial}
 
-    {:noreply,
-     push_event(socket, "loadCardMenu", %{
-       x: Cards.Entity.screen_x(menuEntity, socket.assigns.context),
-       y: Cards.Entity.screen_y(menuEntity, socket.assigns.context)
-     })}
+    # Yes, these are magic numbers
+    # No, I do not care
+
+    if entity.smol do
+      {:noreply,
+       push_event(socket, "loadCardMenu", %{
+         x: Cards.Entity.screen_x(menuEntity, socket.assigns.context) - 205,
+         y: Cards.Entity.screen_y(menuEntity, socket.assigns.context) - 215
+       })}
+    else
+      {:noreply,
+       push_event(socket, "loadCardMenu", %{
+         x: Cards.Entity.screen_x(menuEntity, socket.assigns.context) + 30,
+         y: Cards.Entity.screen_y(menuEntity, socket.assigns.context) + 40
+       })}
+    end
   end
 
   defp handle_ceremony_event("menuClick", %{"e" => "catchall"}, socket)
        when socket.assigns.state == :cardMenu do
     uuid = socket.assigns.selectedEntity.uuid
-    IO.puts("eep")
     Cards.Ceremony.toggle_smolness(socket.assigns.ceremony.id, uuid)
     StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
     {:noreply, socket |> assign(:state, :ready) |> assign(:selectedEntity, nil)}
@@ -1268,10 +1272,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   defp handle_ceremony_event("move", _data, socket)
        when socket.assigns.pendingCeremonyUpdate == true do
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
+    IO.puts("WHEN IS THIS ACTUALLY HAPPENING")
     {:noreply, socket |> assign(:pendingCeremonyUpdate, false) |> assign(:ceremony, ceremony)}
   end
 
-  defp handle_ceremony_event("move", _data, socket) do
+  defp handle_ceremony_event("move", data, socket) do
     # noop a mouse movement event if we're not in a state that accepts moves
     {:noreply, socket}
   end

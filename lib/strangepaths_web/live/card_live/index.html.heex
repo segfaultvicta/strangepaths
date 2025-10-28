@@ -56,7 +56,10 @@
           <div class="text-center"><a href="#toc">Return to Top</a></div>
           <div class="grid grid-cols-1 lg:grid-cols-6 gap-5">
             <%= for card <- aspect.cards do %>
-              <%= live_redirect to: Routes.card_show_path(@socket, :show, card), class: ("p-2 hover:text-white " <> if card.type==:Grace do "bg-yellow-700 hover:bg-yellow-900" else "bg-gray-700 hover:bg-gray-900" end) do %>
+              <%= live_redirect to: Routes.card_show_path(@socket, :show, card), class: 
+                ("p-2 hover:text-indigo-900 dark:hover:text-white " 
+                <> if card.type==:Grace do "bg-blue-100 hover:bg-blue-300 dark:bg-yellow-700 dark:hover:bg-yellow-900" 
+                else "bg-purple-100 hover:bg-purple-300 dark:bg-gray-700 dark:hover:bg-gray-900" end) do %>
                   <h4 class="text-center"><%= card.name %></h4>
                   <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
                   <div><%= card.rules %></div>

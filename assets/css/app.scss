@@ -9,17 +9,29 @@
     @return floor(random() * ($max - $min + 1))+$min;
 }
 
+body {
+    @apply bg-indigo-50 text-gray-900
+}
+
+.dark body {
+    @apply bg-gray-800 text-indigo-200
+}
+
 .activenav {
     @apply bg-gray-900 text-white;
 }
 
 .inactivenav {
-    @apply text-gray-400 mx-4;
+    @apply text-indigo-800 mx-4;
+}
+
+.dark .inactivenav {
+    @apply text-gray-400 mx-4 hover:text-indigo-200;
 }
 
 .basics {
     font-family: "EB Garamond";
-    @apply bg-gray-800 text-indigo-200 text-xl;
+    @apply text-xl;
 }
 
 [x-cloak] {
@@ -28,33 +40,37 @@
 
 @layer base {
     h1 {
-        @apply text-4xl text-white my-5;
+        @apply text-4xl text-indigo-800 dark:text-indigo-50 my-5;
     }
 
     h2 {
-        @apply text-3xl my-3 capitalize underline;
+        @apply text-3xl text-indigo-800 dark:text-indigo-50 my-3 capitalize underline;
     }
 
     h3 {
-        @apply text-2xl text-white my-1;
+        @apply text-2xl text-indigo-800 dark:text-indigo-50 my-1;
     }
 
     h4 {
-        @apply font-bold text-white;
+        @apply font-bold text-indigo-800 dark:text-indigo-50;
     }
 
     h5 {
-        @apply text-sm text-white;
+        @apply text-sm text-indigo-800 dark:text-indigo-50;
     }
 
     a {
-        @apply font-bold text-lg text-gray-300 hover:text-violet-500;
+        @apply font-bold text-lg text-violet-600 dark:text-gray-300 hover:text-violet-500;
     }
+}
+
+.section {
+    @apply bg-indigo-200 dark:bg-gray-800 rounded-lg border border-gray-700
 }
 
 .fooby {
     white-space: nowrap;
-    @apply hover:text-white;
+    @apply hover:text-indigo-900 dark:hover:text-white;
     @apply pr-2;
 
     i {
@@ -63,7 +79,7 @@
 }
 
 #music a {
-    @apply text-2xl font-light text-indigo-200 underline;
+    @apply text-2xl font-light text-indigo-800 dark:text-indigo-200 hover:underline;
 }
 
 .deckrow {
@@ -73,21 +89,21 @@
 }
 
 #content-body h1 {
-    @apply text-4xl text-white my-5;
+    @apply text-4xl text-indigo-800 dark:text-indigo-50 my-5;
 }
 
 #content-body h2 {
-    @apply text-3xl text-white my-3;
+    @apply text-3xl text-indigo-800 dark:text-indigo-50 my-3;
     text-transform: none;
     text-decoration-line: underline;
 }
 
 #content-body h3 {
-    @apply text-2xl font-bold text-white my-1;
+    @apply text-2xl font-bold text-indigo-800 dark:text-indigo-50 my-1;
 }
 
 #content-body h4 {
-    @apply text-xl text-white;
+    @apply text-xl text-indigo-800 dark:text-indigo-50;
     font-weight: unset;
 }
 
@@ -134,15 +150,15 @@
 }
 
 .extant {
-    @apply bg-gray-700 hover:bg-gray-600
+    @apply bg-gray-300 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600
 }
 
 .latent {
-    @apply bg-gray-900 hover:bg-gray-600
+    @apply bg-gray-100 hover:bg-gray-200 dark:bg-gray-900 dark:hover:bg-gray-600
 }
 
 .glorified {
-    @apply bg-yellow-700 hover:bg-yellow-600
+    @apply bg-blue-300 hover:bg-blue-200 dark:bg-yellow-700 dark:hover:bg-yellow-600
 }
 
 .deckbuttons {
@@ -337,7 +353,7 @@
 }
 
 #lyrics-display {
-    @apply whitespace-pre-wrap text-gray-300 text-lg;
+    @apply whitespace-pre-wrap text-indigo-900 dark:text-gray-300 text-lg;
     position: relative;
     top: -80px;
     font-family: 'IBM Plex Mono', monospace;
@@ -347,7 +363,7 @@
 }
 
 #lyrics-display code {
-    @apply text-gray-300 text-lg;
+    @apply text-indigo-900 dark:text-gray-300 text-lg;
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 100;
     font-style: italic;

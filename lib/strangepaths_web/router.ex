@@ -30,6 +30,7 @@ defmodule StrangepathsWeb.Router do
     live("/ost/:id", SongLive)
 
     live("/ascension", Ascension)
+    live("/scenes", Scenes)
 
     live("/content", ContentIndexLive)
     live("/content/admin", ContentAdminLive)

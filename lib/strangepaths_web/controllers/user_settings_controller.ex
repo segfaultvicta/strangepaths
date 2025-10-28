@@ -49,6 +49,21 @@ defmodule StrangepathsWeb.UserSettingsController do
     end
   end
 
+  def update(conn, %{"action" => "update_theme"} = params) do
+    %{"user" => user_params} = params
+    user = conn.assigns.current_user
+
+    case Accounts.update_user_theme(user, user_params) do
+      {:ok, _} ->
+        conn
+        |> put_flash(:info, "Theme preference saved!")
+        |> redirect(to: Routes.user_settings_path(conn, :edit))
+
+      {:error, changeset} ->
+        render(conn, "edit.html", theme_changeset: changeset)
+    end
+  end
+
   def update(conn, %{"action" => "update_password"} = params) do
     %{"current_password" => password, "user" => user_params} = params
     user = conn.assigns.current_user
@@ -86,5 +101,6 @@ defmodule StrangepathsWeb.UserSettingsController do
     |> assign(:email_changeset, Accounts.change_user_email(user))
     |> assign(:password_changeset, Accounts.change_user_password(user))
     |> assign(:nick_changeset, Accounts.change_user_nickname(user))
+    |> assign(:theme_changeset, Accounts.User.theme_changeset(user, %{}))
   end
 end

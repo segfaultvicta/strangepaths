@@ -251,7 +251,6 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("loadCardMenu", e => {
-            console.log("foo");
             var template = document.getElementById('cardmenuTemplate');
             var a = template.cloneNode(true);
             a.id = "cardmenu";
@@ -267,13 +266,10 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("drawLeaderLine", e => {
-            console.log("request to draw leader line:")
-            console.log(e);
             lineOpts = { hide: true, gradient: true, startPlugColor: 'rgba(90, 90, 255, 0.8', endPlugColor: 'rgba(255, 30, 100, 1.0)', dash: { animation: true } }
             var line = new LeaderLine(document.getElementById(e.src), document.getElementById(e.tgt), lineOpts)
             line.show("draw");
             setTimeout(() => {
-                console.log("triggering timeout");
                 line.hide("fade");
                 setTimeout(() => {
                     line.remove();

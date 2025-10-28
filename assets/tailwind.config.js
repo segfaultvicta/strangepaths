@@ -4,6 +4,7 @@
 let plugin = require('tailwindcss/plugin')
 
 module.exports = {
+  darkMode: 'class', // Enable class-based dark mode
   content: [
     './js/**/*.js',
     '../lib/*_web.ex',

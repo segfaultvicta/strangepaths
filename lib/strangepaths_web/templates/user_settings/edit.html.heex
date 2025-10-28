@@ -3,7 +3,7 @@
 
   <div class="max-w-2xl mx-auto space-y-8">
     <!-- Change Email Section -->
-    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div class="section p-6">
       <h2 class="mb-4">Change Email</h2>
 
       <.form let={f} for={@email_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_email" class="formstyle">
@@ -34,7 +34,7 @@
     </div>
 
     <!-- Change Nickname Section -->
-    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div class="section p-6">
       <h2 class="mb-4">Change Nickname</h2>
 
       <.form let={f} for={@nick_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_nick" class="formstyle">
@@ -58,8 +58,35 @@
       </.form>
     </div>
 
+    <!-- Theme Selection -->
+    <div class="section p-6">
+      <h2 class="mb-4">Theme Preference</h2>
+
+      <.form let={f} for={@theme_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_theme" class="formstyle">
+        <%= hidden_input f, :action, name: "action", value: "update_theme" %>
+
+        <div class="mb-4">
+          <div class="flex gap-4">
+            <label class="flex items-center cursor-pointer">
+              <%= radio_button f, :theme, "dark", class: "mr-2" %>
+              <span>🌙 Dark Mode</span>
+            </label>
+
+            <label class="flex items-center cursor-pointer">
+              <%= radio_button f, :theme, "light", class: "mr-2" %>
+              <span>☀️ Light Mode</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <%= submit "Save Theme", class: "submit" %>
+        </div>
+      </.form>
+    </div>
+
     <!-- Change Password Section -->
-    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div class="section p-6">
       <h2 class="mb-4">Change Password</h2>
 
       <.form let={f} for={@password_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_password" class="formstyle">

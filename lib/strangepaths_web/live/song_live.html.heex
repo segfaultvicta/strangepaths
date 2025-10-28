@@ -10,7 +10,7 @@
         
         <% # Song header %>
         <div class="flex justify-between items-start">
-          <h1 class="text-4xl font-bold text-purple-300 mt-8"><%= @song.title %></h1>
+          <h1 class="text-4xl font-bold dark:text-purple-300 mt-8"><%= @song.title %></h1>
 
           <div class="flex gap-4 mt-6">
             <%= if @role == :admin || @role == :god do %>
@@ -25,7 +25,7 @@
 
             <button
               phx-click="queue_song"
-              class="px-4 py-2 mb-2 bg-purple-600 hover:bg-purple-500 rounded-lg">
+              class="px-4 py-2 mb-2 border border-indigo-800 border-2 dark:border-4 hover:bg-indigo-100 dark:bg-purple-600 dark:hover:bg-purple-500 rounded-lg">
               Enqueue
             </button>
 
@@ -81,7 +81,7 @@
       </div>
       
       <% # Lyrics section %>
-      <div class="bg-gray-900 rounded-lg p-6 mt-8">
+      <div class="bg-indigo-200 dark:bg-gray-900 rounded-lg p-6 mt-8">
         <%= if @editing_lyrics do %>
           <% # Edit mode (admin only) %>
           <form phx-submit="save_lyrics" class="space-y-4">

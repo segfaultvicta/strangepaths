@@ -399,10 +399,10 @@ defmodule StrangepathsWeb.DeckLive.Show do
 
   defp cardclass(type, glory, aid) do
     if type == :Grace do
-      "text-center text-blue-300"
+      "text-center text-blue-700 dark:text-blue-300"
     else
       if glory do
-        "text-center text-yellow-300"
+        "text-center text-yellow-700 dark:text-yellow-300"
       else
         "text-center"
       end <>

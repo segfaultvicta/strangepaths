@@ -24,7 +24,7 @@
       <table class="table-fixed">
         <tbody id="ceremonies">
           <%= for {truename, ceremony} <- @ceremonies do %>
-            <tr id={"ceremony-#{truename}"} class="odd:bg-gray-800 even:bg-gray-700 deckrow">
+            <tr id={"ceremony-#{truename}"} class="odd:bg-indigo-200 even:bg-indigo-100 dark:odd:bg-gray-800 dark:even:bg-gray-700 deckrow">
               <td>
                 <%= live_redirect to: Routes.ceremony_show_path(@socket, :show, ceremony), class: "hover:text-white" do %>
                   <%= ceremony.name %>, a Rite overseen by <%= ceremony.owner_name %>
