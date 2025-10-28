@@ -65,6 +65,47 @@ defmodule StrangepathsWeb.DeckLive.Show do
     {:noreply, recalc(socket, deck)}
   end
 
+  defp handle_deck_event("open_avatar_picker", _, socket) do
+    IO.puts("beep beep")
+
+    avatars_by_category =
+      Strangepaths.Accounts.list_avatars_by_category(socket.assigns.current_user)
+
+    {:noreply,
+     socket
+     |> assign(:avatar_picker_open, true)
+     |> assign(:avatars_by_category, avatars_by_category)
+     |> assign(:open_categories, [])}
+  end
+
+  defp handle_deck_event("close_avatar_picker", _, socket) do
+    {:noreply, assign(socket, :avatar_picker_open, false)}
+  end
+
+  defp handle_deck_event("toggle_category", %{"category" => category}, socket) do
+    open_categories = socket.assigns.open_categories
+
+    new_open_categories =
+      if category in open_categories do
+        List.delete(open_categories, category)
+      else
+        [category | open_categories]
+      end
+
+    {:noreply, assign(socket, :open_categories, new_open_categories)}
+  end
+
+  defp handle_deck_event("select_avatar", %{"avatar-id" => avatar_id}, socket) do
+    {:ok, deck} = Cards.update_deck_avatar(socket.assigns.deck, String.to_integer(avatar_id))
+    # Reload the deck with avatar preloaded
+    deck = Strangepaths.Repo.preload(deck, :avatar, force: true)
+
+    {:noreply,
+     socket
+     |> assign(:avatar_picker_open, false)
+     |> recalc(deck)}
+  end
+
   defp handle_deck_event("truth", _, socket) do
     {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
   end
@@ -155,11 +196,14 @@ defmodule StrangepathsWeb.DeckLive.Show do
   def handle_params(%{"id" => id}, _, socket) do
     # THIS IS STUPID
     [{%{deck: deck, aspect: aspect}}] = Cards.get_deck!(id)
-    deck = Map.put(Strangepaths.Repo.preload(deck, :cards), :aspect, aspect)
+    deck = Map.put(Strangepaths.Repo.preload(deck, [:cards, :avatar]), :aspect, aspect)
 
     {:noreply,
      socket
      |> assign(eye: nil, eye_img: nil, alethics: false)
+     |> assign(:avatar_picker_open, false)
+     |> assign(:avatars_by_category, [])
+     |> assign(:open_categories, [])
      |> assign(:page_title, deck.name)
      |> recalc(deck)}
   end

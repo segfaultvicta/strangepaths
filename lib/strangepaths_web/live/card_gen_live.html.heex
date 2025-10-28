@@ -1,0 +1,178 @@
+<div class="container mx-auto px-4 py-6">
+  <h1 class="text-3xl font-bold mb-6">Card Art Generator Lab</h1>
+
+  <form phx-change="validate" phx-submit="render">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left Column: Controls -->
+      <div class="space-y-6">
+        <!-- Image Uploads -->
+        <div class="bg-gray-800 rounded-lg p-4">
+          <h2 class="text-xl font-bold mb-4">Images</h2>
+
+          <div class="mb-4">
+            <label class="block mb-2">
+              <span class="text-gray-300">Frame Template:</span>
+              <div class="mt-2">
+                <%= live_file_input @uploads.frame, class: "block w-full text-sm text-gray-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-purple-600 file:text-white
+                  hover:file:bg-purple-500" %>
+              </div>
+            </label>
+            <%= for entry <- @uploads.frame.entries do %>
+              <div class="text-sm text-green-400 mt-1">✓ <%= entry.client_name %></div>
+            <% end %>
+          </div>
+
+          <div class="mb-4">
+            <label class="block mb-2">
+              <span class="text-gray-300">Card Art (will be cropped to square):</span>
+              <div class="mt-2">
+                <%= live_file_input @uploads.art, class: "block w-full text-sm text-gray-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-purple-600 file:text-white
+                  hover:file:bg-purple-500" %>
+              </div>
+            </label>
+            <%= for entry <- @uploads.art.entries do %>
+              <div class="text-sm text-green-400 mt-1">✓ <%= entry.client_name %></div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Card Text -->
+        <div class="bg-gray-800 rounded-lg p-4">
+          <h2 class="text-xl font-bold mb-4">Card Text</h2>
+          <div class="mb-4">
+            <label class="block mb-2">
+              <span class="text-gray-300">Card Name:</span>
+              <input
+                type="text"
+                name="card_name"
+                value={@card_name}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <!-- Art Position & Size -->
+          <h3 class="text-lg font-semibold mb-3 mt-6">Art Position & Size</h3>
+
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <label class="block">
+              <span class="text-gray-300 text-sm">Art X:</span>
+              <input
+                type="number"
+                name="art_x"
+                value={@art_x}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+
+            <label class="block">
+              <span class="text-gray-300 text-sm">Art Y:</span>
+              <input
+                type="number"
+                name="art_y"
+                value={@art_y}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div class="mb-4">
+            <label class="block">
+              <span class="text-gray-300 text-sm">Art Size (square):</span>
+              <input
+                type="number"
+                name="art_size"
+                value={@art_size}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <!-- Text Position & Style -->
+          <h3 class="text-lg font-semibold mb-3 mt-6">Text Position & Style</h3>
+
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <label class="block">
+              <span class="text-gray-300 text-sm">Text X:</span>
+              <input
+                type="number"
+                name="text_x"
+                value={@text_x}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+
+            <label class="block">
+              <span class="text-gray-300 text-sm">Text Y:</span>
+              <input
+                type="number"
+                name="text_y"
+                value={@text_y}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div class="mb-4">
+            <label class="block">
+              <span class="text-gray-300 text-sm">Font Size:</span>
+              <input
+                type="number"
+                name="font_size"
+                value={@font_size}
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              />
+            </label>
+          </div>
+
+          <div class="mb-6">
+            <label class="block">
+              <span class="text-gray-300 text-sm">Font Family:</span>
+              <select
+                name="font_family"
+                class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              >
+                <%= for font <- @available_fonts do %>
+                  <option value={font} selected={font == @font_family}><%= font %></option>
+                <% end %>
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full px-6 py-3 bg-green-600 hover:bg-green-500 rounded-lg text-lg font-semibold"
+          >
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Render Card
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Column: Preview -->
+      <div class="bg-gray-800 rounded-lg p-4">
+        <h2 class="text-xl font-bold mb-4">Preview</h2>
+
+        <%= if @preview_image do %>
+          <div class="bg-gray-900 rounded p-4">
+            <img src={@preview_image} alt="Card preview" class="w-full h-auto" />
+          </div>
+        <% else %>
+          <div class="bg-gray-900 rounded p-4 flex items-center justify-center h-96">
+            <div class="text-center text-gray-500">
+              <i class="fa-solid fa-image text-6xl mb-4"></i>
+              <p>Upload images and click "Render Card" to see preview</p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </form>
+</div>

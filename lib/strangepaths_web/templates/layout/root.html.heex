@@ -58,7 +58,8 @@
           <%= if @current_user do %>
             <div class="flex gap-3 items-center">
               <%= if @role == :god do %>
-                <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap hidden lg:inline" %>
+                <%= link "AVATARS", to: "/avatars/admin", class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap" %>
+                <%= link "DEV", to: Routes.live_dashboard_path(@conn, :home), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap hidden lg:inline" %>
               <% end %>
               <span class="text-gray-300 font-medium uppercase whitespace-nowrap hidden sm:inline">Hello, <%= @current_user.nickname %>!</span>
             </div>

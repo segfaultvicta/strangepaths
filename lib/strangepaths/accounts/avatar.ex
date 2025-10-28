@@ -5,14 +5,14 @@ defmodule Strangepaths.Accounts.Avatar do
   schema "avatars" do
     field(:filepath, :string)
     field(:public, :boolean, default: false)
-    field(:owner_id, :id)
-    field(:selected, :boolean, virtual: true)
+    field(:category, :string, default: "general")
+    field(:display_name, :string)
   end
 
   @doc false
   def changeset(avatar, attrs) do
     avatar
-    |> cast(attrs, [:filepath, :public])
-    |> validate_required([:filepath, :public])
+    |> cast(attrs, [:filepath, :public, :category, :display_name])
+    |> validate_required([:filepath])
   end
 end

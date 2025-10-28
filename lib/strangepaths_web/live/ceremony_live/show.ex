@@ -17,7 +17,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:state, nil)
      |> assign(:ceremony, nil)
      |> assign(:pendingCeremonyUpdate, false)
-     |> assign(:avatars, get_avatars(socket.assigns.current_user.id))
      |> assign(:availableDecks, nil)
      |> assign(:selectedAvatarID, nil)
      |> assign(:setupEntityType, nil)
@@ -1366,13 +1365,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     else
       {:noreply, socket}
     end
-  end
-
-  defp get_avatars(uid) do
-    # first, get all the default avatars
-    (Strangepaths.Accounts.list_public_avatars() ++
-       Strangepaths.Accounts.list_avatars_of(uid))
-    |> Enum.map(fn a -> Map.put(a, :selected, false) end)
   end
 
   defp to_presence(presence_list) do

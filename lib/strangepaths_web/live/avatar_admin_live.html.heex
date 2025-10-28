@@ -1,0 +1,161 @@
+<div class="container mx-auto px-4 py-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Avatar Management</h1>
+    <%= if not @creating_avatar do %>
+      <button phx-click="start_create" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded">
+        <i class="fa-solid fa-plus"></i> New Avatar
+      </button>
+    <% end %>
+  </div>
+
+  <%= if @creating_avatar do %>
+    <form phx-submit="create" class="mb-6 p-4 bg-gray-800 rounded-lg">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block mb-2">
+            <span class="text-gray-300">Filename (without path):</span>
+            <input
+              type="text"
+              name="filename"
+              placeholder="example.png"
+              class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              required
+            />
+            <span class="text-xs text-gray-400">Will be saved to /images/avatars/</span>
+          </label>
+        </div>
+
+        <div>
+          <label class="block mb-2">
+            <span class="text-gray-300">Category:</span>
+            <input
+              type="text"
+              name="category"
+              placeholder="natural, abstract, fiends, stars"
+              value="general"
+              class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+              required
+            />
+          </label>
+        </div>
+
+        <div>
+          <label class="block mb-2">
+            <span class="text-gray-300">Display Name (optional):</span>
+            <input
+              type="text"
+              name="display_name"
+              placeholder="Friendly name"
+              class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2"
+            />
+          </label>
+        </div>
+
+        <div>
+          <label class="block mb-2">
+            <span class="text-gray-300">Visibility:</span>
+            <select name="public" class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2">
+              <option value="true">Public (all users)</option>
+              <option value="false">GM Only</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mt-4">
+        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded">
+          Create
+        </button>
+        <button type="button" phx-click="cancel_create" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded">
+          Cancel
+        </button>
+      </div>
+    </form>
+  <% end %>
+
+  <!-- Avatars Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+    <%= for avatar <- @avatars do %>
+      <div class="bg-gray-800 rounded-lg p-3 relative group">
+        <%= if @editing_avatar == avatar.id do %>
+          <!-- Edit Form -->
+          <form phx-submit="update" class="space-y-2">
+            <input type="hidden" name="id" value={avatar.id} />
+
+            <img src={avatar.filepath} alt={avatar.display_name} class="w-full h-32 object-cover rounded mb-2" />
+
+            <input
+              type="text"
+              name="category"
+              value={avatar.category}
+              placeholder="Category"
+              class="w-full bg-gray-700 text-gray-100 text-sm border border-gray-600 rounded px-2 py-1"
+              required
+            />
+
+            <input
+              type="text"
+              name="display_name"
+              value={avatar.display_name}
+              placeholder="Display name"
+              class="w-full bg-gray-700 text-gray-100 text-sm border border-gray-600 rounded px-2 py-1"
+            />
+
+            <select name="public" class="w-full bg-gray-700 text-gray-100 text-sm border border-gray-600 rounded px-2 py-1">
+              <option value="true" selected={avatar.public}>Public</option>
+              <option value="false" selected={!avatar.public}>GM Only</option>
+            </select>
+
+            <div class="flex gap-1">
+              <button type="submit" class="flex-1 px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-xs">
+                Save
+              </button>
+              <button type="button" phx-click="cancel_edit" class="flex-1 px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs">
+                Cancel
+              </button>
+            </div>
+          </form>
+        <% else %>
+          <!-- Display Mode -->
+          <img src={avatar.filepath} alt={avatar.display_name} class="w-full h-32 object-cover rounded mb-2" />
+
+          <div class="text-xs text-gray-400 mb-1">
+            <%= avatar.category || "general" %>
+            <%= if !avatar.public do %>
+              <span class="ml-1 px-1 bg-red-600 text-white rounded">GM</span>
+            <% end %>
+          </div>
+
+          <div class="text-sm text-gray-300 truncate mb-2" title={avatar.display_name || Path.basename(avatar.filepath)}>
+            <%= avatar.display_name || Path.basename(avatar.filepath, ".png") %>
+          </div>
+
+          <!-- Admin Controls (shown on hover) -->
+          <div class="opacity-0 group-hover:opacity-100 transition flex gap-1">
+            <button
+              phx-click="start_edit"
+              phx-value-id={avatar.id}
+              class="flex-1 px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-xs"
+            >
+              <i class="fa-solid fa-pencil"></i> Edit
+            </button>
+            <button
+              phx-click="delete"
+              phx-value-id={avatar.id}
+              data-confirm="Are you sure you want to delete this avatar?"
+              class="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs"
+            >
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= if @avatars == [] do %>
+      <div class="col-span-full text-center text-gray-400 py-12">
+        No avatars yet. Click "New Avatar" to create one.
+      </div>
+    <% end %>
+  </div>
+</div>

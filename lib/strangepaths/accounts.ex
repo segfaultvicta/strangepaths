@@ -720,9 +720,21 @@ defmodule Strangepaths.Accounts do
     |> Enum.filter(fn a -> a.public end)
   end
 
-  def list_avatars_of(user_id) do
-    list_avatars()
-    |> Enum.filter(fn a -> a.public == false && a.owner_id == user_id end)
+  def list_avatars_for_user(user) do
+    query =
+      if user.role in [:admin, :god] do
+        from(a in Avatar, order_by: [a.category, a.filepath])
+      else
+        from(a in Avatar, where: a.public == true, order_by: [a.category, a.filepath])
+      end
+
+    Repo.all(query)
+  end
+
+  def list_avatars_by_category(user) do
+    list_avatars_for_user(user)
+    |> Enum.group_by(fn avatar -> avatar.category || "general" end)
+    |> Enum.sort_by(fn {category, _} -> category end)
   end
 
   @doc """

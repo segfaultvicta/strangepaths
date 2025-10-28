@@ -35,6 +35,10 @@ defmodule StrangepathsWeb.Router do
     live("/content/admin", ContentAdminLive)
     live("/content/:slug", ContentLive)
 
+    live("/avatars/admin", AvatarAdminLive)
+
+    live("/lab/cardgen", CardGenLive)
+
     live("/codex", DeckLive.Index, :index)
     live("/codex/new", DeckLive.Index, :new)
 

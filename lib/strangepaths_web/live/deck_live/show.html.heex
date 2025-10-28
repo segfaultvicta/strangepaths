@@ -4,7 +4,7 @@
         <div class="fixed inset-0 transition-opacity" aria-hidden="true">
           <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
         </div>
-        <div id="modal-content" 
+        <div id="modal-content"
           class="inline-block transition-all transform align-middle max-w-xl w-full"
           role="dialog" aria-modal="true" aria-labelledby="modal-headline"
           phx-click-away="key"
@@ -17,6 +17,71 @@
         </div>
       </div>
     </div>
+<% end %>
+
+<!-- Avatar Picker Modal -->
+<%= if @avatar_picker_open do %>
+  <div class="fixed inset-0 z-50 overflow-y-auto">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-75" phx-click="close_avatar_picker"></div>
+
+    <!-- Modal Content -->
+    <div class="flex items-center justify-center min-h-screen px-4 py-6">
+      <div class="relative bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="flex justify-between items-center p-4 border-b border-gray-700">
+          <h2 class="text-xl font-bold">Choose Avatar</h2>
+          <button phx-click="close_avatar_picker" class="text-gray-400 hover:text-gray-200">
+            <i class="fa-solid fa-times text-2xl"></i>
+          </button>
+        </div>
+
+        <!-- Content (scrollable) -->
+        <div class="flex-1 overflow-y-auto p-4">
+          <%= for {category, avatars} <- @avatars_by_category do %>
+            <div class="mb-4">
+              <!-- Category Header (clickable accordion) -->
+              <button
+                phx-click="toggle_category"
+                phx-value-category={category}
+                class="w-full flex justify-between items-center p-3 bg-gray-700 hover:bg-gray-600 rounded-lg mb-2"
+              >
+                <span class="text-lg font-semibold capitalize"><%= category %></span>
+                <i class={"fa-solid #{if category in @open_categories, do: "fa-chevron-up", else: "fa-chevron-down"}"}></i>
+              </button>
+
+              <!-- Avatar Grid (shown when category is open) -->
+              <%= if category in @open_categories do %>
+                <div class="grid grid-cols-4 lg:grid-cols-6 gap-3 p-2">
+                  <%= for avatar <- avatars do %>
+                    <button
+                      phx-click="select_avatar"
+                      phx-value-avatar-id={avatar.id}
+                      class={"relative group rounded-lg overflow-hidden border-2 transition #{if @deck.avatar_id == avatar.id, do: "border-purple-500 ring-2 ring-purple-300", else: "border-gray-600 hover:border-purple-400"}"}
+                      title={avatar.display_name || Path.basename(avatar.filepath, ".png")}
+                    >
+                      <img src={avatar.filepath} alt={avatar.display_name || "Avatar"} class="w-full h-full object-cover" />
+                      <%= if @deck.avatar_id == avatar.id do %>
+                        <div class="absolute inset-0 bg-purple-500 bg-opacity-20 flex items-center justify-center">
+                          <i class="fa-solid fa-check text-purple-200 text-2xl"></i>
+                        </div>
+                      <% end %>
+                    </button>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%= if @avatars_by_category == [] do %>
+            <div class="text-center text-gray-400 py-12">
+              No avatars available
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
 <% end %>
 
 <nav class="fixed bg-gray-900 inset-x-0 top-[100px] z-50 shadow-lg">
@@ -116,7 +181,23 @@
 <!-- Desktop: Fixed sidebar -->
 <aside class="hidden lg:block pt-16 w-64 bg-gray-700 fixed inset-y-0 overflow-x-hidden overflow-y-auto">
   <div class="pl-3 pt-2 min-h-full">
-    <div class="mt-32">
+    <div class="mt-[190px]">
+      <!-- Avatar Selection -->
+      <div class="text-center mb-4">
+        <button phx-click="open_avatar_picker" class="group relative inline-block">
+          <%= if @deck.avatar && @deck.avatar.filepath do %>
+            <img src={@deck.avatar.filepath} alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
+          <% else %>
+            <div class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 bg-gray-800 flex items-center justify-center transition">
+              <i class="fa-solid fa-user text-4xl text-gray-500"></i>
+            </div>
+          <% end %>
+          <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
+            <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+          </div>
+        </button>
+      </div>
+
       <div class="text-center text-red-400">
         <%= if @deck.glory_used > @deck.glory do %>
           Too much glory
@@ -187,6 +268,23 @@
 
     <!-- Drawer content -->
     <div class="flex-1 overflow-y-auto px-6 py-4 pb-32">
+      <!-- Avatar Selection -->
+      <div class="text-center mb-4">
+        <button phx-click="open_avatar_picker" @click.prevent class="group relative inline-block touch-manipulation">
+          <%= if @deck.avatar && @deck.avatar.filepath do %>
+            <img src={@deck.avatar.filepath} alt="Avatar" class="w-20 h-20 rounded-full border-2 border-gray-600 active:border-purple-400 transition" />
+          <% else %>
+            <div class="w-20 h-20 rounded-full border-2 border-gray-600 active:border-purple-400 bg-gray-700 flex items-center justify-center transition">
+              <i class="fa-solid fa-user text-3xl text-gray-500"></i>
+            </div>
+          <% end %>
+          <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 active:bg-opacity-30 flex items-center justify-center transition">
+            <i class="fa-solid fa-pencil text-white opacity-0 active:opacity-100 transition"></i>
+          </div>
+        </button>
+        <div class="text-xs text-gray-400 mt-1">Tap to change avatar</div>
+      </div>
+
       <div class="text-center text-red-400 mb-3">
         <%= if @deck.glory_used > @deck.glory do %>
           <div class="font-bold">Too much glory</div>

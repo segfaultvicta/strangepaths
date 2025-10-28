@@ -47,6 +47,11 @@ defmodule Strangepaths.Cards.Deck do
     |> cast(%{"tolerance" => deck.tolerance + adjustment}, [:tolerance])
   end
 
+  def avatar_changeset(deck, avatar_id) do
+    deck
+    |> cast(%{"avatar_id" => avatar_id}, [:avatar_id])
+  end
+
   def blockcap_changeset(deck, adjustment) do
     deck
     |> cast(%{"blockcap" => deck.blockcap + adjustment}, [:blockcap])

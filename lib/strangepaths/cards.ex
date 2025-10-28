@@ -444,6 +444,12 @@ defmodule Strangepaths.Cards do
     |> Repo.update()
   end
 
+  def update_deck_avatar(deck, avatar_id) do
+    deck
+    |> Deck.avatar_changeset(avatar_id)
+    |> Repo.update()
+  end
+
   def adjust_blockcap(deck, adjustment) do
     deck
     |> Deck.blockcap_changeset(adjustment)
