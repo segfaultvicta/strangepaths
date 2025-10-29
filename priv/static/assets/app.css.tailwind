@@ -378,55 +378,6 @@ body {
     width: 300px;
   }
 }
-[class|=wheelnav-avatarmenu-slice-basic] {
-  fill: #497F4C;
-  stroke: none;
-}
-
-[class|=wheelnav-avatarmenu-slice-selected] {
-  fill: #497F4C;
-  stroke: none;
-}
-
-[class|=wheelnav-avatarmenu-slice-hover] {
-  fill: #497F4C;
-  stroke: none;
-  fill-opacity: 0.77;
-  cursor: pointer;
-}
-
-[class|=wheelnav-avatarmenu-title-basic] {
-  fill: #333;
-  stroke: none;
-}
-
-[class|=wheelnav-avatarmenu-title-selected] {
-  fill: #fff;
-  stroke: none;
-}
-
-[class|=wheelnav-avatarmenu-title-hover] {
-  fill: #222;
-  stroke: none;
-  cursor: pointer;
-}
-
-[class|=wheelnav-avatarmenu-line-basic] {
-  stroke: #444;
-  stroke-width: 1;
-}
-
-[class|=wheelnav-avatarmenu-line-selected] {
-  stroke: #444;
-  stroke-width: 1;
-}
-
-[class|=wheelnav-avatarmenu-line-hover] {
-  stroke: #222;
-  stroke-width: 2;
-  cursor: pointer;
-}
-
 #temenosmenu > svg {
   width: 100%;
   height: 100%;
@@ -444,55 +395,6 @@ body {
     width: 300px;
   }
 }
-[class|=wheelnav-temenosmenu-slice-basic] {
-  fill: #497F4C;
-  stroke: none;
-}
-
-[class|=wheelnav-temenosmenu-slice-selected] {
-  fill: #497F4C;
-  stroke: none;
-}
-
-[class|=wheelnav-temenosmenu-slice-hover] {
-  fill: #497F4C;
-  stroke: none;
-  fill-opacity: 0.77;
-  cursor: pointer;
-}
-
-[class|=wheelnav-temenosmenu-title-basic] {
-  fill: #333;
-  stroke: none;
-}
-
-[class|=wheelnav-temenosmenu-title-selected] {
-  fill: #fff;
-  stroke: none;
-}
-
-[class|=wheelnav-temenosmenu-title-hover] {
-  fill: #222;
-  stroke: none;
-  cursor: pointer;
-}
-
-[class|=wheelnav-temenosmenu-line-basic] {
-  stroke: #444;
-  stroke-width: 1;
-}
-
-[class|=wheelnav-temenosmenu-line-selected] {
-  stroke: #444;
-  stroke-width: 1;
-}
-
-[class|=wheelnav-temenosmenu-line-hover] {
-  stroke: #222;
-  stroke-width: 2;
-  cursor: pointer;
-}
-
 #cardmenu > svg {
   width: 100%;
   height: 100%;
@@ -509,54 +411,6 @@ body {
     height: 300px;
     width: 300px;
   }
-}
-[class|=wheelnav-cardmenu-slice-basic] {
-  fill: #497F4C;
-  stroke: none;
-}
-
-[class|=wheelnav-cardmenu-slice-selected] {
-  fill: #497F4C;
-  stroke: none;
-}
-
-[class|=wheelnav-cardmenu-slice-hover] {
-  fill: #497F4C;
-  stroke: none;
-  fill-opacity: 0.77;
-  cursor: pointer;
-}
-
-[class|=wheelnav-cardmenu-title-basic] {
-  fill: #333;
-  stroke: none;
-}
-
-[class|=wheelnav-cardmenu-title-selected] {
-  fill: #fff;
-  stroke: none;
-}
-
-[class|=wheelnav-cardmenu-title-hover] {
-  fill: #222;
-  stroke: none;
-  cursor: pointer;
-}
-
-[class|=wheelnav-cardmenu-line-basic] {
-  stroke: #444;
-  stroke-width: 1;
-}
-
-[class|=wheelnav-cardmenu-line-selected] {
-  stroke: #444;
-  stroke-width: 1;
-}
-
-[class|=wheelnav-cardmenu-line-hover] {
-  stroke: #222;
-  stroke-width: 2;
-  cursor: pointer;
 }
 
 /*# sourceMappingURL=app.css.tailwind.map */

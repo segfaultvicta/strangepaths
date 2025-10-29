@@ -207,7 +207,7 @@
   <% end %>
 
   <%= if @placingEntity.type != nil do %>
-    <div phx-click="placeEntity" class="fixed" style={"left: #{@placingX}px;top: #{@placingY}px;"}>
+    <div phx-click="placeEntity" id="placingEntity" phx-hook="TemenosMoveReporter" class="fixed" style={"left: #{@placingX}px;top: #{@placingY}px;"}>
       <%= if @placingEntity.type == :Counter do %>
         <img src={"/images/counters/" <> @placingEntity.img}>
       <% else %>
@@ -242,13 +242,13 @@
               <div class="manatick blur-sm" style={manatickStyle("D", i, entity.tolerance, 80)}></div>
             <% end %>
             <div class="relative" x-cloak x-show.transition.origin.top="tooltip">
-              <div class="absolute z-10 w-64 p-2 text-sm leading-tight text-indigo-900 dark:text-gray-300 bg-indigo-200 dark:bg-gray-800 rounded-2xl shadow-lg"
+              <div class="absolute z-50 w-64 p-2 text-sm leading-tight text-indigo-900 dark:text-gray-300 bg-indigo-200 dark:bg-gray-800 rounded-2xl shadow-lg"
                 :style="tooltipAbove ? 'bottom: 160px; left: -100px;' : 'top: 20px; left: -100px;'">
                 <div class="pb-1 text-center font-bold"><%= entity.name %> — <%= entity.glory %>❁ </div>
                 <div class="pb-1 text-center">
                   Stress: <%= entity.stress %> / <%= entity.tolerance %>
                   <%= if entity.defence > 0 do %>
-                  ⁠— Defence: <%= entity.defence %> / <%= entity.tolerance %>
+                  ⁠— Defence: <%= entity.defence %> / <%= entity.blockcap %>
                   <% end %>
                   </div>
                 <div class="pb-1 text-center">
@@ -308,7 +308,7 @@
             <img class="object-scale-down h-72" src={entity.img}>
             <% end %>
             <div class="relative" x-cloak x-show.transition.origin.top="tooltip">
-              <div class="absolute z-10 w-64 p-2 text-sm leading-tight text-indigo-900 dark:text-gray-300 bg-indigo-200 dark:bg-gray-800 rounded-2xl shadow-lg"
+              <div class="absolute z-50 w-64 p-2 text-sm leading-tight text-indigo-900 dark:text-gray-300 bg-indigo-200 dark:bg-gray-800 rounded-2xl shadow-lg"
                 :style="tooltipAbove ? 'bottom: 30px; left: -30px;' : 'top: 20px; left: -30px;'">
                 <div class="pb-1 text-center font-bold"><%= ch(nil, entity.glorified, entity.gnosis) <> entity.name <> ch(nil, entity.glorified, entity.gnosis) %>  </div>
                 <div class="p-4 text-center font-bold"><%= entity.rulestext %></div>                                                                                                                                                                                                                                                                                                                                         
@@ -329,77 +329,10 @@
     </div>
   <% end %>
 
-  <div id='avatarmenuTemplate' style="height:0px;" data-wheelnav
-  data-wheelnav-slicepath='EyeSlice'
-  data-wheelnav-rotateoff
-  data-wheelnav-navangle='270'
-  data-wheelnav-titleheight='40'
-  data-wheelnav-cssmode 
-  data-wheelnav-init
-  onmouseup='menuClick("catchall")'>
-    <div data-wheelnav-navitemicon='book' onmouseup='menuClick("avatarHand");'></div>
-    <div data-wheelnav-navitemicon='arrowright2' onmouseup='menuClick("avatarMove");'></div>
-    <div data-wheelnav-navitemicon='arrowdown' onmouseup='menuClick("avatarStress");'></div>
-    <div data-wheelnav-navitemicon='bolt' onmouseup='menuClick("avatarPierce");'></div>
-    <div data-wheelnav-navitemicon='arrowup' onmouseup='menuClick("avatarRecover");'></div>
-    <div data-wheelnav-navitemicon='cross' onmouseup='menuClick("avatarDelete");'></div>
-    <div data-wheelnav-navitemicon='fitocracy' onmouseup='menuClick("avatarDefend");'></div>
-  </div>
-
-  <div id='temenosmenuTemplate' style="height:0px;" data-wheelnav
-  data-wheelnav-slicepath='EyeSlice'
-  data-wheelnav-rotateoff
-  data-wheelnav-navangle='270'
-  data-wheelnav-titleheight='40'
-  data-wheelnav-cssmode 
-  data-wheelnav-init
-  onmouseup='menuClick("catchall")'>
-    <div data-wheelnav-navitemicon='plus' onmouseup='menuClick("temenosPlace");'></div>
-    <div data-wheelnav-navitemicon='bookmark' onmouseup='menuClick("temenosCounter");'></div>
-    <%= if @ceremony != nil && @ceremony.gm_avatars_visible do %>
-      <div data-wheelnav-navitemicon='noview' onmouseup='menuClick("temenosToggleHide");'></div>
-    <% else %>
-      <div data-wheelnav-navitemicon='view' onmouseup='menuClick("temenosToggleHide");'></div>
-    <% end %>
-    <div data-wheelnav-navitemicon='biohazard' onmouseup='menuClick("temenosTarget");'></div>
-  </div>
-
-  <div id='cardmenuTemplate' style="height:0px;" data-wheelnav
-  data-wheelnav-slicepath='EyeSlice'
-  data-wheelnav-rotateoff
-  data-wheelnav-navangle='270'
-  data-wheelnav-titleheight='40'
-  data-wheelnav-cssmode
-  data-wheelnav-init
-  onmouseup='menuClick("catchall")'
-  >
-    <div data-wheelnav-navitemicon='trash' onmouseup='menuClick("cardDiscard");'></div>
-    <div data-wheelnav-navitemicon='cross' onmouseup='menuClick("cardDestroy");'></div>
-    <div data-wheelnav-navitemicon='arrowdown' onmouseup='menuClick("cardCopy");'></div>
-    <div data-wheelnav-navitemicon='arrowright2' onmouseup='menuClick("cardMove");'></div>
-    <div data-wheelnav-navitemicon='books' onmouseup='menuClick("cardToDeck");'></div>
-    <div data-wheelnav-navitemicon='crown' onmouseup='menuClick("cardToTopDeck");'></div>
-    <div data-wheelnav-navitemicon='book' onmouseup='menuClick("cardToHand");'></div>
-  </div>
-
-  <div id='amountSubmenuTemplate' style="height:0px;" data-wheelnav
-  data-wheelnav-slicepath='StarSlice'
-  data-wheelnav-rotateoff
-  data-wheelnav-navangle='360'
-  data-wheelnav-titleheight='40'
-  data-wheelnav-cssmode
-  data-wheelnav-init>
-    <div data-wheelnav-navitemicon='trash' onmouseup='menuClick("amount1");'></div>
-    <div data-wheelnav-navitemicon='cross' onmouseup='menuClick("amount2");'></div>
-    <div data-wheelnav-navitemicon='arrowdown' onmouseup='menuClick("amount3");'></div>
-    <div data-wheelnav-navitemicon='arrowright2' onmouseup='menuClick("amount4");'></div>
-    <div data-wheelnav-navitemicon='books' onmouseup='menuClick("amount5");'></div>
-    <div data-wheelnav-navitemicon='crown' onmouseup='menuClick("amount6");'></div>
-    <div data-wheelnav-navitemicon='book' onmouseup='menuClick("amount7");'></div>
-    <div data-wheelnav-navitemicon='arrowup' onmouseup='menuClick("amount8");'></div>
-    <div data-wheelnav-navitemicon='arrowleft' onmouseup='menuClick("amount9");'></div>
-    <div data-wheelnav-navitemicon='arrowleft2' onmouseup='menuClick("amount10");'></div>
-  </div>
+  <div id='avatarmenuTemplate' style="height:0px;" onmouseup='menuClick("catchall")'></div>
+  <div id='temenosmenuTemplate' style="height:0px;" onmouseup='menuClick("catchall")'></div>
+  <div id='cardmenuTemplate' style="height:0px;" onmouseup='menuClick("catchall")'></div>
+  <div id='amountSubmenuTemplate' style="height:0px;"> </div>
 
   <canvas tabindex='0' id="temenos" phx-hook="Temenos" class="overflow-hidden bg-gray-600 ml-2 mt-4" style="width: 99%; height: 80vh;">
 

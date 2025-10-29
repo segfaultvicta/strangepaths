@@ -217,6 +217,16 @@ Hooks.MusicPlayer = {
 
 };
 
+
+Hooks.TemenosMoveReporter = {
+    mounted() {
+        canvas = document.getElementById("temenos");
+        this.el.addEventListener("mousemove", e => {
+            this.pushEvent("move", getMousePosition(canvas, e));
+        });
+    }
+}
+
 Hooks.Temenos = {
     mounted() {
         this.handleEvent("loadAvatarMenu", e => {
@@ -230,9 +240,32 @@ Hooks.Temenos = {
             this.el.parentNode.appendChild(a);
             // thus positioned, build an avatar menu around it
             var avatarmenu = new wheelnav('avatarmenu');
+            avatarmenu.selectedNavItemIndex = null;
+            avatarmenu.slicePathFunction = slicePath().MenuSliceWithoutLine;
+            avatarmenu.navAngle = 270;
+            avatarmenu.titleHeight = 40;
+            avatarmenu.hoverPercent = 1.0;
+            avatarmenu.animateeffect = "none";
+            avatarmenu.clickModeRotate = false;
+            avatarmenu.colors = [
+                '#b11c98', // hand
+                '#f5f5f5', // move
+                '#CC6644', // stress
+                '#c1c76f', // pierce
+                '#66CC44', // recover
+                '#CCCCCC', // defend
+                '#FF5555', // delete
+            ];
             avatarmenu.wheelRadius = avatarmenu.wheelRadius * 0.83;
-            avatarmenu.createWheel();
-            avatarmenu.setTooltips(['Hand', 'Move', 'Stress', 'Pierce', 'Recover', 'Destroy', 'Defend']);
+            avatarmenu.createWheel(['📖', '➡️', '⚔️', '🏹', '➕', '🛡️', '✖️']);
+            avatarmenu.navItems[0].navigateFunction = () => menuClick('avatarHand');
+            avatarmenu.navItems[1].navigateFunction = () => menuClick('avatarMove');
+            avatarmenu.navItems[2].navigateFunction = () => menuClick('avatarStress');
+            avatarmenu.navItems[3].navigateFunction = () => menuClick('avatarPierce');
+            avatarmenu.navItems[4].navigateFunction = () => menuClick('avatarRecover');
+            avatarmenu.navItems[5].navigateFunction = () => menuClick('avatarDefend');
+            avatarmenu.navItems[6].navigateFunction = () => menuClick('avatarDelete');
+            avatarmenu.setTooltips(['Hand', 'Move', 'Stress', 'Pierce', 'Recover', 'Defend', 'Delete']);
         })
 
         this.handleEvent("loadTemenosMenu", e => {
@@ -245,9 +278,39 @@ Hooks.Temenos = {
             a.style.top = e.y + "px";
             this.el.parentNode.appendChild(a);
             var temenosmenu = new wheelnav('temenosmenu');
+            temenosmenu.selectedNavItemIndex = null;
+            temenosmenu.slicePathFunction = slicePath().MenuSliceWithoutLine;
+            temenosmenu.navAngle = 270;
+            temenosmenu.titleHeight = 40;
+            temenosmenu.hoverPercent = 1.3;
+            temenosmenu.clickModeRotate = false;
             temenosmenu.wheelRadius = temenosmenu.wheelRadius * 0.83;
-            temenosmenu.createWheel();
-            temenosmenu.setTooltips(['Place Avatar', 'Counters', 'Show/Hide (GM Only)', 'Target']);
+            if (e.gm) {
+                if (e.current_showhide) {
+                    // GM avatars are SHOWN, button should HIDE them
+                    temenosmenu.createWheel(['➕', '📍', '🙈', '🎯']);
+                    temenosmenu.navItems[0].navigateFunction = () => menuClick("temenosPlace");
+                    temenosmenu.navItems[1].navigateFunction = () => menuClick("temenosCounter");
+                    temenosmenu.navItems[2].navigateFunction = () => menuClick("temenosToggleHide");
+                    temenosmenu.navItems[3].navigateFunction = () => menuClick("temenosTarget");
+                    temenosmenu.setTooltips(['Place Avatar', 'Counters', 'GM Screen', 'Target']);
+                } else {
+                    // GM avatars are HIDDEN, button should SHOW them
+                    temenosmenu.createWheel(['➕', '📍', '👁️', '🎯']);
+                    temenosmenu.navItems[0].navigateFunction = () => menuClick("temenosPlace");
+                    temenosmenu.navItems[1].navigateFunction = () => menuClick("temenosCounter");
+                    temenosmenu.navItems[2].navigateFunction = () => menuClick("temenosToggleHide");
+                    temenosmenu.navItems[3].navigateFunction = () => menuClick("temenosTarget");
+                    temenosmenu.setTooltips(['Place Avatar', 'Counters', 'Reveal', 'Target']);
+                }
+            } else {
+                // don't show show/hide button at all
+                temenosmenu.createWheel(['➕', '📍', '🎯']);
+                temenosmenu.navItems[0].navigateFunction = () => menuClick("temenosPlace");
+                temenosmenu.navItems[1].navigateFunction = () => menuClick("temenosCounter");
+                temenosmenu.navItems[2].navigateFunction = () => menuClick("temenosTarget");
+                temenosmenu.setTooltips(['Place Avatar', 'Counters', 'Target']);
+            }
         })
 
         this.handleEvent("loadCardMenu", e => {
@@ -260,9 +323,32 @@ Hooks.Temenos = {
             a.style.top = e.y + "px";
             this.el.parentNode.appendChild(a);
             var cardmenu = new wheelnav('cardmenu');
+            cardmenu.selectedNavItemIndex = null;
+            cardmenu.slicePathFunction = slicePath().MenuSliceWithoutLine;
+            cardmenu.navAngle = 270;
+            cardmenu.titleHeight = 40;
+            cardmenu.hoverPercent = 1.0;
+            cardmenu.animateeffect = "none";
+            cardmenu.clickModeRotate = false;
             cardmenu.wheelRadius = cardmenu.wheelRadius * 0.83;
-            cardmenu.createWheel();
-            cardmenu.setTooltips(['Discard', 'Destroy', 'Copy', 'Move', 'Add To Deck', 'Add To Top Of Deck', 'Add To Hand']);
+            cardmenu.colors = [
+                '#5555FF', // discard
+                '#f5f5f5', // move
+                '#2D9E46', // copy
+                '#000000', // to deck
+                '#000000', // to top of deck
+                '#b11c98', // to hand
+                '#FF5555', // destroy
+            ];
+            cardmenu.createWheel(['🗑️', '➡️', '↔️', '📘', '👑📘', '📖', '✖️']);
+            cardmenu.navItems[0].navigateFunction = () => menuClick("cardDiscard");
+            cardmenu.navItems[1].navigateFunction = () => menuClick("cardMove");
+            cardmenu.navItems[2].navigateFunction = () => menuClick("cardCopy");
+            cardmenu.navItems[3].navigateFunction = () => menuClick("cardToDeck");
+            cardmenu.navItems[4].navigateFunction = () => menuClick("cardToTopDeck");
+            cardmenu.navItems[5].navigateFunction = () => menuClick("cardToHand");
+            cardmenu.navItems[6].navigateFunction = () => menuClick("cardDestroy");
+            cardmenu.setTooltips(['Discard', 'Move', 'Copy', 'Add To Deck', 'Add To Top Of Deck', 'Add To Hand', 'Destroy']);
         })
 
         this.handleEvent("loadAmountSubmenu", e => {
@@ -275,11 +361,67 @@ Hooks.Temenos = {
             submenu.style.height = 500 + "px";
             submenu.style.left = (e.x - 305) + "px";
             submenu.style.top = (e.y - 55) + "px";
-            console.log(this.el.parentNode);
             this.el.parentNode.appendChild(submenu);
             var amountSubmenu = new wheelnav('amountSubmenu');
-            amountSubmenu.wheelRadius = amountSubmenu.wheelRadius * 1.0;
-            amountSubmenu.createWheel();
+            amountSubmenu.slicePathFunction = slicePath().StarSlice;
+            // can we find out WHICH submenu we're invoking?
+            var baseColor;
+            var variance;
+            var angle;
+            console.log(e.type);
+            switch (e.type) {
+                case "Defend":
+                    baseColor = "#CCCCCC"
+                    variance = 10;
+                    angle = 160;
+                    break;
+
+                case "Recover":
+                    baseColor = "#66CC44"
+                    variance = 30;
+                    angle = 110;
+                    break;
+
+                case "Stress":
+                    baseColor = "#CC6644"
+                    variance = 20;
+                    angle = 10;
+                    break;
+
+                case "Pierce":
+                    baseColor = "#c1c76f"
+                    variance = 30;
+                    angle = 60;
+                    break;
+
+                default:
+                    baseColor = "#222222"
+                    variance = 0;
+                    angle = 0;
+                    break;
+            }
+            amountSubmenu.colors = [];
+            for (let i = 0; i < 10; i++) {
+                amountSubmenu.colors.push(...[randomCloseColor(baseColor, variance)]);
+            }
+            amountSubmenu.hoverPercent = 1.3;
+            amountSubmenu.animateeffect = "linear";
+            amountSubmenu.animatetime = 300;
+            amountSubmenu.clickModeRotate = false;
+            amountSubmenu.navAngle = angle;
+            amountSubmenu.sliceSelectedAttr = {};
+            amountSubmenu.lineSelectedAttr = {};
+            amountSubmenu.titleSelectedAttr = {};
+            amountSubmenu.wheelRadius = amountSubmenu.wheelRadius * 0.65;
+            amountSubmenu.selectedNavItemIndex = null;
+            amountSubmenu.createWheel(['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ', 'Ⅵ', 'Ⅶ', 'Ⅷ', 'Ⅸ', 'Ⅹ']);
+            for (let i = 0; i < amountSubmenu.navItems.length; i++) {
+                amountSubmenu.navItems[i].navigateFunction = (function (index) {
+                    return function () {
+                        menuClick("amount" + (index + 1));
+                    };
+                })(i);
+            }
             amountSubmenu.setTooltips(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
         })
 
@@ -300,11 +442,18 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("unloadAvatarMenu", e => {
-            document.getElementById('avatarmenu').remove();
+            var submenu = document.getElementById('avatarmenu');
+            if (submenu) {
+                submenu.remove();
+            }
         })
 
         this.handleEvent("unloadTemenosMenu", e => {
-            //document.getElementById('avatarmenu').remove();
+            var submenu = document.getElementById('temenosmenu');
+            if (submenu) {
+                submenu.remove();
+            }
+
         })
 
         this.handleEvent("unloadAmountSubmenu", () => {
@@ -346,6 +495,42 @@ function getMousePosition(canvas, e) {
         context: rect
     }
 }
+
+function randomCloseColor(inputColor, variance = 10) {
+    // Parse the input color to RGB
+    let r, g, b;
+
+    if (inputColor.startsWith('#')) {
+        // Handle hex colors
+        const hex = inputColor.replace('#', '');
+        r = parseInt(hex.substr(0, 2), 16);
+        g = parseInt(hex.substr(2, 2), 16);
+        b = parseInt(hex.substr(4, 2), 16);
+    } else if (inputColor.startsWith('rgb')) {
+        // Handle rgb/rgba colors
+        const matches = inputColor.match(/\d+/g);
+        r = parseInt(matches[0]);
+        g = parseInt(matches[1]);
+        b = parseInt(matches[2]);
+    } else {
+        throw new Error('Invalid color format. Use hex (#RRGGBB) or rgb(r, g, b)');
+    }
+
+    // Helper to get a random offset within variance
+    const randomOffset = () => Math.random() * variance * 2 - variance;
+
+    // Apply random offsets and clamp to 0-255
+    const clamp = (val) => Math.max(0, Math.min(255, Math.round(val)));
+
+    const newR = clamp(r + randomOffset());
+    const newG = clamp(g + randomOffset());
+    const newB = clamp(b + randomOffset());
+
+    // Convert back to hex
+    const toHex = (n) => n.toString(16).padStart(2, '0');
+    return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
+}
+
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
