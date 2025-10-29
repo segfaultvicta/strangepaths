@@ -978,6 +978,17 @@ defmodule Strangepaths.Cards do
       stacka ++ [card] ++ stackb
     end
 
+    def card_id_to_deck(truename, card_id, entity) do
+      truecard = Strangepaths.Cards.get_card!(card_id)
+
+      entity = %{
+        entity
+        | cards: %{entity.cards | draw: shuffle_in(entity.cards.draw, truecard)}
+      }
+
+      placeEntity(truename, entity)
+    end
+
     def card_to_deck(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
 

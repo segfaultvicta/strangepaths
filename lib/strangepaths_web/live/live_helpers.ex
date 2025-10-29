@@ -85,7 +85,7 @@ defmodule StrangepathsWeb.LiveHelpers do
         </div>
         <div
           id="modal-content"
-          class="inline-block overflow-hidden px-4 pt-5 pb-4 text-left align-bottom bg-gray-700 rounded-lg shadow-xl transition-all transform phx-modal-content sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
+          class="inline-block overflow-hidden px-4 pt-5 pb-4 text-left align-bottom bg-indigo-200 dark:bg-gray-700 rounded-lg shadow-xl transition-all transform phx-modal-content sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
           role="dialog" aria-modal="true" aria-labelledby="modal-headline"
           phx-click-away={JS.dispatch("click", to: "#close")}
           phx-window-keydown={JS.dispatch("click", to: "#close")}

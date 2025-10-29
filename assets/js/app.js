@@ -265,6 +265,24 @@ Hooks.Temenos = {
             cardmenu.setTooltips(['Discard', 'Destroy', 'Copy', 'Move', 'Add To Deck', 'Add To Top Of Deck', 'Add To Hand']);
         })
 
+        this.handleEvent("loadAmountSubmenu", e => {
+            console.log("in loadAmountSubmenu");
+            console.log(e);
+            var template = document.getElementById('amountSubmenuTemplate');
+            var submenu = template.cloneNode(true);
+            submenu.id = "amountSubmenu";
+            submenu.style.position = "fixed";
+            submenu.style.height = 500 + "px";
+            submenu.style.left = (e.x - 305) + "px";
+            submenu.style.top = (e.y - 55) + "px";
+            console.log(this.el.parentNode);
+            this.el.parentNode.appendChild(submenu);
+            var amountSubmenu = new wheelnav('amountSubmenu');
+            amountSubmenu.wheelRadius = amountSubmenu.wheelRadius * 1.0;
+            amountSubmenu.createWheel();
+            amountSubmenu.setTooltips(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+        })
+
         this.handleEvent("drawLeaderLine", e => {
             lineOpts = { hide: true, gradient: true, startPlugColor: 'rgba(90, 90, 255, 0.8', endPlugColor: 'rgba(255, 30, 100, 1.0)', dash: { animation: true } }
             var line = new LeaderLine(document.getElementById(e.src), document.getElementById(e.tgt), lineOpts)
@@ -282,11 +300,18 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("unloadAvatarMenu", e => {
-            //document.getElementById('avatarmenu').remove();
+            document.getElementById('avatarmenu').remove();
         })
 
         this.handleEvent("unloadTemenosMenu", e => {
             //document.getElementById('avatarmenu').remove();
+        })
+
+        this.handleEvent("unloadAmountSubmenu", () => {
+            var submenu = document.getElementById('amountSubmenu');
+            if (submenu) {
+                submenu.remove();
+            }
         })
 
         this.pushEvent("context", this.el.getBoundingClientRect());
@@ -298,6 +323,16 @@ Hooks.Temenos = {
         this.el.addEventListener("mousemove", e => {
             this.pushEvent("move", getMousePosition(this.el, e))
         })
+
+        // draw two equally-spaced vertical lines on the canvas for Lanes
+        var ctx = this.el.getContext("2d");
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.moveTo(200, 0);
+        ctx.lineTo(200, 200);
+        ctx.moveTo(100, 0);
+        ctx.lineTo(100, 200);
+        ctx.stroke();
     }
 }
 
