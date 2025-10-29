@@ -7,7 +7,7 @@ defmodule StrangepathsWeb.AvatarAdminLive do
   def mount(_params, session, socket) do
     socket = assign_defaults(session, socket)
 
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role == :dragon do
       {:ok,
        socket
        |> assign(:avatars, Accounts.list_avatars())

@@ -112,7 +112,6 @@ defmodule StrangepathsWeb.DeckLive.Index do
     |> assign(:deck, nil)
   end
 
-
   defp manabalance_div(manabalance) do
     Enum.reduce(manabalance, "", fn {color, cardinality}, acc ->
       acc <>
@@ -131,7 +130,7 @@ defmodule StrangepathsWeb.DeckLive.Index do
   end
 
   defp list_decks_of(socket) do
-    if(socket.assigns.current_user.role == :god) do
+    if(socket.assigns.current_user.role == :dragon) do
       Cards.list_decks(nil, socket.assigns.sortcol, socket.assigns.direction)
     else
       Cards.list_decks(

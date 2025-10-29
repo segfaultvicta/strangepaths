@@ -13,7 +13,7 @@
           <h1 class="text-4xl font-bold dark:text-purple-300 mt-8"><%= @song.title %></h1>
 
           <div class="flex gap-4 mt-6">
-            <%= if @role == :admin || @role == :god do %>
+            <%= if @role == :dragon do %>
               <button
                 phx-click="delete_song"
                 phx-value-id={@song.id}
@@ -29,7 +29,7 @@
               Enqueue
             </button>
 
-            <%= if @role == :admin || @role == :god do %>
+            <%= if @role == :dragon do %>
               <button
                 phx-click="start_edit_lyrics"
                 class="text-sm text-yellow-400 hover:text-yellow-300">
@@ -40,7 +40,7 @@
         </div>
 
         <% # MP3 Link section (admin only) %>
-        <%= if @role == :admin || @role == :god do %>
+        <%= if @role == :dragon do %>
           <div class="mt-4 p-4 bg-gray-800 rounded-lg space-y-4">
             <div class="flex items-center gap-4">
               <span class="text-sm text-gray-400">MP3 Link:</span>

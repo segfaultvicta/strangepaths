@@ -12,7 +12,7 @@ defmodule StrangepathsWeb.ContentLive do
     is_admin =
       case socket.assigns.current_user do
         nil -> false
-        user -> user.role in [:admin, :god]
+        user -> user.role == :dragon
       end
 
     case Site.get_content_page_by_slug(slug) do

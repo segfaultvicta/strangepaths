@@ -675,22 +675,6 @@ defmodule Strangepaths.Accounts do
   end
 
   @doc """
-  Registers an admin user.
-
-  ## Examples
-      iex> register_admin(%{field: value})
-      {:ok, %User{}}
-
-      iex> register_admin(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-  """
-  def register_admin(attrs) do
-    %User{}
-    |> User.admin_registration_changeset(attrs, false)
-    |> Repo.insert()
-  end
-
-  @doc """
   Registers a superadmin user.
 
   ## Examples
@@ -700,7 +684,7 @@ defmodule Strangepaths.Accounts do
       iex> register_god(%{field: bad_value})
       {:error, %Ecto.Changeset{}}
   """
-  def register_god(attrs) do
+  def register_dragon(attrs) do
     %User{}
     |> User.admin_registration_changeset(attrs, true)
     |> Repo.insert()
@@ -728,7 +712,7 @@ defmodule Strangepaths.Accounts do
 
   def list_avatars_for_user(user) do
     query =
-      if user.role in [:admin, :god] do
+      if user.role == :dragon do
         from(a in Avatar, order_by: [a.category, a.filepath])
       else
         from(a in Avatar, where: a.public == true, order_by: [a.category, a.filepath])

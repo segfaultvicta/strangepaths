@@ -11,7 +11,7 @@ defmodule StrangepathsWeb.ContentIndexLive do
     is_admin =
       case socket.assigns.current_user do
         nil -> false
-        user -> user.role in [:admin, :god]
+        user -> user.role == :dragon
       end
 
     pages =

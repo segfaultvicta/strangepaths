@@ -539,7 +539,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      push_event(socket, "loadTemenosMenu", %{
        x: Cards.Entity.screen_x(menuEntity, socket.assigns.context),
        y: Cards.Entity.screen_y(menuEntity, socket.assigns.context),
-       gm: socket.assigns.current_user.role == :god || socket.assigns.current_user.role == :admin,
+       gm: socket.assigns.current_user.role == :dragon,
        current_showhide: socket.assigns.ceremony.gm_avatars_visible
      })}
   end
@@ -570,8 +570,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     owner_id = owner_id |> String.to_integer()
 
     if(
-      owner_id == socket.assigns.current_user.id || socket.assigns.current_user.role == :admin ||
-        socket.assigns.current_user.role == :god
+      owner_id == socket.assigns.current_user.id || socket.assigns.current_user.role == :dragon
     ) do
       Cards.Ceremony.removeEntity(
         socket.assigns.ceremony.id,

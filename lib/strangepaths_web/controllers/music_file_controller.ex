@@ -16,7 +16,7 @@ defmodule StrangepathsWeb.MusicFileController do
         # Check if user can access (unlocked OR admin)
         can_access =
           song.unlocked ||
-            (user && user.role in [:admin, :god])
+            (user && user.role == :dragon)
 
         if can_access do
           # Serve the file

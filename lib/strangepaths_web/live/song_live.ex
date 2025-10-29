@@ -13,7 +13,7 @@ defmodule StrangepathsWeb.SongLive do
     user = socket.assigns.current_user
 
     # Check if user can view lyrics (lyrics_unlocked OR admin)
-    can_view = song.lyrics_unlocked || user.role in [:admin, :god]
+    can_view = song.lyrics_unlocked || user.role == :dragon
 
     {:ok,
      socket
@@ -45,7 +45,7 @@ defmodule StrangepathsWeb.SongLive do
   end
 
   defp handle_song_event("delete_song", _, socket) do
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role == :dragon do
       Site.delete_song(socket.assigns.song)
       {:noreply, put_flash(socket, :info, "Song deleted!") |> push_redirect(to: "/ost")}
     else
@@ -55,7 +55,7 @@ defmodule StrangepathsWeb.SongLive do
 
   # Admin-only: Edit lyrics
   defp handle_song_event("start_edit_lyrics", _, socket) do
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role == :dragon do
       {:noreply, assign(socket, :editing_lyrics, true)}
     else
       {:noreply, socket}
@@ -63,7 +63,7 @@ defmodule StrangepathsWeb.SongLive do
   end
 
   defp handle_song_event("save_lyrics", %{"text" => text}, socket) do
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role == :dragon do
       Site.update_song_metadata(socket.assigns.song.id, %{text: text})
       song = Site.get_song!(socket.assigns.song.id)
 
@@ -83,7 +83,7 @@ defmodule StrangepathsWeb.SongLive do
 
   # Admin-only: Upload MP3 file
   defp handle_song_event("upload_mp3", _params, socket) do
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role == :dragon do
       uploaded_files =
         consume_uploaded_entries(socket, :mp3_file, fn %{path: path}, _entry ->
           # Create a temporary upload struct

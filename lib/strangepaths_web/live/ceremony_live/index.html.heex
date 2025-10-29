@@ -30,7 +30,7 @@
                   <%= ceremony.name %>, a Rite overseen by <%= ceremony.owner_name %>
                 <% end %>
               </td>
-              <%= if (@current_user.id == ceremony.owner_id || @role == :god || @role == :admin) do %>
+              <%= if (@current_user.id == ceremony.owner_id || @role == :dragon) do %>
                 <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={ceremony.id} data-confirm="Are you sure you want to delete that rite?">X</div></td>
               <% end %>
             </tr>

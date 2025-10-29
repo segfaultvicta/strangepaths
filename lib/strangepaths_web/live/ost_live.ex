@@ -45,7 +45,7 @@ defmodule StrangepathsWeb.OstLive do
   end
 
   defp handle_ost_event("create_song", %{"title" => title, "disc" => disc}, socket) do
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role != :dragon do
       case Site.create_song(%{
              title: title,
              disc: String.to_integer(disc),
@@ -93,7 +93,7 @@ defmodule StrangepathsWeb.OstLive do
   defp handle_ost_event("toggle_lock", %{"song-id" => song_id}, socket) do
     user = socket.assigns.current_user
 
-    if user.role in [:admin, :god] do
+    if user.role == :dragon do
       case Site.toggle_song_lock(String.to_integer(song_id)) do
         {:ok, _song} ->
           {:noreply,
@@ -113,7 +113,7 @@ defmodule StrangepathsWeb.OstLive do
   defp handle_ost_event("toggle_lyrics_lock", %{"song-id" => song_id}, socket) do
     user = socket.assigns.current_user
 
-    if user.role in [:admin, :god] do
+    if user.role == :dragon do
       case Site.toggle_song_lyrics_lock(String.to_integer(song_id)) do
         {:ok, _song} ->
           {:noreply,
@@ -133,7 +133,7 @@ defmodule StrangepathsWeb.OstLive do
   defp handle_ost_event("update_title", %{"song-id" => song_id, "title" => title}, socket) do
     user = socket.assigns.current_user
 
-    if user.role in [:admin, :god] do
+    if user.role == :dragon do
       case Site.update_song_metadata(String.to_integer(song_id), %{title: title}) do
         {:ok, _song} ->
           {:noreply,
@@ -154,7 +154,7 @@ defmodule StrangepathsWeb.OstLive do
   defp handle_ost_event("start_edit_title", %{"song-id" => song_id}, socket) do
     user = socket.assigns.current_user
 
-    if user.role in [:admin, :god] do
+    if user.role == :dragon do
       {:noreply, assign(socket, :editing_song, String.to_integer(song_id))}
     else
       {:noreply, socket}
@@ -168,7 +168,7 @@ defmodule StrangepathsWeb.OstLive do
   defp handle_ost_event("reorder_song", %{"song_id" => song_id, "new_order" => new_order}, socket) do
     user = socket.assigns.current_user
 
-    if user.role in [:admin, :god] do
+    if user.role == :dragon do
       case Site.update_song_order(String.to_integer(song_id), new_order) do
         {:ok, _song} ->
           {:noreply,

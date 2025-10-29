@@ -11,7 +11,7 @@ defmodule StrangepathsWeb.ContentAdminLive do
 
     IO.inspect(socket.assigns.current_user.role)
 
-    if socket.assigns.current_user.role in [:admin, :god] do
+    if socket.assigns.current_user.role == :dragon do
       {:ok,
        socket
        |> assign(:pages, Site.list_content_pages())

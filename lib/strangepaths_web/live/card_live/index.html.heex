@@ -1,5 +1,5 @@
 <nav class="bg-gray-900 shadow">
-  <%= if @role == :admin || @role == :god do %>
+  <%= if @role == :dragon do %>
     <div class="text-center p-2"><%= live_patch "New Card", to: Routes.card_index_path(@socket, :new) %></div>
   <% end %>
 </nav>

@@ -32,7 +32,7 @@
               <th class="fooby" style="min-width: 80px;" phx-click="sort" phx-value-sortcol="aspect_id">ASPECT <i class={if @sortcol != :aspect_id do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
               <th class="fooby" style="min-width: 60px;" phx-click="sort" phx-value-sortcol="glory">GLORY <i class={if @sortcol != :glory do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
               <th class="fooby" style="min-width: 300px;" phx-click="sort" phx-value-sortcol="manabalance">MANA BALANCE <i class={if @sortcol != :manabalance do "" else if @direction == :asc do "fa-solid fa-circle-up" else "fa-solid fa-circle-down" end end}></i></th>
-              <%= if @role == :god do %> <th style="min-width: 100px;">OWNER</th><% else %><th /><% end %>
+              <%= if @role == :dragon do %> <th style="min-width: 100px;">OWNER</th><% else %><th /><% end %>
               <th style="min-width: 60px;">DELETE</th>
             </tr>
           </thead>
@@ -43,7 +43,7 @@
                 <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= aspect %><% end %></td>
                 <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= deck.glory %><% end %></td>
                 <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "inline-flex flex-wrap dark:hover:text-white" do %><%= raw(manabalance_div(deck.manabalance)) %><% end %></td>
-                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= if @role == :god do %><%= get_owner_name_by_id(deck.owner) %><% else %><% end %><% end %></td>
+                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= if @role == :dragon do %><%= get_owner_name_by_id(deck.owner) %><% else %><% end %><% end %></td>
                 <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?">X</div></td>
               </tr>
             <% end %>
@@ -94,7 +94,7 @@
                   <span class="text-black dark:text-white"><%= deck.glory %></span>
                 </div>
 
-                <%= if @role == :god do %>
+                <%= if @role == :dragon do %>
                   <div class="flex justify-between">
                     <span class="dark:text-gray-400">Owner:</span>
                     <span class="text-black dark:text-white"><%= get_owner_name_by_id(deck.owner) %></span>

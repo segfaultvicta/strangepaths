@@ -1,4 +1,4 @@
-<%= if @aspect == "Alethic" and @role != :god do %>
+<%= if @aspect == "Alethic" and @role != :dragon do %>
 
 <div class="container mx-auto flex flex-row justify-center mt-36">
   <h1>Nice try, kiddo.</h1>
@@ -11,7 +11,7 @@
   <% else %>
     <h1 class="text-center"><%= @card.name %>, a <%= @card.type %> of the Dragon's <%= @aspect %></h1>
   <% end %>
-  <%= if @role == :admin || @role == :god do %>
+  <%= if @role == :dragon do %>
     <h2 class="text-center"><%= link "DELETE", to: Routes.card_index_path(@socket, :index), class: "hover:text-red-500", phx_click: "delete", phx_value_id: @card.id, data: [confirm: "Are you sure?"]  %></h2>
   <% end %>
 
@@ -34,7 +34,7 @@
     <div class="p-5 formstyle">
       <div class="flex justify-center"><img class="object-scale-down h-auto" src={@card.img}></div>
       <h3 class="text-center"><%= @card.rules %></h3>
-      <%= if @role == :admin || @role == :god do %>
+      <%= if @role == :dragon do %>
         <div class="flex flex-row justify-center">
           <button class="submit"><%= live_patch "EDIT", to: Routes.card_show_path(@socket, :edit, @card), class: "hover:text-white" %></button>
         </div>
@@ -44,7 +44,7 @@
       <div class="p-5 formstyle">
         <div class="flex justify-center"><img class="object-scale-down h-auto" src={@glory.img}></div>
         <h3 class="text-center"><%= @glory.rules %></h3>
-        <%= if @role == :admin || @role == :god do %>
+        <%= if @role == :dragon do %>
           <div class="flex flex-row justify-center">
             <button class="submit"><%= live_patch "EDIT", to: Routes.card_show_path(@socket, :edit, @glory), class: "hover:text-white" %></button>
           </div>

@@ -8,7 +8,7 @@ defmodule Strangepaths.Accounts.User do
     field(:hashed_password, :string, redact: true)
     field(:confirmed_at, :naive_datetime)
     field(:nickname, :string)
-    field(:role, Ecto.Enum, values: [:user, :admin, :god], default: :user)
+    field(:role, Ecto.Enum, values: [:user, :dragon], default: :user)
     field(:public_ascension, :boolean, default: false)
     field(:arete, :integer, default: 0)
     field(:primary_red, :integer, default: 4)
@@ -56,26 +56,16 @@ defmodule Strangepaths.Accounts.User do
   @doc """
   A user changeset for registering admins. User, attrs, superadmin boolean
   """
-  def admin_registration_changeset(user, attrs, false) do
-    user
-    |> registration_changeset(attrs)
-    |> prepare_changes(&set_admin_role/1)
-  end
 
   def admin_registration_changeset(user, attrs, true) do
     user
     |> registration_changeset(attrs)
-    |> prepare_changes(&set_god_role/1)
+    |> prepare_changes(&set_dragon_role/1)
   end
 
-  defp set_admin_role(changeset) do
+  defp set_dragon_role(changeset) do
     changeset
-    |> put_change(:role, :admin)
-  end
-
-  defp set_god_role(changeset) do
-    changeset
-    |> put_change(:role, :god)
+    |> put_change(:role, :dragon)
   end
 
   defp validate_email(changeset) do

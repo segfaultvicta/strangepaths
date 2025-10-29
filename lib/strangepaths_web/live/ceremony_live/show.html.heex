@@ -219,7 +219,7 @@
   <%= if @state != nil and @ceremony.entities != [] do %>
     <%= for entity <- @ceremony.entities do %>
       <%= if entity.type == :Avatar do %>
-        <%= if @ceremony.gm_avatars_visible || @current_user.role == :god || @current_user.role == :admin || (entity.owner_id != @ceremony.owner_id) do %>
+        <%= if @ceremony.gm_avatars_visible || @current_user.role == :dragon || (entity.owner_id != @ceremony.owner_id) do %>
           <div id={entity.uuid} x-data="{
             tooltip: false,
             tooltipAbove: false,

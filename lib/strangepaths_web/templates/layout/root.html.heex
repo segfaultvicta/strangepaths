@@ -57,7 +57,7 @@
         <div class="flex flex-col gap-1 items-end text-sm ml-auto">
           <%= if @current_user do %>
             <div class="flex gap-3 items-center">
-              <%= if @role == :god do %>
+              <%= if @role == :dragon do %>
                 <%= link "AVATARS", to: "/avatars/admin", class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap" %>
                 <%= link "DEV", to: Routes.live_dashboard_path(@conn, :home), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap hidden lg:inline" %>
               <% end %>
@@ -89,7 +89,7 @@
           <%= live_redirect "ASCEND", to: "/ascension", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "CODEX", to: "/content", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
-          <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :god do %>
+          <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :dragon do %>
             <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "inactivenav lg:hidden", "x-on:click": "mobileMenuOpen = false" %>
           <% end %>
         </div>
