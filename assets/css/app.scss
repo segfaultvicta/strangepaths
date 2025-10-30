@@ -78,6 +78,43 @@ body {
     }
 }
 
+/* Scene Posts */
+
+.post-header {
+    @apply flex flex-col items-center m-2;
+    width: 120px;
+}
+
+.post-content {
+    @apply flex-1 flex flex-col relative;
+}
+
+.post-timestamp-with-ooc {
+    @apply text-xs dark:text-gray-300 text-right mt-2;
+}
+
+.post-timestamp-no-ooc {
+    @apply text-xs dark:text-gray-300 text-right mt-2;
+    margin-top: 55px;
+}
+
+.post-ic-content {
+    @apply max-w-none;
+}
+
+.post-ooc-content {
+    @apply mt-2 p-2 text-sm italic text-gray-700 dark:text-gray-300;
+}
+
+.post-ooc-divider {
+    margin-top: 20px;
+    margin-left: 100px;
+    margin-right: 100px;
+    border-top: 2px dotted #999;
+    padding-bottom: 10px;
+}
+
+
 #music a {
     @apply text-2xl font-light text-indigo-800 dark:text-indigo-200 hover:underline;
 }

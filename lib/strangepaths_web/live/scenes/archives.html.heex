@@ -1,0 +1,138 @@
+<div class="container p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Scene Archives</h1>
+    <a href="/scenes" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
+      Back to Active Scenes
+    </a>
+  </div>
+
+  <%= if @selected_scene || @viewing_elsewhere do %>
+    <!-- Viewing a specific scene or week -->
+    <div class="mb-4">
+      <button
+        phx-click="back_to_list"
+        class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition"
+      >
+        ← Back to Archive List
+      </button>
+    </div>
+
+    <div class="bg-gray-900 rounded p-6">
+      <h2 class="text-2xl font-bold mb-4">
+        <%= if @viewing_elsewhere do %>
+          Elsewhere - Week of <%= Calendar.strftime(@selected_week, "%B %d, %Y") %>
+        <% else %>
+          <%= @selected_scene.name %>
+        <% end %>
+      </h2>
+
+      <%= if @posts && length(@posts) > 0 do %>
+        <div class="space-y-4">
+          <%= for post <- @posts do %>
+            <div class={"p-4 rounded flex flex-row " <> case post.post_type do
+              :narrative -> "bg-purple-100 dark:bg-purple-900 border-l-4 border-purple-500"
+              :system -> "bg-blue-200 dark:bg-blue-600 border-l-4 border-blue-500"
+              _ -> "bg-indigo-100 dark:bg-gray-800"
+            end}>
+              <!-- Post Header -->
+              <%= if post.post_type != :narrative do %>
+                <div class="post-header">
+                  <%= if post.avatar do %>
+                    <img
+                      src={post.avatar.filepath}
+                      alt="Avatar"
+                      class="w-24 h-24 rounded mr-3"
+                    />
+                  <% end %>
+                </div>
+              <% end %>
+
+              <!-- Post Content -->
+
+              <div class="post-content">
+                <div class="post-ic-content">
+                  <%= cond do %>
+                    <% post.post_type == :narrative -> %>
+
+                    <% post.narrative_author_name != nil -> %>
+                      <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                    <% post.user -> %>
+                      <%= post.user.nickname %>
+                    <% true -> %>
+                      Unknown
+                  <% end %>
+                  <%= raw Earmark.as_html!(post.content || "") %>
+                </div>
+
+                <!-- OOC Content -->
+                <%= if post.ooc_content do %>
+                  <div class="post-ooc-container">
+                    <hr class="post-ooc-divider">
+                      <span class="post-ooc-content"><%= post.ooc_content %></span>
+                  </div>
+                <% end %>
+                <div class={if post.ooc_content do "post-timestamp-with-ooc" else "post-timestamp-no-ooc" end <> " mt-2"}>
+                  <%= Calendar.strftime(post.posted_at, "%B %d, %Y at %I:%M %p") %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-gray-400">No posts found in this archive.</p>
+      <% end %>
+    </div>
+  <% else %>
+    <!-- Archive list view -->
+    Archive Search Coming Soon™ To A Bespoke TTRPG Website Near You
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Elsewhere Archives -->
+      <%= if @elsewhere_scene && map_size(@elsewhere_weeks) > 0 do %>
+        <div class="bg-indigo-200 dark:bg-gray-900 rounded p-6">
+          <span class="text-2xl font-bold mb-4 text-purple-700 dark:text-purple-400">✨Elsewhere✨</span>
+          <div class="space-y-2">
+            <%= for {week_start, posts} <- @elsewhere_weeks do %>
+              <div
+                phx-click="view_elsewhere_week"
+                phx-value-week={Date.to_iso8601(week_start)}
+                class="p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition"
+              >
+                <div class="font-semibold">Week of <%= Calendar.strftime(week_start, "%B %d, %Y") %></div>
+                <div class="text-sm font-light dark:text-gray-400"><%= length(posts) %> posts</div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Other Archived Scenes -->
+      <div class="bg-indigo-200 dark:bg-gray-900 rounded p-6">
+        <span class="text-2xl font-bold mb-4">Archived Scenes</span>
+
+        <%= if @archived_scenes && length(@archived_scenes) > 0 do %>
+          <div class="space-y-2">
+            <%= for scene <- @archived_scenes do %>
+              <%= unless scene.is_elsewhere do %>
+                <div
+                  phx-click="view_scene"
+                  phx-value-scene_id={scene.id}
+                  class="p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition"
+                >
+                  <div class="font-semibold"><%= scene.name %></div>
+                  <div class="text-sm font-light dark:text-gray-400">
+                    Archived <%= Calendar.strftime(scene.archived_at, "%B %d, %Y") %>
+                    <%= if Strangepaths.Scenes.Scene.locked?(scene) do %>
+                      <span class="text-yellow-400">🔒 Private</span>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-gray-400">No archived scenes yet.</p>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

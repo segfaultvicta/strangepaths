@@ -10,6 +10,8 @@ defmodule Strangepaths.Accounts.User do
     field(:nickname, :string)
     field(:role, Ecto.Enum, values: [:user, :dragon], default: :user)
     field(:public_ascension, :boolean, default: false)
+    field(:selected_avatar_id, :integer)
+    field(:last_scene_id, :integer)
     field(:arete, :integer, default: 0)
     field(:primary_red, :integer, default: 4)
     field(:primary_green, :integer, default: 4)
@@ -126,6 +128,11 @@ defmodule Strangepaths.Accounts.User do
     end
   end
 
+  def selected_avatar_id_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:selected_avatar_id])
+  end
+
   def arete_changeset(user, attrs) do
     user
     |> cast(attrs, [:arete])
@@ -145,6 +152,11 @@ defmodule Strangepaths.Accounts.User do
     user
     |> cast(attrs, [:theme])
     |> validate_inclusion(:theme, ["light", "dark"])
+  end
+
+  def last_scene_id_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:last_scene_id])
   end
 
   # Change user's primary and alethic die values

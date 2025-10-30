@@ -60,8 +60,22 @@ defmodule Strangepaths.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  @doc """
+  Gets a single user (returns nil if not found).
+  """
+  def get_user(id), do: Repo.get(User, id)
+
   def get_user_by_nickname(nickname) do
     Repo.get_by(User, nickname: nickname)
+  end
+
+  @doc """
+  Lists all users ordered by nickname.
+  """
+  def list_users do
+    User
+    |> order_by(:nickname)
+    |> Repo.all()
   end
 
   def get_ascended_users() do
@@ -163,6 +177,18 @@ defmodule Strangepaths.Accounts do
   def update_user_ascension(user, attrs \\ %{}) do
     user
     |> User.ascension_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_user_selected_avatar_id(user, attrs \\ %{}) do
+    user
+    |> User.selected_avatar_id_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_user_last_scene_id(user, post_attrs \\ %{}) do
+    user
+    |> User.last_scene_id_changeset(post_attrs)
     |> Repo.update()
   end
 
@@ -806,5 +832,26 @@ defmodule Strangepaths.Accounts do
   """
   def change_avatar(%Avatar{} = avatar, attrs \\ %{}) do
     Avatar.changeset(avatar, attrs)
+  end
+
+  @doc """
+  Lists avatars for a user.
+  Currently returns all public avatars plus avatars from user's decks.
+  """
+  def list_user_avatars(user_id) do
+    alias Strangepaths.Cards.Deck
+
+    # Get avatars from user's decks
+    deck_avatar_ids =
+      Deck
+      |> where([d], d.owner == ^user_id and not is_nil(d.avatar_id))
+      |> select([d], d.avatar_id)
+      |> Repo.all()
+
+    # Get all public avatars plus deck avatars
+    Avatar
+    |> where([a], a.public == true or a.id in ^deck_avatar_ids)
+    |> order_by([a], desc: a.public, asc: a.display_name)
+    |> Repo.all()
   end
 end

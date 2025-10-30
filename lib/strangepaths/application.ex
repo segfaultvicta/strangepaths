@@ -21,6 +21,7 @@ defmodule Strangepaths.Application do
       Strangepaths.Cards.Ceremony,
       Strangepaths.Presence,
       Strangepaths.Site.MusicQueue,
+      Strangepaths.Scenes.SceneServer,
       {Nostrum.Bot,
        %{
          consumer: Strangepaths.DiscordHandler,

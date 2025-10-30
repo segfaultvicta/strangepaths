@@ -45,7 +45,7 @@ defmodule StrangepathsWeb.OstLive do
   end
 
   defp handle_ost_event("create_song", %{"title" => title, "disc" => disc}, socket) do
-    if socket.assigns.current_user.role != :dragon do
+    if socket.assigns.current_user.role == :dragon do
       case Site.create_song(%{
              title: title,
              disc: String.to_integer(disc),

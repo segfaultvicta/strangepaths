@@ -31,6 +31,7 @@ defmodule StrangepathsWeb.Router do
 
     live("/ascension", Ascension)
     live("/scenes", Scenes)
+    live("/scenes/archives", Scenes.Archives)
 
     live("/content", ContentIndexLive)
     live("/content/admin", ContentAdminLive)

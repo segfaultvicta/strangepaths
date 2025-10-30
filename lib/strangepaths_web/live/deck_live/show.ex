@@ -66,8 +66,6 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("open_avatar_picker", _, socket) do
-    IO.puts("beep beep")
-
     avatars_by_category =
       Strangepaths.Accounts.list_avatars_by_category(socket.assigns.current_user)
 
