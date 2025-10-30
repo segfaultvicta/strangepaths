@@ -28,7 +28,8 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:selected_avatar, nil)
         |> assign(:open_categories, [])
         |> assign(:present_users, [])
-        |> assign(:ascended_users, [])
+        |> assign(:rhs_users, [])
+        |> assign(:eligible, false)
         |> assign(:post_content, "")
         |> assign(:ooc_content, "")
         |> assign(:posts_offset, 0)
@@ -55,6 +56,7 @@ defmodule StrangepathsWeb.Scenes do
         Enum.each(scenes, fn scene ->
           StrangepathsWeb.Endpoint.subscribe("scene:#{scene.id}")
         end)
+
         elsewhere_scene = Enum.find(scenes, fn s -> s.is_elsewhere end)
 
         selected_avatar_id = socket.assigns.current_user.selected_avatar_id || nil
@@ -84,8 +86,7 @@ defmodule StrangepathsWeb.Scenes do
 
         socket =
           if last_scene do
-            StrangepathsWeb.Endpoint.subscribe("scene:#{last_scene.id}")
-
+            # Already subscribed to all scenes above, just track presence
             Presence.track(self(), "scene:#{last_scene.id}", socket.id, %{
               user_id: socket.assigns.current_user.id,
               nickname: socket.assigns.current_user.nickname
@@ -95,7 +96,7 @@ defmodule StrangepathsWeb.Scenes do
 
             # Get present users
             present_users = get_present_users(last_scene.id)
-            ascended_users = get_ascended_users(present_users)
+            rhs_users = Strangepaths.Scenes.rhs_eligible(last_scene)
 
             socket
             |> assign(:current_scene, last_scene)
@@ -103,12 +104,14 @@ defmodule StrangepathsWeb.Scenes do
             |> assign(:posts_offset, length(posts))
             |> assign(:has_more_posts, length(posts) >= 30)
             |> assign(:present_users, present_users)
-            |> assign(:ascended_users, ascended_users)
+            |> assign(:rhs_users, rhs_users)
+            |> assign(
+              :eligible,
+              Strangepaths.Scenes.post_eligible(socket.assigns.current_user, last_scene)
+            )
           else
             if elsewhere_scene do
-              # automatically join Elsewhere
-              StrangepathsWeb.Endpoint.subscribe("scene:#{elsewhere_scene.id}")
-
+              # automatically join Elsewhere (already subscribed above, just track presence)
               Presence.track(self(), "scene:#{elsewhere_scene.id}", socket.id, %{
                 user_id: socket.assigns.current_user.id,
                 nickname: socket.assigns.current_user.nickname
@@ -118,7 +121,7 @@ defmodule StrangepathsWeb.Scenes do
 
               # Get present users
               present_users = get_present_users(elsewhere_scene.id)
-              ascended_users = get_ascended_users(present_users)
+              rhs_users = Strangepaths.Scenes.rhs_eligible(elsewhere_scene)
 
               socket
               |> assign(:current_scene, elsewhere_scene)
@@ -126,7 +129,8 @@ defmodule StrangepathsWeb.Scenes do
               |> assign(:posts_offset, length(posts))
               |> assign(:has_more_posts, length(posts) >= 30)
               |> assign(:present_users, present_users)
-              |> assign(:ascended_users, ascended_users)
+              |> assign(:rhs_users, rhs_users)
+              |> assign(:eligible, true)
             else
               socket
             end
@@ -216,21 +220,19 @@ defmodule StrangepathsWeb.Scenes do
      |> assign(:selected_avatar_id, avatar_id)}
   end
 
+  # JOIN A SCENE FROM THE LIST OF SCENES
+
   defp handle_scene_event("select_scene", %{"scene_id" => scene_id_str}, socket) do
     scene_id = String.to_integer(scene_id_str)
     scene = Scenes.get_scene(scene_id)
 
     if scene && Scenes.can_view_scene?(scene, socket.assigns.current_user) do
-      # Unsubscribe from previous scene
+      # Untrack presence from previous scene (stay subscribed for unread counts)
       if socket.assigns.current_scene do
-        StrangepathsWeb.Endpoint.unsubscribe("scene:#{socket.assigns.current_scene.id}")
         Presence.untrack(self(), "scene:#{socket.assigns.current_scene.id}", socket.id)
       end
 
-      # Subscribe to new scene
-      StrangepathsWeb.Endpoint.subscribe("scene:#{scene.id}")
-
-      # Track presence
+      # Track presence in new scene (already subscribed for unread counts)
       Presence.track(self(), "scene:#{scene.id}", socket.id, %{
         user_id: socket.assigns.current_user.id,
         nickname: socket.assigns.current_user.nickname
@@ -243,8 +245,7 @@ defmodule StrangepathsWeb.Scenes do
       # Get present users
       present_users = get_present_users(scene.id)
 
-      # Get ascended users (public_ascension: true)
-      ascended_users = get_ascended_users(present_users)
+      rhs_users = Strangepaths.Scenes.rhs_eligible(scene)
 
       # save this scene to the DB as last_scene_id
       {:ok, _user} =
@@ -255,6 +256,10 @@ defmodule StrangepathsWeb.Scenes do
       # Clear unread count for this scene
       unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
 
+      IO.puts("current user is #{inspect(socket.assigns.current_user.nickname)}")
+      IO.inspect(Enum.map(rhs_users, & &1.nickname))
+      IO.puts("eligible to post? #{socket.assigns.current_user in rhs_users}")
+
       {:noreply,
        socket
        |> assign(:current_scene, scene)
@@ -262,7 +267,8 @@ defmodule StrangepathsWeb.Scenes do
        |> assign(:posts_offset, length(posts))
        |> assign(:has_more_posts, has_more)
        |> assign(:present_users, present_users)
-       |> assign(:ascended_users, ascended_users)
+       |> assign(:rhs_users, rhs_users)
+       |> assign(:eligible, Strangepaths.Scenes.post_eligible(socket.assigns.current_user, scene))
        |> assign(:post_content, "")
        |> assign(:ooc_content, "")
        |> assign(:unread_counts, unread_counts)}
@@ -275,8 +281,7 @@ defmodule StrangepathsWeb.Scenes do
     scene = socket.assigns.current_scene
     user = socket.assigns.current_user
 
-    if scene && Scenes.can_post_in_scene?(scene, user) do
-      # the dragon can post as other people
+    if scene && user in Scenes.rhs_eligible(scene) do
       author_name =
         if user.role == :dragon do
           Map.get(params, "author_name", "")
@@ -285,8 +290,6 @@ defmodule StrangepathsWeb.Scenes do
         end
 
       ooc_content = Map.get(params, "ooc_content", "")
-
-      IO.puts("in post_message; author_name is #{inspect(author_name)}")
 
       post_attrs = %{
         scene_id: scene.id,
@@ -500,12 +503,12 @@ defmodule StrangepathsWeb.Scenes do
     # Update present users when someone joins/leaves
     if socket.assigns.current_scene do
       present_users = get_present_users(socket.assigns.current_scene.id)
-      ascended_users = get_ascended_users(present_users)
+      rhs_users = Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene)
 
       {:noreply,
        socket
        |> assign(:present_users, present_users)
-       |> assign(:ascended_users, ascended_users)}
+       |> assign(:rhs_users, rhs_users)}
     else
       {:noreply, socket}
     end
@@ -531,10 +534,5 @@ defmodule StrangepathsWeb.Scenes do
       end
     end)
     |> Enum.filter(&(&1 != nil))
-  end
-
-  defp get_ascended_users(users) do
-    users
-    |> Enum.filter(fn user -> user.public_ascension == true end)
   end
 end

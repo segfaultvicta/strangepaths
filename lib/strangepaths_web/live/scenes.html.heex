@@ -65,10 +65,10 @@
 
 <div class="fixed inset-0 top-[100px] bottom-24 flex flex-col md:grid md:grid-cols-6 gap-4 p-4 overflow-hidden">
   <!-- Left Column: Scene List, Avatar Selector, Post Composer -->
-  <div class="flex flex-col overflow-y-auto order-3 md:order-1 min-h-0">
+  <div class="flex flex-col overflow-y-auto order-3 border-t-4 border-purple-500 md:order-1 min-h-0">
     <%= if @current_scene do %>
       <!-- Avatar Selector -->
-      <div class="flex items-center justify-center mb-2">
+      <div class="flex items-center justify-center my-2">
         <button phx-click="open_avatar_picker" class="group relative inline-block">
           <%= if @selected_avatar_id do %>
             <img src={@selected_avatar.filepath} alt="Avatar" class="w-16 h-16 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
@@ -85,7 +85,7 @@
 
       <!-- Post Composer -->
       <div class="bg-indigo-200 dark:bg-gray-900 rounded p-4 flex-shrink-0">
-        <%= if Strangepaths.Scenes.can_post_in_scene?(@current_scene, @current_user) do %>
+        <%= if @eligible do %>
           <%= if @role == :dragon do %>
             <button
               phx-click="toggle_narrative_mode"
@@ -107,12 +107,14 @@
             <% end %>
 
             <textarea
+              id="post-content-input"
               name="content"
               value={@post_content}
               placeholder="Write your post..."
               class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none"
               rows="4"
               required
+              phx-mounted={JS.focus("#post-content-input")}
             ></textarea>
 
             <%= if @role == :user or (@role == :dragon && !@narrative_mode) do %>
@@ -133,7 +135,7 @@
             </button>
           </form>
         <% else %>
-          <p class="text-indigo-700 dark:text-gray-400 text-sm">You must have public_ascension enabled to post in this scene.</p>
+          <p class="text-indigo-700 dark:text-gray-400 text-sm">You are not eligible to post in this scene at this time.</p>
         <% end %>
       </div>
     <% end %>
@@ -141,8 +143,10 @@
     <div id="scene-select" class="bg-indigo-200 dark:bg-gray-900 rounded p-4 mb-4 flex-shrink-0">
       <%= if @scenes && length(@scenes) > 0 do %>
         <%= for scene <- @scenes do %>
-          <div
+          <div tabindex="0"
             phx-click="select_scene"
+            phx-keydown="select_scene"
+            phx-key="Enter"
             phx-value-scene_id={scene.id}
             class={"px-1 pb-1 mb-2 rounded cursor-pointer hover:bg-indigo-100 dark:hover:bg-gray-700 transition " <> if(@current_scene && @current_scene.id == scene.id, do: "bg-indigo-100 dark:bg-gray-700 border-l-4 border-blue-500", else: "bg-indigo-300 dark:bg-gray-800")}
           >
@@ -235,17 +239,17 @@
         </form>
       <% end %>
       <div class="bg-indigo-300 dark:bg-gray-900 rounded p-4">
-        <button class="w-full bg-indigo-400 dark:bg-gray-700 hover:bg-indigo-100 hover:dark:bg-gray-600 py-2 px-4 text-indigo-900 dark:text-white rounded">
+        <div class="w-full bg-indigo-400 dark:bg-gray-700 hover:bg-indigo-100 hover:dark:bg-gray-600 py-2 px-4 text-indigo-900 dark:text-white rounded">
           <%= live_redirect "Archived Scenes", to: "/scenes/archives", class: "text-indigo-900 hover:text-indigo-800 dark:text-white hover:dark:text-indigo-50" %>
-        </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Middle Column: Scene Posts -->
-  <div class="overflow-y-auto bg-indigo-300 dark:bg-gray-900 rounded p-4 order-1 md:col-span-4 md:order-2 min-h-0">
+  <div class="overflow-y-auto bg-indigo-300 dark:bg-gray-900 rounded p-4 order-1 border-t-4 border-purple-500 md:col-span-4 md:order-2 min-h-0">
     <%= if @current_scene do %>
-      <div class="flex justify-between items-center mb-2 pr-4 sticky z-50 border border-indigo-900 dark:border-indigo-50 top-0 bg-indigo-200 dark:bg-gray-900">
+      <div class="flex justify-between items-center mb-2 pr-4 sticky z-30 border border-indigo-900 dark:border-indigo-50 top-0 bg-indigo-200 dark:bg-gray-900">
         <h4 class="text-2xl font-light m-2 p-2 uppercase"><%= @current_scene.name %></h4>
         <%= if @role == :dragon && !@current_scene.is_elsewhere do %>
           <button
@@ -284,16 +288,18 @@
 
               <div class="post-content">
                 <div class="post-ic-content">
-                  <%= cond do %>
-                    <% post.post_type == :narrative -> %>
-                      
-                    <% post.narrative_author_name != nil -> %>
-                      <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
-                    <% post.user -> %>
-                      <%= post.user.nickname %>
-                    <% true -> %>
-                      Unknown
-                  <% end %>
+                  <span class="post-ic-authorspan">
+                    <%= cond do %>
+                      <% post.post_type == :narrative -> %>
+                        
+                      <% post.narrative_author_name != nil -> %>
+                        <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                      <% post.user -> %>
+                        <%= post.user.nickname %>
+                      <% true -> %>
+                        Unknown
+                    <% end %>
+                  </span>
                   <%= raw Earmark.as_html!(post.content || "") %>
                 </div>
 
@@ -321,7 +327,7 @@
           </button>
         <% end %>
       <% else %>
-        <p class="text-gray-400">No posts yet. Be the first to post!</p>
+        <p class="text-gray-400">No posts yet.</p>
       <% end %>
     <% else %>
       <div class="flex items-center justify-center h-full text-gray-400">
@@ -331,11 +337,9 @@
   </div>
 
   <!-- Right Column: Ascension Data (Desktop) / Drawer (Mobile) -->
-  <div class="hidden md:block overflow-y-auto bg-indigo-200 dark:bg-gray-900 rounded p-4 order-2 md:order-3 min-h-0">
-    <h3 class="text-xl font-bold mb-4">Present Stars</h3>
-
-    <%= if @ascended_users && length(@ascended_users) > 0 do %>
-      <%= for user <- @ascended_users do %>
+  <div class="hidden md:block overflow-y-auto bg-indigo-200 dark:bg-gray-900 rounded p-4 order-2 md:border-t-4 border-purple-500 md:order-3 min-h-0">
+    <%= if @rhs_users && length(@rhs_users) > 0 do %>
+      <%= for user <- @rhs_users do %>
         <div class="p-2 mb-2 bg-gray-200 dark:bg-gray-800 rounded">
           <div class="font-bold text-lg"><%= user.nickname %></div>
           <div class="text-sm dark:text-gray-400"><%= user.arete %> Arete</div>
@@ -349,17 +353,15 @@
           </div>
         </div>
       <% end %>
-    <% else %>
-      <p class="text-gray-400">No ascended users present</p>
     <% end %>
   </div>
 
   <!-- Mobile Drawer Toggle -->
   <button
     phx-click="toggle_drawer"
-    class="md:hidden fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition z-50"
+    class="md:hidden fixed bottom-20 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition z-50"
   >
-    📊
+    📋
   </button>
 
   <!-- Mobile Drawer -->
@@ -371,9 +373,9 @@
         <button phx-click="toggle_drawer" class="text-2xl">&times;</button>
       </div>
 
-      <%= if @ascended_users && length(@ascended_users) > 0 do %>
-        <%= for user <- @ascended_users do %>
-          <div class="p-2 mb-2 bg-gray-800 rounded">
+      <%= if @rhs_users && length(@rhs_users) > 0 do %>
+        <%= for user <- @rhs_users do %>
+          <div class="p-2 mb-2 bg-indigo-300 dark:bg-gray-800 rounded">
             <div class="font-bold text-lg"><%= user.nickname %></div>
             <div class="text-sm text-gray-400"><%= user.arete %> Arete</div>
             <div class="flex justify-between mt-2">
