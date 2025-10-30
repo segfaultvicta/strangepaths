@@ -271,7 +271,8 @@ defmodule StrangepathsWeb.Scenes do
        |> assign(:eligible, Strangepaths.Scenes.post_eligible(socket.assigns.current_user, scene))
        |> assign(:post_content, "")
        |> assign(:ooc_content, "")
-       |> assign(:unread_counts, unread_counts)}
+       |> assign(:unread_counts, unread_counts)
+       |> push_event("focus_post_input", %{})}
     else
       {:noreply, put_flash(socket, :error, "You don't have permission to view this scene")}
     end

@@ -906,8 +906,8 @@ a:hover {
   top: 0px;
 }
 
-.bottom-4 {
-  bottom: 1rem;
+.bottom-20 {
+  bottom: 5rem;
 }
 
 .right-4 {
@@ -926,20 +926,16 @@ a:hover {
   right: -0.5rem;
 }
 
-.bottom-12 {
-  bottom: 3rem;
-}
-
-.bottom-20 {
-  bottom: 5rem;
-}
-
 .z-10 {
   z-index: 10;
 }
 
 .z-\[60\] {
   z-index: 60;
+}
+
+.z-30 {
+  z-index: 30;
 }
 
 .z-50 {
@@ -952,10 +948,6 @@ a:hover {
 
 .z-20 {
   z-index: 20;
-}
-
-.z-30 {
-  z-index: 30;
 }
 
 .order-3 {
@@ -1010,6 +1002,11 @@ a:hover {
   margin-right: 1rem;
 }
 
+.my-2 {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .mx-12 {
   margin-left: 3rem;
   margin-right: 3rem;
@@ -1018,11 +1015,6 @@ a:hover {
 .mx-1 {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
-}
-
-.my-2 {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 
 .mt-2 {

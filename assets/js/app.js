@@ -27,6 +27,23 @@ import topbar from "../vendor/topbar"
 
 let Hooks = {}
 
+Hooks.FocusOnMount = {
+    mounted() {
+        this.el.focus();
+    }
+}
+
+Hooks.SceneFocusManager = {
+    mounted() {
+        this.handleEvent("focus_post_input", () => {
+            const input = document.getElementById("post-content-input");
+            if (input) {
+                input.focus();
+            }
+        });
+    }
+}
+
 Hooks.Sortable = {
     mounted() {
         new Sortable(this.el, {
