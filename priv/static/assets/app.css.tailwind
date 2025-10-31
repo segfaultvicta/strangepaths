@@ -97,7 +97,7 @@ body {
 }
 
 .post-ic-content p:first-of-type {
-  display: inline-block;
+  display: inline;
 }
 
 .post-ic-authorspan {
@@ -454,6 +454,43 @@ body {
     height: 300px;
     width: 300px;
   }
+}
+/* Purple slider for Dragon controls */
+input[type=range].slider-purple::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #9333ea;
+  /* purple-600 */
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #c084fc;
+  /* purple-400 */
+}
+input[type=range].slider-purple::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #9333ea;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #c084fc;
+}
+input[type=range].slider-purple::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #9333ea 0%, #9333ea var(--slider-value, 0%), #374151 var(--slider-value, 0%), #374151 100%);
+  height: 8px;
+  border-radius: 4px;
+}
+input[type=range].slider-purple::-moz-range-track {
+  background: #374151;
+  /* gray-700 */
+  height: 8px;
+  border-radius: 4px;
+}
+input[type=range].slider-purple::-moz-range-progress {
+  background: #9333ea;
+  height: 8px;
+  border-radius: 4px;
 }
 
 /*# sourceMappingURL=app.css.tailwind.map */

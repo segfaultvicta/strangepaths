@@ -3,6 +3,8 @@ defmodule Strangepaths.Scenes do
   The Scenes context for managing interactive story scenes.
   """
 
+  require Logger
+
   import Ecto.Query, warn: false
   alias Strangepaths.Repo
   alias Strangepaths.Scenes.{Scene, Post}
@@ -220,6 +222,30 @@ defmodule Strangepaths.Scenes do
     %Post{}
     |> Post.system_changeset(attrs)
     |> Repo.insert()
+  end
+
+  def system_message(msg, also_to_elsewhere?, scene_id) do
+    post_attrs = %{
+      scene_id: scene_id,
+      content: String.trim(msg),
+      copy_elsewhere: also_to_elsewhere?
+    }
+
+    case create_system_post(post_attrs) do
+      {:ok, post} ->
+        post = Strangepaths.Repo.preload(post, [:user, :avatar])
+        Strangepaths.Scenes.SceneServer.broadcast_post(scene_id, post)
+
+        if also_to_elsewhere? and scene_id != get_elsewhere_scene().id do
+          Strangepaths.Scenes.SceneServer.broadcast_post(get_elsewhere_scene().id, post)
+        end
+
+        :ok
+
+      {:error, changeset} ->
+        Logger.error("Failed to post system message: #{inspect(changeset)}")
+        {:error, "Failed to post system message."}
+    end
   end
 
   ## Permission helpers

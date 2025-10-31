@@ -25,7 +25,6 @@ defmodule Strangepaths.Site.ContentPage do
     case get_change(changeset, :slug) do
       nil ->
         title = get_change(changeset, :title) || get_field(changeset, :title)
-        IO.puts(title)
 
         case title do
           "" -> changeset
@@ -34,7 +33,6 @@ defmodule Strangepaths.Site.ContentPage do
         end
 
       _ ->
-        IO.puts("slug already set")
         changeset
     end
   end

@@ -19,7 +19,14 @@
       <% end %>
     </div>
   <% else %>
-    <h1 class="text-3xl uppercase mb-4"><%= @page.title %></h1>
+    <div class="mb-4 flex justify-between items-center">
+      <h1 class="text-3xl uppercase"><%= @page.title %></h1>
+      <%= if not @editing do %>
+        <button phx-click="start_edit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded">
+          <i class="fa-solid fa-pencil"></i> Edit
+        </button>
+      <% end %>
+    </div>
   <% end %>
 
   <%= if @editing do %>
@@ -28,7 +35,7 @@
         <textarea
           name="body"
           rows="20"
-          class="w-full bg-gray-800 text-gray-100 border border-gray-600 rounded p-4 font-mono"
+          class="w-full bg-indigo-50 dark:bg-gray-800 text-indigo-900 dark:text-gray-100 border border-gray-600 rounded p-4 font-mono"
           autofocus
         ><%= @page.body %></textarea>
         <div class="mt-4 flex gap-2">

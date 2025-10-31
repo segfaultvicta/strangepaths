@@ -283,9 +283,6 @@ defmodule Strangepaths.Site do
   end
 
   def create_content_page(attrs \\ %{}) do
-    IO.puts("in create_content_page")
-    IO.inspect(attrs)
-
     %ContentPage{}
     |> ContentPage.changeset(attrs)
     |> Repo.insert()

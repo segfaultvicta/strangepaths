@@ -84,6 +84,7 @@ defmodule Strangepaths.Accounts do
       |> where(public_ascension: true)
       |> order_by(:nickname)
       |> Repo.all()
+      |> Enum.reject(&(&1.role == :dragon))
 
     # I want to turn each user's techne into a tuple of name, description
     # where the name cuts off at the first colon, and the description is the rest
@@ -219,9 +220,6 @@ defmodule Strangepaths.Accounts do
   def clear_user(user) do
     user
     |> User.clear_changeset(%{
-      arete: 0,
-      public_ascension: false,
-      techne: [],
       primary_red: 4,
       primary_green: 4,
       primary_blue: 4,

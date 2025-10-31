@@ -28,6 +28,7 @@ defmodule StrangepathsWeb.ContentLive do
           {:ok,
            socket
            |> assign(:page, page)
+           # n.b. "can see content admin link"
            |> assign(:can_edit, can_edit)
            |> assign(:editing, false)}
         else
@@ -51,11 +52,7 @@ defmodule StrangepathsWeb.ContentLive do
   end
 
   defp handle_content_event("start_edit", _, socket) do
-    if socket.assigns.can_edit do
-      {:noreply, assign(socket, :editing, true)}
-    else
-      {:noreply, socket}
-    end
+    {:noreply, assign(socket, :editing, true)}
   end
 
   defp handle_content_event("cancel_edit", _, socket) do
@@ -63,20 +60,16 @@ defmodule StrangepathsWeb.ContentLive do
   end
 
   defp handle_content_event("save", %{"body" => body}, socket) do
-    if socket.assigns.can_edit do
-      case Site.update_content_page(socket.assigns.page, %{body: body}) do
-        {:ok, updated_page} ->
-          {:noreply,
-           socket
-           |> assign(:page, updated_page)
-           |> assign(:editing, false)
-           |> put_flash(:info, "Page updated successfully")}
+    case Site.update_content_page(socket.assigns.page, %{body: body}) do
+      {:ok, updated_page} ->
+        {:noreply,
+         socket
+         |> assign(:page, updated_page)
+         |> assign(:editing, false)
+         |> put_flash(:info, "Page updated successfully")}
 
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Failed to update page")}
-      end
-    else
-      {:noreply, socket}
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update page")}
     end
   end
 
