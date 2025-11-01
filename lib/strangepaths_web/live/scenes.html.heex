@@ -1116,23 +1116,143 @@
       </div>
 
       <%= if @rhs_users && length(@rhs_users) > 0 do %>
-        <%= for user <- @rhs_users do %>
-          <div class="p-2 mb-2 bg-indigo-300 dark:bg-gray-800 rounded">
-            <div class="font-bold text-lg"><%= user.nickname %></div>
-            <div class="text-sm text-gray-400"><%= user.arete %> Arete</div>
-            <div class="flex justify-between mt-2">
-              <span class={"text-2xl " <> if(user.alethic_red > 0, do: "text-red-500 areteglow", else: "text-red-600")}><%= user.primary_red %></span>
-              <span class={"text-2xl " <> if(user.alethic_green > 0, do: "text-green-500 areteglow", else: "text-green-600")}><%= user.primary_green %></span>
-              <span class={"text-2xl " <> if(user.alethic_blue > 0, do: "text-blue-500 areteglow", else: "text-blue-600")}><%= user.primary_blue %></span>
-              <span class={"text-2xl " <> if(user.alethic_white > 0, do: "text-gray-300 areteglow", else: "text-gray-400")}><%= user.primary_white %></span>
-              <span class={"text-2xl " <> if(user.alethic_black > 0, do: "text-black areteglow", else: "text-black")} style={if user.alethic_black == 0, do: "text-shadow: 0 0 2px #FFF;", else: ""}><%= user.primary_black %></span>
-              <span class={"text-2xl " <> if(user.alethic_void > 0, do: "text-purple-500 areteglow", else: "text-purple-600")}><%= user.primary_void %></span>
+        <div id="rhs_userlist_mobile">
+          <button phx-click="toggle_userlist" class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2">
+            <span class="ext-lg font-light uppercase">Presences Felt</span>
+            <i class={"fa-solid #{if @collapse_userlist, do: "fa-plus", else: "fa-minus"}"}></i>
+          </button>
+          <%= if !@collapse_userlist do %>
+            <%= for user <- @rhs_users do %>
+              <div class="p-2 mb-2 bg-gray-200 dark:bg-gray-800 rounded">
+                <div class="flex justify-between items-center flex-row">
+                  <div class="font-bold text-lg">
+                    <span class={if user.id in (@present_users |> Enum.map(&(&1.id))) do "" else "italic" end}><%= user.nickname %></span>
+                  </div>
+                  <div class="text-sm dark:text-gray-400"><%= user.arete %> Arete</div>
+                </div>
+                <div>Gnosis:</div>
+                <div class="flex justify-between mt-2">
+                  <span class="text-2xl text-red-600"><%= user.primary_red %></span>
+                  <span class="text-2xl text-green-600"><%= user.primary_green %></span>
+                  <span class="text-2xl text-blue-600"><%= user.primary_blue %></span>
+                  <span class="text-2xl text-gray-400"><%= user.primary_white %></span>
+                  <span class="text-2xl text-black"><%= user.primary_black %></span>
+                  <span class="text-2xl text-purple-600"><%= user.primary_void %></span>
+                </div>
+                <div>[redacted]:</div>
+                <div class="flex justify-between mt-2">
+                  <span class="text-2xl text-red-600"><%= user.alethic_red %></span>
+                  <span class="text-2xl text-green-600"><%= user.alethic_green %></span>
+                  <span class="text-2xl text-blue-600"><%= user.alethic_blue %></span>
+                  <span class="text-2xl text-gray-400"><%= user.alethic_white %></span>
+                  <span class="text-2xl text-black"><%= user.alethic_black %></span>
+                  <span class="text-2xl text-purple-600"><%= user.alethic_void %></span>
+                </div>
+                <div class="techne-list">
+                  <%= if length(user.techne) > 0 do %>
+                      <ul>
+                      <%= for techne <- user.techne do %>
+                        <li class="text-md"><%= techne.name %> — <%= techne.desc %></li>
+                      <% end %>
+                    </ul>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div id="rhs_controls_mobile">
+        <button phx-click="toggle_rhs_controls" class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2">
+          <span class="ext-lg font-light uppercase">Ascension</span>
+          <i class={"fa-solid #{if @collapse_rhs_controls, do: "fa-plus", else: "fa-minus"}"}></i>
+        </button>
+        <%= if !@collapse_rhs_controls do %>
+          <div class="bg-indigo-100 dark:bg-gray-900 rounded p-4">
+            <button type="button" class="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white y-2 px-4 rounded transition" phx-click="user_ascension_action">
+              THUS!
+            </button>
+
+            <div class="flex flex-row justify-between w-full">
+              <div id="current-arete-mobile" class="text-2xl mt-2">Arete: <%= @current_user.arete %></div>
+              <%= if @current_user.arete > 0 do %>
+                <%= form_for :arete_extern, "#", [id: "spend-arete-form-mobile-#{@crimes}", phx_change: "validate_arete", class: "flex flex-wrap gap-2 items-center mt-2"], fn f -> %>
+                  <label class="text-lg" for="spend_arete">Spend:</label>
+                  <%= select f, :spend_arete, Enum.to_list(0..@current_user.arete), value: @arete_expenditure, class: "text-indigo-900 dark:text-white bg-indigo-100 dark:bg-gray-800 border border-gray-600 rounded px-2 py-1" %>
+                <% end %>
+              <% end %>
+            </div>
+
+            <div id="player-roll-mobile" class="flex flex-row justify-between">
+              <%= for {color, filename} <- [
+                    {"red", "red.png"},
+                    {"green", "green.png"},
+                    {"blue", "blue.png"},
+                    {"white", "white.png"},
+                    {"black", "black.png"},
+                    {"empty", "void.png"}
+                  ] do %>
+                <div
+                  class="hover:opacity-75 transition-opacity cursor-pointer flex flex-col"
+                  phx-click="select_gnosis_color"
+                  phx-value-color={color}
+                  x-data x-tooltip.raw={get_desc(color)}
+                >
+                  <img
+                    src={"/images/counters/#{filename}"}
+                    class={"w-12 h-12 object-contain rounded-full " <>
+                    (if @selected_gnosis_color == color, do: "border-2 border-black border-4 dark:border-purple-500 dark:border-1 ", else: "") <>
+                    (if Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) >
+                        Map.get(@current_user, String.to_atom("primary_#{if color == "empty", do: "void", else: color}")), do: "rollglow", else: "")} 
+                    alt={"#{color} counter"}
+                  />
+                  <div>
+                  d<%= Map.get(@current_user, String.to_atom("primary_#{if color == "empty", do: "void", else: color}")) %>
+                  </div>
+                  <%= if Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) > 0 do %>
+                    <div>
+                    d<%= Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <div id="techne-mobile">
+              <%= if @current_user.techne != [] do %>
+                <div id="techne-list-mobile">
+                  <%= for techne <- @current_user.techne do %>
+                    <div class="techne-in-list flex flex-row justify-between w-full">
+                      <button class={"p-2 mr-2 " <> if techne.name == @selected_techne_name do "underline" else "" end} phx-click="select_techne" phx-value-name={techne.name} phx-value-desc={techne.desc} x-data x-tooltip.raw={techne.desc}> <%= techne.name %></button>
+                      <button class="text-red-400 shadow" phx-click="delete_techne" phx-value-name={techne.name} data-confirm="Are you sure you want to delete that techne?">X</button>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+              <%= if @role != :dragon do %>
+                <div class="mt-2">
+                  <div phx-click="toggle_new_techne"class="text-md cursor-pointer">New Techne
+                    <i class={"fa-solid #{if @collapse_new_techne, do: "fa-plus", else: "fa-minus"}"}></i>
+                  </div>
+                  <%= if !@collapse_new_techne do %>
+                    <form phx-change="change_techne" class="flex flex-wrap gap-2 items-end">
+                      <div class="flex flex-col">
+                        <label class="mb-1" for="new_techne_name">Name:</label>
+                        <input type="text" name="new_techne_name" id="new_techne_name" class="dark:bg-gray-800" value={@new_techne_name}/>
+                      </div>
+                      <div class="flex flex-col">
+                        <label class="mb-1" for="new_techne_desc">Description:</label>
+                        <input type="text" name="new_techne_desc" id="new_techne_desc" class="dark:bg-gray-800" value={@new_techne_desc}/>
+                      </div>
+                    </form>
+                  <% end %>
+                </div>
+              <% end %>
             </div>
           </div>
         <% end %>
-      <% else %>
-        <p class="text-gray-400">No ascended users present</p>
-      <% end %>
+      </div>
     </div>
   <% end %>
   </div> <!-- Close flex container -->
