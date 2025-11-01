@@ -154,6 +154,11 @@
       <!-- Post Composer -->
       <div class="bg-indigo-200 dark:bg-gray-900 rounded px-4 mr-4 flex-shrink-0">
         <%= if @eligible do %>
+        
+          <div class="flex flex-row w-full justify-center">
+            <span><%= @current_user.nickname %></span>
+          </div>
+          
           <%= if @role == :dragon do %>
             <button
               phx-click="toggle_narrative_mode"
@@ -161,10 +166,6 @@
             >
               Currently: <%= if @narrative_mode, do: "Narrative Mode", else: "Character Mode" %>
             </button>
-          <% else %>
-            <div class="flex flex-row w-full justify-center">
-              <span><%= @current_user.nickname %></span>
-            </div>
           <% end %>
 
           <form phx-change="update_post_content"  phx-submit={if @narrative_mode, do: "post_narrative", else: "post_message"}>
@@ -582,8 +583,240 @@
             <% end %>
           <% end %>
 
+          <!-- Character Presets -->
+          <div id="character-presets" class="mt-2">
+            <button phx-click="toggle_presets" class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2">
+              <span>NPCs</span>
+              <i class={"fa-solid #{if @collapse_presets, do: "fa-plus", else: "fa-minus"}"}></i>
+            </button>
+            <%= if !@collapse_presets do %>
+              <div class="mt-2 p-3 bg-indigo-200 dark:bg-gray-800 rounded">
+                <!-- Save New Preset -->
+                <div class="mb-4">
+                  <button type="button" phx-click="reset_to_dragon_basis" class="w-full mt-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
+                    Reset
+                  </button>
+                  <span class="mb-2">New NPC:</span>
+                  <form phx-change="update_preset_fields" class="flex flex-col gap-2">
+                    <div class="flex items-center justify-center my-2">
+                      <button type="button" phx-click="open_avatar_picker" class="group relative inline-block">
+                        <%= if @selected_avatar_id do %>
+                          <img src={@selected_avatar.filepath} alt="Avatar" class="w-16 h-16 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
+                        <% else %>
+                          <div class="w-16 h-16 rounded-full border-2 border-gray-600 group-hover:border-purple-400 bg-gray-800 flex items-center justify-center transition">
+                            <i class="fa-solid fa-user text-4xl text-gray-500"></i>
+                          </div>
+                        <% end %>
+                        <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
+                          <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+                        </div>
+                      </button>
+                    </div>
+                    <div class="flex flex-col">
+                      <label class="mb-1" for="new_preset_name">Preset Name:</label>
+                      <input
+                        type="text"
+                        name="new_preset_name"
+                        id="new_preset_name"
+                        class="dark:bg-gray-700 bg-white border border-gray-400 rounded px-2 py-1"
+                        value={@new_preset_name}
+                        placeholder="Enter preset name..."
+                      />
+                    </div>
+                  </form>
+                  <button
+                    phx-click="save_preset"
+                    class="w-full mt-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition"
+                    disabled={@new_preset_name == ""}
+                  >
+                    New Preset
+                  </button>
+                </div>
+
+                <!-- Existing Presets List -->
+                <div class="mt-4">
+                  <span class="uppercase mb-2">Dramatis Personae</span>
+                  <%= if @character_presets && length(@character_presets) > 0 do %>
+                    <div class="flex flex-col gap-2">
+                      <%= for preset <- @character_presets do %>
+                        <%= if @editing_preset_id == preset.id do %>
+                          <!-- Edit Mode -->
+                          <div class="bg-indigo-100 dark:bg-gray-700 p-3 rounded">
+                            <div class="flex justify-between items-center mb-3">
+                              <div class="font-semibold">Editing: <%= preset.name %></div>
+                              <button
+                                phx-click="cancel_edit_preset"
+                                class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                              >
+                                <i class="fa-solid fa-times"></i>
+                              </button>
+                            </div>
+
+                            <form phx-change="update_editing_preset" class="flex flex-col gap-3">
+                              <input type="hidden" name="preset_id" value={preset.id} />
+
+                              <!-- Name -->
+                              <div class="flex items-center gap-2">
+                                <label class="w-20">Name:</label>
+                                <input
+                                  type="text"
+                                  name="name"
+                                  value={Map.get(@editing_preset_data, :name, preset.name)}
+                                  class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1"
+                                />
+                              </div>
+
+                              <!-- Selected Avatar ID -->
+                              <div class="flex items-center gap-2">
+                                <label class="w-20">Avatar ID:</label>
+                                <input
+                                  type="number"
+                                  name="selected_avatar_id"
+                                  value={Map.get(@editing_preset_data, :selected_avatar_id, preset.selected_avatar_id)}
+                                  min="0"
+                                  class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 w-20"
+                                />
+                              </div>
+
+                              <!-- Arete -->
+                              <div class="flex items-center gap-2">
+                                <label class="w-20">Arete:</label>
+                                <input
+                                  type="number"
+                                  name="arete"
+                                  value={Map.get(@editing_preset_data, :arete, preset.arete)}
+                                  min="0"
+                                  class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 w-20"
+                                />
+                              </div>
+
+                              <!-- Primary Dice -->
+                              <div class="text-sm font-semibold">Primary Dice:</div>
+                              <div class="grid grid-cols-2 gap-2">
+                                <%= for {color, display_name} <- [
+                                  {"red", "Red"},
+                                  {"green", "Green"},
+                                  {"blue", "Blue"},
+                                  {"white", "White"},
+                                  {"black", "Black"},
+                                  {"void", "Void"}
+                                ] do %>
+                                  <div class="flex items-center gap-2">
+                                    <label class="w-16 text-sm"><%= display_name %>:</label>
+                                    <select
+                                      name={"primary_#{color}"}
+                                      class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 text-sm flex-1"
+                                    >
+                                      <%= for die_size <- [4, 6, 8, 10, 12, 20] do %>
+                                        <option
+                                          value={die_size}
+                                          selected={Map.get(@editing_preset_data, String.to_atom("primary_#{color}"), Map.get(preset, String.to_atom("primary_#{color}"))) == die_size}
+                                        >
+                                          d<%= die_size %>
+                                        </option>
+                                      <% end %>
+                                    </select>
+                                  </div>
+                                <% end %>
+                              </div>
+
+                              <!-- Alethic Dice -->
+                              <div class="text-sm font-semibold">Alethic Dice:</div>
+                              <div class="grid grid-cols-2 gap-2">
+                                <%= for {color, display_name} <- [
+                                  {"red", "Red"},
+                                  {"green", "Green"},
+                                  {"blue", "Blue"},
+                                  {"white", "White"},
+                                  {"black", "Black"},
+                                  {"void", "Void"}
+                                ] do %>
+                                  <div class="flex items-center gap-2">
+                                    <label class="w-16 text-sm"><%= display_name %>:</label>
+                                    <select
+                                      name={"alethic_#{color}"}
+                                      class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 text-sm flex-1"
+                                    >
+                                      <%= for die_size <- [0, 4, 6, 8, 10, 12, 20] do %>
+                                        <option
+                                          value={die_size}
+                                          selected={Map.get(@editing_preset_data, String.to_atom("alethic_#{color}"), Map.get(preset, String.to_atom("alethic_#{color}"))) == die_size}
+                                        >
+                                          <%= if die_size == 0, do: "None", else: "d#{die_size}" %>
+                                        </option>
+                                      <% end %>
+                                    </select>
+                                  </div>
+                                <% end %>
+                              </div>
+
+                              <!-- Techne -->
+                              <div>
+                                <label class="text-sm font-semibold mb-1 block">Techne (comma-separated):</label>
+                                <textarea
+                                  name="techne"
+                                  rows="3"
+                                  class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 w-full text-sm"
+                                  placeholder="Name: Description, Name2: Description2"
+                                ><%= Map.get(@editing_preset_data, :techne_string, (if preset.techne, do: Enum.join(preset.techne, ", "), else: "")) %></textarea>
+                              </div>
+                            </form>
+
+                            <div class="flex gap-2 mt-3">
+                              <button
+                                phx-click="save_preset_edits"
+                                phx-value-preset_id={preset.id}
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition text-sm"
+                              >
+                                Save Changes
+                              </button>
+                              <button
+                                phx-click="cancel_edit_preset"
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition text-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        <% else %>
+                          <!-- View Mode -->
+                          <div class="p-1 flex flex-row justify-between items-center">
+                            <button
+                              phx-click="load_preset"
+                              phx-value-preset_id={preset.id}
+                              class="text-white py-1 px-3 text-sm"
+                            >
+                              <div class="font-light"><%= preset.name %></div>
+                            </button>
+                            <button
+                              phx-click="edit_preset"
+                              phx-value-preset_id={preset.id}
+                              class="bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-3 rounded transition text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              phx-click="delete_preset"
+                              phx-value-preset_id={preset.id}
+                              data-confirm="Are you sure you want to delete this preset?"
+                              class="text-red-500 py-1 px-3 text-sm"
+                            >
+                              X
+                            </button>
+                          </div>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  <% else %>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm italic">No presets saved yet.</p>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+
           <!-- interface for making arbitrary rolls with arbitrary Techne -->
-          <!-- eventually, I might put in a system for managing and selecting consistent NPCs -->
           <button phx-click="toggle_gm_roll_controls" class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2">
             <span class="ext-lg font-light uppercase">rolls</span>
             <i class={"fa-solid #{if @collapse_gm_roll_controls, do: "fa-plus", else: "fa-minus"}"}></i>
@@ -725,74 +958,75 @@
         <% end %>
       </div>
     <% end %>
-    <%= if @role == :user do %>
-      <div id="rhs_controls">
-        <button phx-click="toggle_rhs_controls" class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2">
-          <span class="ext-lg font-light uppercase">Ascension</span>
-          <i class={"fa-solid #{if @collapse_rhs_controls, do: "fa-plus", else: "fa-minus"}"}></i>
-        </button>
-        <%= if !@collapse_rhs_controls do %>
-          <div class="bg-indigo-100 dark:bg-gray-900 rounded p-4">
-            <button type="button" class="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white y-2 px-4 rounded transition" phx-click="user_ascension_action">
-              THUS!
-            </button>
 
-            <div class="flex flex-row justify-between w-full">
-              <div id="current-arete" class="text-2xl mt-2">Arete: <%= @current_user.arete %></div>
-              <%= if @current_user.arete > 0 do %>
-                <%= form_for :arete_extern, "#", [id: "spend-arete-form-#{@crimes}", phx_change: "validate_arete", class: "flex flex-wrap gap-2 items-center mt-2"], fn f -> %>
-                  <label class="text-lg" for="spend_arete">Spend:</label>
-                  <%= select f, :spend_arete, Enum.to_list(0..@current_user.arete), value: @arete_expenditure, class: "text-indigo-900 dark:text-white bg-indigo-100 dark:bg-gray-800 border border-gray-600 rounded px-2 py-1" %>
-                <% end %>
+    <div id="rhs_controls">
+      <button phx-click="toggle_rhs_controls" class="w-full flex justify-between items-center p-3 bg-indigo-300 dark:bg-gray-700 hover:bg-indigo-400 dark:hover:bg-gray-600 rounded-lg mb-2">
+        <span class="ext-lg font-light uppercase">Ascension</span>
+        <i class={"fa-solid #{if @collapse_rhs_controls, do: "fa-plus", else: "fa-minus"}"}></i>
+      </button>
+      <%= if !@collapse_rhs_controls do %>
+        <div class="bg-indigo-100 dark:bg-gray-900 rounded p-4">
+          <button type="button" class="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white y-2 px-4 rounded transition" phx-click="user_ascension_action">
+            THUS!
+          </button>
+
+          <div class="flex flex-row justify-between w-full">
+            <div id="current-arete" class="text-2xl mt-2">Arete: <%= @current_user.arete %></div>
+            <%= if @current_user.arete > 0 do %>
+              <%= form_for :arete_extern, "#", [id: "spend-arete-form-#{@crimes}", phx_change: "validate_arete", class: "flex flex-wrap gap-2 items-center mt-2"], fn f -> %>
+                <label class="text-lg" for="spend_arete">Spend:</label>
+                <%= select f, :spend_arete, Enum.to_list(0..@current_user.arete), value: @arete_expenditure, class: "text-indigo-900 dark:text-white bg-indigo-100 dark:bg-gray-800 border border-gray-600 rounded px-2 py-1" %>
               <% end %>
-            </div>
+            <% end %>
+          </div>
 
-            <div id="player-roll" class="flex flex-row justify-between">
-              <%= for {color, filename} <- [
-                    {"red", "red.png"},
-                    {"green", "green.png"},
-                    {"blue", "blue.png"},
-                    {"white", "white.png"},
-                    {"black", "black.png"},
-                    {"empty", "void.png"}
-                  ] do %>
-                <div
-                  class="hover:opacity-75 transition-opacity cursor-pointer flex flex-col"
-                  phx-click="select_gnosis_color"
-                  phx-value-color={color}
-                  x-data x-tooltip.raw={get_desc(color)}
-                >
-                  <img
-                    src={"/images/counters/#{filename}"}
-                    class={"w-12 h-12 object-contain rounded-full " <>
-                    (if @selected_gnosis_color == color, do: "border-2 border-black border-4 dark:border-purple-500 dark:border-1 ", else: "") <>
-                    (if Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) >
-                        Map.get(@current_user, String.to_atom("primary_#{if color == "empty", do: "void", else: color}")), do: "rollglow", else: "")} 
-                    alt={"#{color} counter"}
-                  />
+          <div id="player-roll" class="flex flex-row justify-between">
+            <%= for {color, filename} <- [
+                  {"red", "red.png"},
+                  {"green", "green.png"},
+                  {"blue", "blue.png"},
+                  {"white", "white.png"},
+                  {"black", "black.png"},
+                  {"empty", "void.png"}
+                ] do %>
+              <div
+                class="hover:opacity-75 transition-opacity cursor-pointer flex flex-col"
+                phx-click="select_gnosis_color"
+                phx-value-color={color}
+                x-data x-tooltip.raw={get_desc(color)}
+              >
+                <img
+                  src={"/images/counters/#{filename}"}
+                  class={"w-12 h-12 object-contain rounded-full " <>
+                  (if @selected_gnosis_color == color, do: "border-2 border-black border-4 dark:border-purple-500 dark:border-1 ", else: "") <>
+                  (if Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) >
+                      Map.get(@current_user, String.to_atom("primary_#{if color == "empty", do: "void", else: color}")), do: "rollglow", else: "")} 
+                  alt={"#{color} counter"}
+                />
+                <div>
+                d<%= Map.get(@current_user, String.to_atom("primary_#{if color == "empty", do: "void", else: color}")) %>
+                </div>
+                <%= if Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) > 0 do %>
                   <div>
-                  d<%= Map.get(@current_user, String.to_atom("primary_#{if color == "empty", do: "void", else: color}")) %>
+                  d<%= Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) %>
                   </div>
-                  <%= if Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) > 0 do %>
-                    <div>
-                    d<%= Map.get(@current_user, String.to_atom("alethic_#{if color == "empty", do: "void", else: color}")) %>
-                    </div>
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
 
-            <div id="techne">
-              <%= if @current_user.techne != [] do %>
-                <div id="techne-list">
-                  <%= for techne <- @current_user.techne do %>
-                    <div class="techne-in-list flex flex-row justify-between w-full">
-                      <button class={"p-2 mr-2 " <> if techne.name == @selected_techne_name do "underline" else "" end} phx-click="select_techne" phx-value-name={techne.name} phx-value-desc={techne.desc} x-data x-tooltip.raw={techne.desc}> <%= techne.name %></button>
-                      <button class="text-red-400 shadow" phx-click="delete_techne" phx-value-name={techne.name} data-confirm="Are you sure you want to delete that techne?">X</button>
-                    </div>
-                  <% end %>
-                </div>
-              <% end %>
+          <div id="techne">
+            <%= if @current_user.techne != [] do %>
+              <div id="techne-list">
+                <%= for techne <- @current_user.techne do %>
+                  <div class="techne-in-list flex flex-row justify-between w-full">
+                    <button class={"p-2 mr-2 " <> if techne.name == @selected_techne_name do "underline" else "" end} phx-click="select_techne" phx-value-name={techne.name} phx-value-desc={techne.desc} x-data x-tooltip.raw={techne.desc}> <%= techne.name %></button>
+                    <button class="text-red-400 shadow" phx-click="delete_techne" phx-value-name={techne.name} data-confirm="Are you sure you want to delete that techne?">X</button>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+            <%= if @role != :dragon do %>
               <div class="mt-2">
                 <div phx-click="toggle_new_techne"class="text-md cursor-pointer">New Techne
                   <i class={"fa-solid #{if @collapse_new_techne, do: "fa-plus", else: "fa-minus"}"}></i>
@@ -810,8 +1044,10 @@
                   </form>
                 <% end %>
               </div>
-            </div>
+            <% end %>
+          </div>
 
+          <%= if @role != :dragon do %>
             <div id="dice-ascension" class="mt-4">
               <div class="grid grid-cols-3 gap-2">
                 <%= for {color, display_name} <- [
@@ -855,12 +1091,11 @@
                   <% end %>
                 <% end %>
               </div>
-            </div>
-
-          </div>
-        <% end %>
-      </div>
-    <% end %>
+            </div> 
+          <% end %>           
+        </div>
+      <% end %>
+    </div>
   </div>
 
   <!-- Mobile Drawer Toggle -->

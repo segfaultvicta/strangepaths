@@ -1,12 +1,12 @@
 <main>
   <%= if live_flash(@flash, :info) do %>
-    <p class="bg-blue-900 border border-blue-500 text-blue-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
+    <p style="position: relative; z-index: 9999;" class="bg-blue-900 border border-blue-500 text-blue-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
       phx-click="lv:clear-flash"
       phx-value-key="info"><%= live_flash(@flash, :info) %></p>
   <% end %>
 
   <%= if live_flash(@flash, :error) do %>
-    <p class="bg-red-900 border border-red-500 text-red-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
+    <p style="position: relative; z-index: 9999;" class="bg-red-900 border border-red-500 text-red-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
       phx-click="lv:clear-flash"
       phx-value-key="error"><%= live_flash(@flash, :error) %></p>
   <% end %>

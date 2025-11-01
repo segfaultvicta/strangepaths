@@ -60,8 +60,9 @@
               <%= if @role == :dragon do %>
                 <%= link "AVATARS", to: "/avatars/admin", class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap" %>
                 <%= link "DEV", to: Routes.live_dashboard_path(@conn, :home), class: "text-gray-300 font-medium hover:text-indigo-500 whitespace-nowrap hidden lg:inline" %>
-              <% end %>
+              <% else %>
               <span class="text-indigo-800 dark:text-indigo-200 font-medium uppercase whitespace-nowrap hidden sm:inline">Hello, <%= @current_user.nickname %>!</span>
+              <% end %>
             </div>
             <div class="flex gap-3 items-center">
               <%= link "SETTINGS", to: Routes.user_settings_path(@conn, :edit), class: "inactivenav whitespace-nowrap" %>

@@ -62,6 +62,11 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:selected_techne_desc, "")
         |> assign(:selected_gnosis_color, nil)
         |> assign(:collapse_gm_controls, false)
+        |> assign(:character_presets, [])
+        |> assign(:collapse_presets, true)
+        |> assign(:new_preset_name, "")
+        |> assign(:editing_preset_id, nil)
+        |> assign(:editing_preset_data, %{})
         |> assign(:collapse_gm_user_controls, true)
         |> assign(:collapse_gm_roll_controls, true)
         |> assign(:roll_rank, 4)
@@ -539,6 +544,273 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_new_techne", _params, socket) do
     {:noreply, assign(socket, :collapse_new_techne, !socket.assigns.collapse_new_techne)}
+  end
+
+  defp handle_scene_event("toggle_presets", _params, socket) do
+    presets =
+      if !socket.assigns.collapse_presets do
+        []
+      else
+        Accounts.list_character_presets(socket.assigns.current_user)
+      end
+
+    {:noreply,
+     socket
+     |> assign(:collapse_presets, !socket.assigns.collapse_presets)
+     |> assign(:character_presets, presets)}
+  end
+
+  defp handle_scene_event(
+         "update_preset_fields",
+         %{"new_preset_name" => name},
+         socket
+       ) do
+    {:noreply, assign(socket, :new_preset_name, name)}
+  end
+
+  defp handle_scene_event("reset_to_dragon_basis", _params, socket) do
+    case Accounts.dragon_basis(socket.assigns.current_user) do
+      {:ok, user} ->
+        E.broadcast("ascension", "update", %{})
+
+        {:noreply,
+         assign(socket, :current_user, user)
+         |> assign(:selected_avatar_id, nil)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to reset to dragon basis")}
+    end
+  end
+
+  defp handle_scene_event(
+         "save_preset",
+         _params,
+         socket
+       ) do
+    user = socket.assigns.current_user
+    trimmed_name = String.trim(socket.assigns.new_preset_name)
+
+    IO.puts("save_preset is being called")
+
+    if trimmed_name == "" do
+      {:noreply, put_flash(socket, :error, "Preset name cannot be empty")}
+    else
+      case Accounts.create_preset_from_user(user, trimmed_name) do
+        {:ok, _preset} ->
+          presets = Accounts.list_character_presets(user)
+
+          {:noreply,
+           socket
+           |> assign(:character_presets, presets)
+           |> assign(:new_preset_name, "")
+           |> put_flash(:info, "Preset '#{trimmed_name}' saved successfully")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to save preset")}
+      end
+    end
+  end
+
+  defp handle_scene_event("load_preset", %{"preset_id" => preset_id_str}, socket) do
+    preset_id = String.to_integer(preset_id_str)
+    user = socket.assigns.current_user
+
+    case Accounts.get_character_preset(preset_id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Preset not found")}
+
+      preset ->
+        IO.inspect(preset)
+
+        case Accounts.load_preset_to_user(user, preset) do
+          {:ok, updated_user} ->
+            # Update selected avatar if in preset
+            avatar =
+              if preset.selected_avatar_id,
+                do: Accounts.get_avatar!(preset.selected_avatar_id),
+                else: nil
+
+            # Transform techne strings to maps for template rendering
+            techne =
+              case updated_user.techne do
+                nil ->
+                  []
+
+                _ ->
+                  Enum.map(updated_user.techne, fn techne ->
+                    case String.split(techne, ":", parts: 2) do
+                      [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
+                      [name] -> %{name: String.trim(name), desc: ""}
+                    end
+                  end)
+              end
+
+            E.broadcast("ascension", "update", %{})
+
+            {:noreply,
+             socket
+             |> assign(:current_user, %{updated_user | techne: techne})
+             |> assign(:selected_avatar, avatar)
+             |> assign(:selected_avatar_id, preset.selected_avatar_id)
+             |> assign(:narrative_author_name, preset.narrative_author_name || "")
+             |> put_flash(:info, "Preset '#{preset.name}' loaded successfully")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to load preset")}
+        end
+    end
+  end
+
+  defp handle_scene_event("delete_preset", %{"preset_id" => preset_id_str}, socket) do
+    preset_id = String.to_integer(preset_id_str)
+    user = socket.assigns.current_user
+
+    case Accounts.get_character_preset(preset_id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Preset not found")}
+
+      preset ->
+        case Accounts.delete_character_preset(preset) do
+          {:ok, _} ->
+            presets = Accounts.list_character_presets(user)
+
+            {:noreply,
+             socket
+             |> assign(:character_presets, presets)
+             |> put_flash(:info, "Preset '#{preset.name}' deleted successfully")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete preset")}
+        end
+    end
+  end
+
+  defp handle_scene_event("edit_preset", %{"preset_id" => preset_id_str}, socket) do
+    preset_id = String.to_integer(preset_id_str)
+
+    case Accounts.get_character_preset(preset_id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Preset not found")}
+
+      preset ->
+        # Initialize editing data with current preset values
+        # Techne is stored as strings like "Name:Description", join them for editing
+        techne_string =
+          if preset.techne && preset.techne != [] do
+            Enum.join(preset.techne, ", ")
+          else
+            ""
+          end
+
+        editing_data = %{
+          arete: preset.arete,
+          primary_red: preset.primary_red,
+          primary_green: preset.primary_green,
+          primary_blue: preset.primary_blue,
+          primary_white: preset.primary_white,
+          primary_black: preset.primary_black,
+          primary_void: preset.primary_void,
+          alethic_red: preset.alethic_red,
+          alethic_green: preset.alethic_green,
+          alethic_blue: preset.alethic_blue,
+          alethic_white: preset.alethic_white,
+          alethic_black: preset.alethic_black,
+          alethic_void: preset.alethic_void,
+          techne_string: techne_string
+        }
+
+        {:noreply,
+         socket
+         |> assign(:editing_preset_id, preset_id)
+         |> assign(:editing_preset_data, editing_data)}
+    end
+  end
+
+  defp handle_scene_event("cancel_edit_preset", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_preset_id, nil)
+     |> assign(:editing_preset_data, %{})}
+  end
+
+  defp handle_scene_event("update_editing_preset", params, socket) do
+    # Extract all the form data and update editing_preset_data
+    editing_data =
+      socket.assigns.editing_preset_data
+      |> Map.put(:arete, String.to_integer(params["arete"] || "0"))
+      |> Map.put(:name, params["name"] || "")
+      |> Map.put(:selected_avatar_id, String.to_integer(params["selected_avatar_id"] || "0"))
+      |> Map.put(:primary_red, String.to_integer(params["primary_red"] || "4"))
+      |> Map.put(:primary_green, String.to_integer(params["primary_green"] || "4"))
+      |> Map.put(:primary_blue, String.to_integer(params["primary_blue"] || "4"))
+      |> Map.put(:primary_white, String.to_integer(params["primary_white"] || "4"))
+      |> Map.put(:primary_black, String.to_integer(params["primary_black"] || "4"))
+      |> Map.put(:primary_void, String.to_integer(params["primary_void"] || "4"))
+      |> Map.put(:alethic_red, String.to_integer(params["alethic_red"] || "0"))
+      |> Map.put(:alethic_green, String.to_integer(params["alethic_green"] || "0"))
+      |> Map.put(:alethic_blue, String.to_integer(params["alethic_blue"] || "0"))
+      |> Map.put(:alethic_white, String.to_integer(params["alethic_white"] || "0"))
+      |> Map.put(:alethic_black, String.to_integer(params["alethic_black"] || "0"))
+      |> Map.put(:alethic_void, String.to_integer(params["alethic_void"] || "0"))
+      |> Map.put(:techne_string, params["techne"] || "")
+
+    {:noreply, assign(socket, :editing_preset_data, editing_data)}
+  end
+
+  defp handle_scene_event("save_preset_edits", %{"preset_id" => preset_id_str}, socket) do
+    preset_id = String.to_integer(preset_id_str)
+    editing_data = socket.assigns.editing_preset_data
+
+    case Accounts.get_character_preset(preset_id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Preset not found")}
+
+      preset ->
+        # Parse techne from comma-separated string into "Name:Description" format
+        techne =
+          if editing_data.techne_string && String.trim(editing_data.techne_string) != "" do
+            editing_data.techne_string
+            |> String.split(",")
+            |> Enum.map(&String.trim/1)
+            |> Enum.reject(&(&1 == ""))
+          else
+            []
+          end
+
+        update_attrs = %{
+          arete: editing_data.arete,
+          primary_red: editing_data.primary_red,
+          primary_green: editing_data.primary_green,
+          primary_blue: editing_data.primary_blue,
+          primary_white: editing_data.primary_white,
+          primary_black: editing_data.primary_black,
+          primary_void: editing_data.primary_void,
+          alethic_red: editing_data.alethic_red,
+          alethic_green: editing_data.alethic_green,
+          alethic_blue: editing_data.alethic_blue,
+          alethic_white: editing_data.alethic_white,
+          alethic_black: editing_data.alethic_black,
+          alethic_void: editing_data.alethic_void,
+          techne: techne
+        }
+
+        case Accounts.update_character_preset(preset, update_attrs) do
+          {:ok, _updated_preset} ->
+            IO.puts("ok, we're getting here")
+            presets = Accounts.list_character_presets(socket.assigns.current_user)
+
+            {:noreply,
+             socket
+             |> assign(:character_presets, presets)
+             |> assign(:editing_preset_id, nil)
+             |> assign(:editing_preset_data, %{})
+             |> put_flash(:info, "Preset '#{preset.name}' updated successfully")}
+
+          {:error, changeset} ->
+            IO.inspect(changeset)
+            {:noreply, put_flash(socket, :error, "Failed to update preset")}
+        end
+    end
   end
 
   defp handle_scene_event("toggle_ascension", %{"id" => id}, socket) do
@@ -1047,7 +1319,8 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
-  defp handle_scene_event(_event, _params, socket) do
+  defp handle_scene_event(event, params, socket) do
+    IO.puts("Unhandled scene event: #{event} #{inspect(params)}")
     {:noreply, socket}
   end
 

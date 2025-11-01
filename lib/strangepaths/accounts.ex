@@ -6,7 +6,7 @@ defmodule Strangepaths.Accounts do
   import Ecto.Query, warn: false
   alias Strangepaths.Repo
 
-  alias Strangepaths.Accounts.{User, UserToken, UserNotifier}
+  alias Strangepaths.Accounts.{User, UserToken, UserNotifier, CharacterPreset}
 
   ## Database getters
 
@@ -849,5 +849,129 @@ defmodule Strangepaths.Accounts do
     |> where([a], a.public == true or a.id in ^deck_avatar_ids)
     |> order_by([a], desc: a.public, asc: a.display_name)
     |> Repo.all()
+  end
+
+  ## Character Presets
+
+  @doc """
+  Lists all character presets for a given user.
+  """
+  def list_character_presets(%User{} = user) do
+    CharacterPreset
+    |> where(user_id: ^user.id)
+    |> order_by(:name)
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets a single character preset.
+  """
+  def get_character_preset!(id), do: Repo.get!(CharacterPreset, id)
+  def get_character_preset(id), do: Repo.get(CharacterPreset, id)
+
+  @doc """
+  Creates a character preset from a user's current state.
+  """
+  def create_preset_from_user(%User{} = user, preset_name) do
+    # Get the raw user from DB to ensure we have string-format techne (not transformed maps)
+    raw_user = get_user!(user.id)
+
+    attrs = %{
+      name: preset_name,
+      selected_avatar_id: user.selected_avatar_id,
+      narrative_author_name: preset_name,
+      arete: user.arete,
+      primary_red: user.primary_red,
+      primary_green: user.primary_green,
+      primary_blue: user.primary_blue,
+      primary_white: user.primary_white,
+      primary_black: user.primary_black,
+      primary_void: user.primary_void,
+      alethic_red: user.alethic_red,
+      alethic_green: user.alethic_green,
+      alethic_blue: user.alethic_blue,
+      alethic_white: user.alethic_white,
+      alethic_black: user.alethic_black,
+      alethic_void: user.alethic_void,
+      techne: raw_user.techne,
+      user_id: user.id
+    }
+
+    %CharacterPreset{}
+    |> CharacterPreset.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a character preset.
+  """
+  def update_character_preset(%CharacterPreset{} = preset, attrs) do
+    IO.inspect(attrs)
+
+    preset
+    |> CharacterPreset.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a character preset.
+  """
+  def delete_character_preset(%CharacterPreset{} = preset) do
+    Repo.delete(preset)
+  end
+
+  def dragon_basis(%User{} = user) do
+    attrs = %{
+      arete: 0,
+      selected_avatar_id: nil,
+      primary_red: 20,
+      primary_green: 20,
+      primary_blue: 20,
+      primary_white: 20,
+      primary_black: 20,
+      primary_void: 20,
+      alethic_red: 20,
+      alethic_green: 20,
+      alethic_blue: 20,
+      alethic_white: 20,
+      alethic_black: 20,
+      alethic_void: 20,
+      nickname: "The Dragon",
+      techne: [],
+      public_ascension: true
+    }
+
+    user
+    |> User.preset_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Loads a character preset onto a user's current state.
+  """
+  def load_preset_to_user(%User{} = user, %CharacterPreset{} = preset) do
+    attrs = %{
+      selected_avatar_id: preset.selected_avatar_id,
+      arete: preset.arete,
+      primary_red: preset.primary_red,
+      primary_green: preset.primary_green,
+      primary_blue: preset.primary_blue,
+      primary_white: preset.primary_white,
+      primary_black: preset.primary_black,
+      primary_void: preset.primary_void,
+      alethic_red: preset.alethic_red,
+      alethic_green: preset.alethic_green,
+      alethic_blue: preset.alethic_blue,
+      alethic_white: preset.alethic_white,
+      alethic_black: preset.alethic_black,
+      alethic_void: preset.alethic_void,
+      nickname: preset.name,
+      techne: preset.techne,
+      public_ascension: true
+    }
+
+    user
+    |> User.preset_changeset(attrs)
+    |> Repo.update()
   end
 end
