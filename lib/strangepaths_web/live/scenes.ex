@@ -961,7 +961,7 @@ defmodule StrangepathsWeb.Scenes do
            socket.assigns.narrative_author_name != "" do
         socket.assigns.narrative_author_name
       else
-        "The Dragon"
+        socket.assigns.current_user.nickname
       end
 
     roll =
@@ -977,11 +977,14 @@ defmodule StrangepathsWeb.Scenes do
     msg = roll_message(nickname, color, roll)
 
     msg =
-      if socket.assigns.gm_techne_name != "" do
-        "- #{msg}\n\n#{nickname} invoked their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
-      else
-        msg
-      end
+      msg <>
+        if socket.assigns.gm_techne_name != "" && socket.assigns.gm_techne_name != nil do
+          "\n\n- **#{nickname}** invoked their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
+        else
+          ""
+        end
+
+    IO.inspect(msg)
 
     Scenes.system_message(msg, false, socket.assigns.current_scene.id)
 
@@ -999,11 +1002,11 @@ defmodule StrangepathsWeb.Scenes do
              socket.assigns.narrative_author_name != "" do
           socket.assigns.narrative_author_name
         else
-          "The Dragon"
+          socket.assigns.current_user.nickname
         end
 
       msg =
-        "- #{nickname} invoked their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
+        "- **#{nickname}** invoked their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
 
       Scenes.system_message(msg, false, socket.assigns.current_scene.id)
 
