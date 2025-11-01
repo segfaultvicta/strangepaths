@@ -135,6 +135,14 @@ defmodule Strangepaths.Scenes do
     end
   end
 
+  def update_scene_locked_users(scene_id, user_ids) do
+    scene = get_scene(scene_id)
+
+    scene
+    |> Scene.update_locked_users_changeset(%{locked_to_users: user_ids})
+    |> Repo.update()
+  end
+
   @doc """
   Archives a scene. Only the Dragon or the scene owner can archive.
   Elsewhere cannot be archived.
@@ -248,6 +256,12 @@ defmodule Strangepaths.Scenes do
     end
   end
 
+  def system_message(msg) do
+    # Send message to ALL non-locked scenes, including Elsewhere
+    scenes = Repo.all(from(s in Scene, where: s.locked_to_users == []))
+    Enum.each(scenes, fn scene -> system_message(msg, false, scene.id) end)
+  end
+
   ## Permission helpers
 
   @doc """
@@ -290,12 +304,35 @@ defmodule Strangepaths.Scenes do
   - Locked scenes: Dragon + whitelisted users
   - Normal scenes: all users with public_ascension: true
   """
-  def rhs_eligible(%Scene{is_elsewhere: true}) do
+  def rhs_eligible(scene) do
+    list = _rhs_eligible(scene)
+
+    list
+    |> Enum.map(fn user ->
+      techne =
+        case user.techne do
+          nil ->
+            [{"", ""}]
+
+          _ ->
+            Enum.map(user.techne, fn techne ->
+              case String.split(techne, ":", parts: 2) do
+                [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
+                [name] -> %{name: String.trim(name), desc: ""}
+              end
+            end)
+        end
+
+      %{user | techne: techne}
+    end)
+  end
+
+  defp _rhs_eligible(%Scene{is_elsewhere: true}) do
     Strangepaths.Accounts.list_users()
   end
 
-  def rhs_eligible(%Scene{locked_to_users: locked_users})
-      when is_list(locked_users) and length(locked_users) > 0 do
+  defp _rhs_eligible(%Scene{locked_to_users: locked_users})
+       when is_list(locked_users) and length(locked_users) > 0 do
     # Get the Dragon user
     dragon_query = from(u in User, where: u.role == :dragon)
     dragon_users = Repo.all(dragon_query)
@@ -309,7 +346,7 @@ defmodule Strangepaths.Scenes do
     |> Enum.uniq_by(& &1.id)
   end
 
-  def rhs_eligible(%Scene{}) do
+  defp _rhs_eligible(%Scene{}) do
     # Normal public scene: all users with public_ascension
     from(u in User, where: u.public_ascension == true)
     |> Repo.all()

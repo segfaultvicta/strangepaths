@@ -9,8 +9,6 @@ defmodule StrangepathsWeb.ContentAdminLive do
     socket = assign_defaults(session, socket)
     subscribe_to_music(socket)
 
-    IO.inspect(socket.assigns.current_user.role)
-
     if socket.assigns.current_user.role == :dragon do
       {:ok,
        socket
@@ -75,9 +73,7 @@ defmodule StrangepathsWeb.ContentAdminLive do
     {:noreply, assign(socket, :pages, Site.list_content_pages())}
   end
 
-  defp handle_contentadmin_event(event, params, socket) do
-    IO.inspect(event)
-    IO.inspect(params)
+  defp handle_contentadmin_event(event, _params, socket) do
     {:noreply, socket |> put_flash(:error, "Unrecognised event #{event}. See log for details.")}
   end
 
@@ -93,8 +89,6 @@ defmodule StrangepathsWeb.ContentAdminLive do
   end
 
   defp handle_contentadmin_info(msg, socket) do
-    IO.inspect(msg)
-
     {:noreply,
      socket |> put_flash(:error, "Unrecognised message #{inspect(msg)}. See log for details.")}
   end

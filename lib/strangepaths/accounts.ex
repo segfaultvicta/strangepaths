@@ -258,7 +258,8 @@ defmodule Strangepaths.Accounts do
         user
         |> update_user_die(%{primary_black: 10, alethic_black: max(user.alethic_black, 10)})
 
-      "empty" ->
+      # the decisions i made were not good ones. they were the other kind.
+      n when n == "empty" or n == "void" ->
         user
         |> update_user_die(%{primary_void: 10, alethic_void: max(user.alethic_void, 10)})
 
@@ -344,16 +345,12 @@ defmodule Strangepaths.Accounts do
   defp reduce_die(die, _ranks), do: die
 
   def gm_driven_sacrifice_to(user, color, degree) do
-    IO.puts("in gm_driven_sacrifice_to #{user.nickname} #{color} #{degree}")
-
     case get_die_value(user, color) do
       :wrong_color ->
         {:error, "Invalid color"}
 
       current_die ->
-        IO.puts("current die is #{current_die}")
         diff = sacrifice_diff(current_die, degree)
-        IO.puts("diff is #{diff}")
         attrs = build_sacrifice(color, degree, current_die, user)
         update_user_die(user, attrs)
         {:ok, diff}
@@ -429,7 +426,8 @@ defmodule Strangepaths.Accounts do
             {:ascension_successful, new_die}
         end
 
-      "empty" ->
+      # why did i make the specific decisions which i made? why? why.
+      n when n == "empty" or n == "void" ->
         case ascend(user.primary_void) do
           {:alethic_sacrifice, _} ->
             user |> update_user_die(%{primary_void: 4, alethic_void: 20})

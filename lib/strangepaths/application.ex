@@ -21,13 +21,7 @@ defmodule Strangepaths.Application do
       Strangepaths.Cards.Ceremony,
       Strangepaths.Presence,
       Strangepaths.Site.MusicQueue,
-      Strangepaths.Scenes.SceneServer,
-      {Nostrum.Bot,
-       %{
-         consumer: Strangepaths.DiscordHandler,
-         intents: [:direct_messages, :guild_messages, :message_content],
-         wrapped_token: fn -> System.fetch_env!("BOT_TOKEN") end
-       }}
+      Strangepaths.Scenes.SceneServer
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

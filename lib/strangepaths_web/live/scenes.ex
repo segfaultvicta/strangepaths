@@ -34,6 +34,8 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:eligible, false)
         |> assign(:post_mode, :action)
         |> assign(:post_content, "")
+        |> assign(:saved_post_content, "")
+        |> assign(:saved_ooc_content, "")
         |> assign(:ooc_content, "")
         |> assign(:posts_offset, 0)
         |> assign(:has_more_posts, false)
@@ -47,8 +49,18 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
         |> assign(:private_users, [])
+        |> assign(:collapse_manage_users, true)
         |> assign(:collapse_userlist, false)
+        |> assign(:collapse_private_users, true)
         |> assign(:collapse_rhs_controls, false)
+        |> assign(:arete_expenditure, 0)
+        |> assign(:crimes, System.unique_integer())
+        |> assign(:collapse_new_techne, true)
+        |> assign(:new_techne_name, "")
+        |> assign(:new_techne_desc, "")
+        |> assign(:selected_techne_name, "")
+        |> assign(:selected_techne_desc, "")
+        |> assign(:selected_gnosis_color, nil)
         |> assign(:collapse_gm_controls, false)
         |> assign(:collapse_gm_user_controls, true)
         |> assign(:collapse_gm_roll_controls, true)
@@ -288,10 +300,6 @@ defmodule StrangepathsWeb.Scenes do
       # Clear unread count for this scene
       unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
 
-      IO.puts("current user is #{inspect(socket.assigns.current_user.nickname)}")
-      IO.inspect(Enum.map(rhs_users, & &1.nickname))
-      IO.puts("eligible to post? #{socket.assigns.current_user in rhs_users}")
-
       {:noreply,
        socket
        |> assign(:current_scene, scene)
@@ -311,14 +319,26 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_event("toggle_post_mode", _params, socket) do
-    post_mode =
+    socket =
       if socket.assigns.post_mode == :action do
-        :speech
+        socket
+        |> assign(:post_mode, :speech)
       else
-        :action
+        socket
+        |> assign(:post_mode, :action)
       end
 
-    {:noreply, assign(socket, :post_mode, post_mode)}
+    {:noreply, socket}
+  end
+
+  defp handle_scene_event("update_post_content", params, socket) do
+    ooc_content = Map.get(params, "ooc_content", socket.assigns.ooc_content)
+    post_content = Map.get(params, "content", socket.assigns.post_content)
+
+    {:noreply,
+     socket
+     |> assign(:post_content, post_content)
+     |> assign(:ooc_content, ooc_content)}
   end
 
   defp handle_scene_event("update_narrative_author_name", %{"author_name" => author_name}, socket) do
@@ -329,7 +349,7 @@ defmodule StrangepathsWeb.Scenes do
     scene = socket.assigns.current_scene
     user = socket.assigns.current_user
 
-    if scene && user in Scenes.rhs_eligible(scene) do
+    if scene && user.id in (Scenes.rhs_eligible(scene) |> Enum.map(& &1.id)) do
       author_name =
         if user.role == :dragon do
           Map.get(params, "author_name", "")
@@ -344,6 +364,15 @@ defmodule StrangepathsWeb.Scenes do
           "*says,* \“" <> content <> "\”"
         else
           "*" <> transform_quotes(content) <> "*"
+        end
+
+      # if the last two characters of content are "**" preceded by a "”",
+      # remove the final asterisks.
+      content =
+        if String.ends_with?(content, "”**") do
+          String.slice(content, 0..-3//-1)
+        else
+          content
         end
 
       post_attrs = %{
@@ -454,6 +483,26 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
+  defp handle_scene_event("manage_users", %{"user_ids" => user_ids}, socket) do
+    Strangepaths.Scenes.update_scene_locked_users(
+      socket.assigns.current_scene.id,
+      Enum.map(user_ids, &String.to_integer/1)
+    )
+
+    # trigger an *ascension* update, because that'll update rhs_eligible for people
+    E.broadcast("ascension", "update", %{})
+    # also want a scene update
+    SceneServer.broadcast_scene_update()
+
+    {:noreply, socket}
+  end
+
+  defp handle_scene_event("toggle_manage_users", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:collapse_manage_users, !socket.assigns.collapse_manage_users)}
+  end
+
   defp handle_scene_event("toggle_drawer", _params, socket) do
     {:noreply, assign(socket, :drawer_open, !socket.assigns.drawer_open)}
   end
@@ -475,6 +524,10 @@ defmodule StrangepathsWeb.Scenes do
      assign(socket, :collapse_gm_user_controls, !socket.assigns.collapse_gm_user_controls)}
   end
 
+  defp handle_scene_event("toggle_private_users", _params, socket) do
+    {:noreply, assign(socket, :collapse_private_users, !socket.assigns.collapse_private_users)}
+  end
+
   defp handle_scene_event("toggle_gm_roll_controls", _params, socket) do
     {:noreply,
      assign(socket, :collapse_gm_roll_controls, !socket.assigns.collapse_gm_roll_controls)}
@@ -482,6 +535,10 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_devour", _params, socket) do
     {:noreply, assign(socket, :collapse_devour, !socket.assigns.collapse_devour)}
+  end
+
+  defp handle_scene_event("toggle_new_techne", _params, socket) do
+    {:noreply, assign(socket, :collapse_new_techne, !socket.assigns.collapse_new_techne)}
   end
 
   defp handle_scene_event("toggle_ascension", %{"id" => id}, socket) do
@@ -510,7 +567,6 @@ defmodule StrangepathsWeb.Scenes do
          %{"user-id" => user_id, "arete" => arete_str},
          socket
        ) do
-    IO.puts("in update_arete_selection")
     arete = String.to_integer(arete_str)
     user_selections = Map.get(socket.assigns.dragon_selections, user_id, %{})
     updated_selections = Map.put(user_selections, :arete, arete)
@@ -524,7 +580,6 @@ defmodule StrangepathsWeb.Scenes do
          %{"user-id" => user_id, "color" => color},
          socket
        ) do
-    IO.puts("select_sacrifice_color")
     user_selections = Map.get(socket.assigns.dragon_selections, user_id, %{})
     # Toggle: if clicking same color, deselect it
     current_color = Map.get(user_selections, :color)
@@ -540,7 +595,6 @@ defmodule StrangepathsWeb.Scenes do
          %{"user-id" => user_id, "ranks" => ranks_str},
          socket
        ) do
-    IO.puts("select sacrifice ranks")
     ranks = String.to_integer(ranks_str)
     user_selections = Map.get(socket.assigns.dragon_selections, user_id, %{})
     updated_selections = Map.put(user_selections, :ranks, ranks)
@@ -576,7 +630,7 @@ defmodule StrangepathsWeb.Scenes do
       if color && ranks > 0 && color in ["red", "green", "blue", "white", "black", "empty"] do
         case Strangepaths.Accounts.gm_driven_sacrifice_of(user, color, ranks) do
           {:ok, n} ->
-            "- #{user.nickname} sacrificed #{cardinality_lookup(n)} of their #{color_lookup(color)} gnosis."
+            "- #{user.nickname} was made to sacrifice #{cardinality_lookup(n)} of their #{color_lookup(color)} gnosis."
 
           {:error, reason} ->
             "ERROR: #{user.nickname}'s sacrifice failed: #{reason}"
@@ -750,6 +804,199 @@ defmodule StrangepathsWeb.Scenes do
     {:noreply, socket}
   end
 
+  # USERSPACE ASCENSION CONTROLS
+
+  defp handle_scene_event(
+         "change_techne",
+         %{"new_techne_name" => name, "new_techne_desc" => desc},
+         socket
+       ) do
+    {:noreply, socket |> assign(:new_techne_name, name) |> assign(:new_techne_desc, desc)}
+  end
+
+  defp handle_scene_event("delete_techne", %{"name" => name}, socket) do
+    user = socket.assigns.current_user
+
+    current_true_techne = Strangepaths.Accounts.get_user!(user.id).techne
+
+    new_techne =
+      Enum.filter(current_true_techne, fn t ->
+        String.split(t, ":") |> hd() != name
+      end)
+
+    {:ok, _} = Strangepaths.Accounts.update_user_techne(user, %{techne: new_techne})
+
+    StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
+
+    {:noreply, socket}
+  end
+
+  defp handle_scene_event("select_techne", %{"name" => name, "desc" => desc}, socket) do
+    if socket.assigns.selected_techne_name == name do
+      {:noreply, socket |> assign(:selected_techne_name, "") |> assign(:selected_techne_desc, "")}
+    else
+      {:noreply,
+       socket |> assign(:selected_techne_name, name) |> assign(:selected_techne_desc, desc)}
+    end
+  end
+
+  defp handle_scene_event("select_gnosis_color", %{"color" => color}, socket) do
+    if socket.assigns.selected_gnosis_color == color do
+      {:noreply, socket |> assign(:selected_gnosis_color, nil)}
+    else
+      {:noreply, socket |> assign(:selected_gnosis_color, color)}
+    end
+  end
+
+  defp handle_scene_event("user_ascension_action", _, socket) do
+    user = socket.assigns.current_user
+
+    msg = ""
+
+    # handle rolls
+    msg =
+      msg <>
+        if socket.assigns.selected_gnosis_color != nil and
+             socket.assigns.selected_gnosis_color != "" do
+          color = socket.assigns.selected_gnosis_color
+
+          color =
+            if color == "empty" do
+              "void"
+            else
+              color
+            end
+
+          primary = Map.get(user, String.to_atom("primary_#{color}"))
+          alethic = Map.get(user, String.to_atom("alethic_#{color}"))
+
+          roll =
+            if alethic > 0 and alethic >= primary do
+              roll1 = Enum.random(1..primary)
+              roll2 = Enum.random(1..primary)
+              {:alethic, alethic, max(roll1, roll2), roll1, roll2}
+            else
+              result = Enum.random(1..primary)
+              {:mundane, primary, result}
+            end
+
+          roll_message(user.nickname, color, roll) <> "\n\n"
+        else
+          ""
+        end
+
+    msg =
+      msg <>
+        if socket.assigns.arete_expenditure != 0 do
+          curr_arete = user.arete
+          spending_arete = socket.assigns.arete_expenditure
+          # should not be able to ever spend more arete than you have, but just in case
+          new_arete = max(curr_arete - spending_arete, 0)
+          Strangepaths.Accounts.update_user_arete(user, %{arete: new_arete})
+
+          "- **#{user.nickname}** spent #{spending_arete} Arete and now has #{new_arete} remaining.\n\n"
+        else
+          ""
+        end
+
+    msg =
+      msg <>
+        if socket.assigns.selected_techne_name != "" do
+          name = socket.assigns.selected_techne_name
+          desc = socket.assigns.selected_techne_desc
+
+          "- **#{user.nickname}** invoked their techné **#{name}** *(#{desc})*"
+        else
+          ""
+        end
+
+    msg =
+      msg <>
+        if socket.assigns.new_techne_name != "" and socket.assigns.new_techne_desc != "" do
+          current_true_techne = Strangepaths.Accounts.get_user!(user.id).techne
+
+          new_techne =
+            current_true_techne ++
+              ["#{socket.assigns.new_techne_name}:#{socket.assigns.new_techne_desc}"]
+
+          Strangepaths.Accounts.update_user_techne(user, %{techne: new_techne})
+
+          "- **#{user.nickname}** has attained unto the techné **#{socket.assigns.new_techne_name}** *(#{socket.assigns.new_techne_desc})*\n\n"
+        else
+          ""
+        end
+
+    if msg != "" do
+      E.broadcast("ascension", "update", %{})
+
+      Strangepaths.Scenes.system_message(msg, false, socket.assigns.current_scene.id)
+
+      {:noreply,
+       socket
+       |> assign(:arete_expenditure, 0)
+       |> assign(:crimes, System.unique_integer())
+       |> assign(:toggle_new_techne, false)
+       |> assign(:selected_gnosis_color, nil)
+       |> assign(:selected_techne_name, "")
+       |> assign(:selected_techne_desc, "")
+       |> assign(:new_techne_name, "")
+       |> assign(:new_techne_desc, "")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_scene_event(
+         "validate_arete",
+         %{"arete_extern" => %{"spend_arete" => arete}},
+         socket
+       ) do
+    {:noreply, assign(socket, :arete_expenditure, String.to_integer(arete))}
+  end
+
+  defp handle_scene_event("ascend", %{"color" => color}, socket) do
+    user = socket.assigns.current_user
+
+    color =
+      if color == "empty" do
+        "void"
+      else
+        color
+      end
+
+    {also_elsewhere, resp} =
+      case Strangepaths.Accounts.ascend(user, color) do
+        :alethic_sacrifice ->
+          {true,
+           "- **#{user.nickname}** chose to perform a beautiful, and terrible, magic; for a brief moment their [redacted] sacrifice of their entire #{color_lookup(color)} gnosis allows them communion with the Dragon."}
+
+        {:ascension_successful, new_die} ->
+          {false,
+           "- **#{user.nickname}**'s #{color_lookup(color)} gnosis has ascended unto the #{Integer.to_string(new_die)}ᵗʰ rank."}
+      end
+
+    Strangepaths.Scenes.system_message(resp, also_elsewhere, socket.assigns.current_scene.id)
+
+    E.broadcast("ascension", "update", %{})
+
+    {:noreply, socket}
+  end
+
+  defp handle_scene_event("sacrifice", %{"color" => color}, socket) do
+    user = socket.assigns.current_user
+
+    Strangepaths.Accounts.player_driven_sacrifice(user, color)
+    msg = "- #{user.nickname} made an offering of their #{color_lookup(color)} gnosis."
+
+    Strangepaths.Scenes.system_message(msg, false, socket.assigns.current_scene.id)
+
+    E.broadcast("ascension", "update", %{})
+
+    {:noreply, socket}
+  end
+
+  # POST MANAGEMENT
+
   defp handle_scene_event("archive_scene", %{"scene_id" => scene_id_str}, socket) do
     scene_id = String.to_integer(scene_id_str)
     scene = Scenes.get_scene(scene_id)
@@ -800,8 +1047,7 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
-  defp handle_scene_event(event, params, socket) do
-    IO.puts("unhandled event #{event} with params #{inspect(params)}")
+  defp handle_scene_event(_event, _params, socket) do
     {:noreply, socket}
   end
 
@@ -855,22 +1101,39 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_info(%{topic: "ascension", event: "update"}, socket) do
-    IO.puts("handling ascension:update message")
-
     socket =
       if socket.assigns.current_user.role == :dragon do
         socket
         |> assign(:ascended_users, Accounts.get_ascended_users())
         |> assign(:private_users, Accounts.get_private_users())
+        |> assign(:rhs_users, Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene))
       else
+        # Need to be updating the current user's techne, arete, primaries, and alethics
+        user = Strangepaths.Accounts.get_user!(socket.assigns.current_user.id)
+
+        techne =
+          case user.techne do
+            nil ->
+              [{"", ""}]
+
+            _ ->
+              Enum.map(user.techne, fn techne ->
+                case String.split(techne, ":", parts: 2) do
+                  [name, desc] -> %{name: String.trim(name), desc: String.trim(desc)}
+                  [name] -> %{name: String.trim(name), desc: ""}
+                end
+              end)
+          end
+
         socket
+        |> assign(:rhs_users, Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene))
+        |> assign(:current_user, %{user | techne: techne})
       end
 
     {:noreply, socket}
   end
 
-  defp handle_scene_info(msg, socket) do
-    IO.puts("unhandled message #{inspect(msg)}")
+  defp handle_scene_info(_msg, socket) do
     {:noreply, socket}
   end
 
@@ -920,6 +1183,7 @@ defmodule StrangepathsWeb.Scenes do
       "white" -> "⚪radiant"
       "black" -> "⚫tenebrous"
       "empty" -> "🌌liminal"
+      "void" -> "🌌liminal"
     end
   end
 
@@ -935,20 +1199,42 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
+  defp get_desc(color) do
+    case color do
+      "red" ->
+        "Red actions are impulsive, physical, brave or foolish; they are sparked by passion and emotions running high and a love of freedom above all else."
+
+      "green" ->
+        "Green actions are instinctive, harmonious and accepting of the world as it is; they are focused on growth, interdependence and deep context."
+
+      "blue" ->
+        "Blue actions are clever, cunning, and logical; they are taken towards achieving perfection and certainty, understanding the world through analysis and study, or fulfilling one's inherent potential."
+
+      "white" ->
+        "White actions are lawful and selfless; they advance the community rather than the individual, and are concerned with morality, fairness, and symmetry."
+
+      "black" ->
+        "Black actions are powerful and selfish; ambitious, willing to treat anything and everything as a resource to be spent; willing to sacrifice for gain."
+
+      _ ->
+        "Empty actions are mysterious and defy systematising ontologies; they concern magic, metaphysics, the will to overcome and transgress the bounds of reality."
+    end
+  end
+
   defp roll_message(nickname, color, roll) do
     case roll do
       {:alethic, stat, outcome, r1, r2} ->
         if outcome == stat do
-          "- #{nickname} invoked their [redacted] #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***! It ✨explodes!"
+          "- **#{nickname}** invoked their [redacted] #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***! It ✨explodes!"
         else
-          "- #{nickname} invoked their [redacted] #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***."
+          "- **#{nickname}** invoked their [redacted] #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***."
         end
 
       {:mundane, stat, outcome} ->
         if outcome == stat do
-          "- #{nickname} invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***! It ✨explodes!"
+          "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***! It ✨explodes!"
         else
-          "- #{nickname} invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***."
+          "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***."
         end
     end
   end

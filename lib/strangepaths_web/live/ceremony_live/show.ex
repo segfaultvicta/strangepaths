@@ -82,9 +82,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   defp handle_ceremony_event("setupAvatar", %{"entity" => %{"deck" => deck_id}}, socket) do
     deck = Cards.get_deck(deck_id)
 
-    # should have avatar included
-    IO.inspect(deck)
-
     # special-case the lil' fiendies
     {name, tolerance, blockcap, avatar} =
       case deck_id do
@@ -1203,7 +1200,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
 
   defp handle_ceremony_event("menuClick", %{"e" => "cardDiscard"}, socket) do
     # special case Flurry (187) can never be discarded, only destroyed
-    IO.inspect(socket.assigns.selectedEntity)
 
     if(socket.assigns.selectedEntity.card_id == 187) do
       Cards.Ceremony.removeEntity(socket.assigns.ceremony.id, socket.assigns.selectedEntity)

@@ -65,9 +65,7 @@ defmodule StrangepathsWeb.ContentIndexLive do
     end
   end
 
-  defp handle_contentindex_event(event, params, socket) do
-    IO.inspect(event)
-    IO.inspect(params)
+  defp handle_contentindex_event(event, _params, socket) do
     {:noreply, socket |> put_flash(:error, "Unrecognised event #{event}. See log for details.")}
   end
 

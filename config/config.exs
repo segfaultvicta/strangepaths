@@ -21,8 +21,6 @@ config :strangepaths, StrangepathsWeb.Endpoint,
   pubsub_server: Strangepaths.PubSub,
   live_view: [signing_salt: "cFS8hIEM"]
 
-config :nostrum, :ffmpeg, nil
-
 # Configures the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

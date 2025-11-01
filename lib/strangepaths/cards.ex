@@ -585,10 +585,6 @@ defmodule Strangepaths.Cards do
     end
 
     def create(:Avatar, name, deckID, tolerance, blockcap, avatar, owner) do
-      IO.puts(
-        "creating avatar. tolerance is #{inspect(tolerance)} and blockcap is #{inspect(blockcap)}"
-      )
-
       if Strangepaths.Cards.deck_exists?(deckID) do
         %Entity{
           name: name,
@@ -818,7 +814,6 @@ defmodule Strangepaths.Cards do
     end
 
     def toggle_brightness(truename, uuid) do
-      IO.puts("toggle_brightness called for #{truename} #{uuid}")
       {ok, ceremony} = get(truename)
 
       if ok == :ok do
@@ -848,7 +843,6 @@ defmodule Strangepaths.Cards do
     end
 
     def toggle_smolness(truename, uuid) do
-      IO.puts("toggle_smol happening for #{truename} #{uuid}")
       {ok, ceremony} = get(truename)
 
       if ok == :ok do

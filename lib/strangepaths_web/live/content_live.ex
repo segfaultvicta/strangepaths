@@ -73,9 +73,7 @@ defmodule StrangepathsWeb.ContentLive do
     end
   end
 
-  defp handle_content_event(event, params, socket) do
-    IO.inspect(event)
-    IO.inspect(params)
+  defp handle_content_event(_event, _params, socket) do
     {:noreply, socket}
   end
 
@@ -90,8 +88,7 @@ defmodule StrangepathsWeb.ContentLive do
     end
   end
 
-  defp handle_content_info(msg, socket) do
-    IO.inspect(msg)
+  defp handle_content_info(_msg, socket) do
     {:noreply, socket}
   end
 end

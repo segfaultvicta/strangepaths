@@ -20,8 +20,6 @@ defmodule Strangepaths.Site.ContentPage do
   end
 
   defp maybe_generate_slug(changeset) do
-    IO.puts("in maybe_generate_slug")
-
     case get_change(changeset, :slug) do
       nil ->
         title = get_change(changeset, :title) || get_field(changeset, :title)

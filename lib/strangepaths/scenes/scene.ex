@@ -23,7 +23,15 @@ defmodule Strangepaths.Scenes.Scene do
     |> cast(attrs, [:name, :owner_id, :locked_to_users, :is_elsewhere])
     |> validate_required([:name, :owner_id])
     |> validate_length(:name, min: 1, max: 255)
-    |> unique_constraint(:is_elsewhere, name: :only_one_elsewhere, message: "Only one Elsewhere scene can exist")
+    |> unique_constraint(:is_elsewhere,
+      name: :only_one_elsewhere,
+      message: "Only one Elsewhere scene can exist"
+    )
+  end
+
+  def update_locked_users_changeset(scene, attrs) do
+    scene
+    |> cast(attrs, [:locked_to_users])
   end
 
   @doc """
@@ -40,6 +48,7 @@ defmodule Strangepaths.Scenes.Scene do
   def locked?(%__MODULE__{locked_to_users: locked_to_users}) when is_list(locked_to_users) do
     length(locked_to_users) > 0
   end
+
   def locked?(_), do: false
 
   @doc """
@@ -50,8 +59,12 @@ defmodule Strangepaths.Scenes.Scene do
   """
   def can_view?(%__MODULE__{}, %Strangepaths.Accounts.User{role: :dragon}), do: true
   def can_view?(%__MODULE__{locked_to_users: []}, %Strangepaths.Accounts.User{}), do: true
-  def can_view?(%__MODULE__{locked_to_users: locked_users}, %Strangepaths.Accounts.User{id: user_id}) do
+
+  def can_view?(%__MODULE__{locked_to_users: locked_users}, %Strangepaths.Accounts.User{
+        id: user_id
+      }) do
     user_id in locked_users
   end
+
   def can_view?(_, _), do: false
 end

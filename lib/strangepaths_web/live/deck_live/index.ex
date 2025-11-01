@@ -43,15 +43,12 @@ defmodule StrangepathsWeb.DeckLive.Index do
   defp handle_deck_event("sort", %{"sortcol" => sortcol}, socket) do
     direction =
       if socket.assigns.sortcol == String.to_atom(sortcol) do
-        IO.puts("sortcal invariant")
-
         if socket.assigns.direction == :asc do
           :desc
         else
           :asc
         end
       else
-        IO.puts("sortcal variant, defaulting to desc")
         :desc
       end
 

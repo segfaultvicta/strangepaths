@@ -110,7 +110,6 @@ defmodule StrangepathsWeb.DeckLive.Show do
 
   defp handle_deck_event("key", value, socket) do
     value = value["key"]
-    IO.inspect(value)
 
     case {socket.assigns.eye, value} do
       {0, "ArrowUp"} ->
@@ -144,8 +143,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
         {:noreply, socket |> assign(eye: 10, eye_img: "/images/eye/6.png")}
 
       {10, "Enter"} ->
-        IO.puts("boop")
-        IO.inspect(Process.send_after(self(), :alethics, 2000))
+        Process.send_after(self(), :alethics, 2000)
         {:noreply, socket |> assign(eye: :open, eye_img: "/images/eye/7.png")}
 
       _ ->
@@ -154,8 +152,6 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("libra", value, socket) do
-    IO.inspect(value)
-
     {res, card_id} =
       Cards.get_card_by_gnosis(
         :crypto.hash(:md5, value["LIBRA"])

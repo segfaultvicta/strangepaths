@@ -10,7 +10,6 @@ defmodule Strangepaths.Site.MusicQueue do
 
   @doc "Add a song to the queue"
   def enqueue(song_id, queued_by) do
-    IO.puts("in enqueue, song_id: #{song_id}, queued_by: #{queued_by}")
     GenServer.call(__MODULE__, {:enqueue, song_id, queued_by})
   end
 

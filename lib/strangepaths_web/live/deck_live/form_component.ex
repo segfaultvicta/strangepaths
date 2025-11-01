@@ -79,8 +79,6 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
       black: String.to_integer(deck_params["black"])
     }
 
-    IO.inspect(deck_params)
-
     case Cards.create_deck(Map.put(deck_params, "manabalance", manabalance)) do
       {:ok, _deck} ->
         {:noreply,

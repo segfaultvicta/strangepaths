@@ -40,25 +40,31 @@ defmodule StrangepathsWeb.MusicBroadcast do
     end
   end
 
-  @doc """
-  Forward client events (from JavaScript/buttons) to the MusicPlayerComponent.
-  Use this in your handle_event/3 like this:
-
-      def handle_event(event, params, socket) do
-        case forward_music_client_event(event, params, socket) do
-          :not_music_event ->
-            # Handle your own events
-            {:noreply, socket}
-          result ->
-            result
-        end
-      end
-  """
   def forward_music_client_event("song_ended", %{"song_id" => song_id}, socket) do
     Phoenix.LiveView.send_update(StrangepathsWeb.MusicPlayerComponent,
       id: "music-player",
       song_ended: song_id
     )
+
+    {:noreply, socket}
+  end
+
+  def forward_music_client_event("emit_message", _, socket) do
+    mq_state = Strangepaths.Site.MusicQueue.get_state()
+    now_playing = mq_state.now_playing.song
+
+    if now_playing do
+      msg =
+        "- You hear — and your Star hears — a song, echoing from the stillness: [**#{now_playing.title}**](/ost/#{now_playing.id})"
+
+      Strangepaths.Scenes.system_message(msg)
+    end
+
+    {:noreply, socket}
+  end
+
+  def forward_music_client_event("clear_queue", _, socket) do
+    Strangepaths.Site.MusicQueue.clear_queue()
 
     {:noreply, socket}
   end

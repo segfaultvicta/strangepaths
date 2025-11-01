@@ -82,9 +82,6 @@ Hooks.TooltipUpdater = {
 
         // Update the Tippy content with fresh template HTML
         if (template && this.tippy) {
-            console.log("interior of tooltip updater");
-            console.log("Template HTML:", template.innerHTML);
-
             // Force Tippy to update by destroying and recreating
             this.tippy.destroy();
             this.tippy = window.tippy(this.el, {
@@ -114,20 +111,17 @@ Hooks.MusicPlayer = {
         this.isMainTab = true;
 
         // Check if another tab exists
-        console.log("ping")
         this.channel.postMessage({ type: 'ping' });
         // Listen for responses
         this.channel.onmessage = (event) => {
             if (event.data.type === 'pong') {
                 // Another tab exists and responded - we should mute
-                console.log("get ponged, nerd");
                 this.isMainTab = false;
                 document.getElementById("manual-play-btn")?.classList.remove("hidden");
                 volumeControl.value = 0;
                 audio.volume = 0;
             } else if (event.data.type === 'ping') {
                 // New tab is asking if we exist - respond
-                console.log("pong")
                 this.channel.postMessage({ type: 'pong' });
             }
         };
@@ -136,7 +130,6 @@ Hooks.MusicPlayer = {
         setTimeout(() => {
             if (this.isMainTab) {
                 // If no one responded to our ping, we're the main tab
-                console.log("I am the main tab");
             }
         }, 100);
 
@@ -210,7 +203,6 @@ Hooks.MusicPlayer = {
         });
 
         this.handleEvent("stopped", () => {
-            console.log("handling stopped message, pausing audio");
             audio.pause();
             audio.src = "";
             currentSongId = null;
@@ -220,7 +212,6 @@ Hooks.MusicPlayer = {
         audio.addEventListener("ended", () => {
             // Tell server to advance to next song, including the song ID
             if (currentSongId) {
-                console.log("Song ended:", currentSongId);
                 this.pushEvent("song_ended", { song_id: currentSongId });
             }
         });
@@ -554,6 +545,12 @@ let liveSocket = new LiveSocket("/live", Socket, {
     dom: {
         onBeforeElUpdated(from, to) {
             if (from._x_dataStack) { window.Alpine.clone(from, to) }
+        },
+        onNodeAdded(node) {
+            // Initialize Alpine on newly added nodes
+            if (window.Alpine && node.nodeType === 1) {
+                window.Alpine.initTree(node);
+            }
         }
     },
     params: { _csrf_token: csrfToken },

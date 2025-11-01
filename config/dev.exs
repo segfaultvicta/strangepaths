@@ -1,9 +1,5 @@
 import Config
 
-config :strangepaths,
-  discord_channel: 1_428_210_573_648_203_807,
-  environment_name: "Shadowhunter"
-
 # Configure your database
 config :strangepaths, Strangepaths.Repo,
   username: "postgres",

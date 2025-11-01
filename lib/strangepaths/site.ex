@@ -177,27 +177,11 @@ defmodule Strangepaths.Site do
   def toggle_song_lock(song_id) do
     song = get_song!(song_id)
 
-    if !song.unlocked do
-      # Discord shout that a song has been unlocked, and link to its OST page
-      msg =
-        "You hear — and your Star hears — a song, echoing from the stillness: #{song.title}"
-
-      Nostrum.Api.Message.create(Application.get_env(:strangepaths, :discord_channel), msg)
-    end
-
     update_song(song, %{unlocked: !song.unlocked})
   end
 
   def toggle_song_lyrics_lock(song_id) do
     song = get_song!(song_id)
-
-    if !song.lyrics_unlocked do
-      # Discord shout that lyrics have been unlocked
-      msg =
-        "The lyrics of '#{song.title}' have been illuminated. (https://strangepaths.aludel.xyz/ost/#{song.id})"
-
-      Nostrum.Api.Message.create(Application.get_env(:strangepaths, :discord_channel), msg)
-    end
 
     update_song(song, %{lyrics_unlocked: !song.lyrics_unlocked})
   end
@@ -307,18 +291,13 @@ defmodule Strangepaths.Site do
     guid = Ecto.UUID.generate()
 
     music_dir = Path.join([:code.priv_dir(:strangepaths), "static", "uploads", "music"])
-    IO.puts("IN UPLOAD_SONG_FILE: #{music_dir}")
-    IO.inspect(upload)
     File.mkdir_p!(music_dir)
 
     dest_path = Path.join(music_dir, "#{guid}")
 
-    IO.puts("Destination path: #{dest_path}")
-
     case File.cp(upload.path, dest_path) do
       :ok ->
         # Update song with new GUID and link
-        IO.puts("file alleged to have copied correctly")
 
         case update_song(song, %{
                file_guid: guid,
@@ -329,7 +308,6 @@ defmodule Strangepaths.Site do
         end
 
       {:error, reason} ->
-        IO.puts("Failed to copy file: #{inspect(reason)}")
         {:error, "Failed to copy file: #{inspect(reason)}"}
     end
   end

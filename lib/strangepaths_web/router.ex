@@ -29,7 +29,6 @@ defmodule StrangepathsWeb.Router do
     live("/ost", OstLive)
     live("/ost/:id", SongLive)
 
-    live("/ascension", Ascension)
     live("/scenes", Scenes)
     live("/scenes/archives", Scenes.Archives)
 

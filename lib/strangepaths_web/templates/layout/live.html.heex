@@ -11,6 +11,6 @@
       phx-value-key="error"><%= live_flash(@flash, :error) %></p>
   <% end %>
 
-  <.live_component module={StrangepathsWeb.MusicPlayerComponent} id="music-player" />
+  <.live_component module={StrangepathsWeb.MusicPlayerComponent} id="music-player" current_user={assigns[:current_user]} />
   <%= @inner_content %>
 </main>

@@ -3,8 +3,7 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
 
   @impl true
   def mount(socket) do
-    # Subscribe to presence events
-    {:ok, socket}
+    {:ok, assign(socket, :initialized, false)}
   end
 
   @impl true
@@ -16,51 +15,49 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
           assign(socket, :online_users, assigns.online_users)
 
         Map.has_key?(assigns, :song_ended) ->
-          IO.puts("got song_ended via send_update, song_id: #{assigns.song_ended}")
           # Call next_song with the song_id
-          case Strangepaths.Site.next_song(assigns.song_ended) do
-            {:ok, _state} ->
-              socket
-
-            {:error, reason} ->
-              IO.puts("Song already advanced: #{inspect(reason)}")
-              socket
-          end
+          Strangepaths.Site.next_song(assigns.song_ended)
+          socket
 
         Map.has_key?(assigns, :queue_update) ->
-          IO.puts("got queue_update via send_update")
           queue_state = Strangepaths.Site.get_music_queue()
           assign(socket, :music_queue, queue_state)
 
         Map.has_key?(assigns, :play_song) ->
-          IO.puts("got play_song via send_update")
-          IO.inspect(assigns.play_song)
           push_event(socket, "play_song", assigns.play_song)
 
         Map.has_key?(assigns, :stopped) ->
           push_event(socket, "stopped", %{})
 
         true ->
-          # Initial mount or standard update - load queue state and sync playback
-          queue_state = Strangepaths.Site.get_music_queue()
+          # Standard update from parent re-render (e.g., typing in Scenes)
+          # Only initialize on first update, not on every parent re-render
+          if socket.assigns[:initialized] do
+            # Already initialized, just pass through without syncing playback
+            socket
+          else
+            # First update after mount - load queue state and sync playback
+            queue_state = Strangepaths.Site.get_music_queue()
 
-          # If there's a song playing, push event to start it at current position
-          socket =
-            if queue_state.now_playing && queue_state.current_position do
-              push_event(socket, "play_song", %{
-                song_id: queue_state.now_playing.song.id,
-                title: queue_state.now_playing.song.title,
-                link: queue_state.now_playing.song.link,
-                queued_by: queue_state.now_playing.queued_by,
-                start_position: queue_state.current_position
-              })
-            else
-              socket
-            end
+            # If there's a song playing, push event to start it at current position
+            socket =
+              if queue_state.now_playing && queue_state.current_position do
+                push_event(socket, "play_song", %{
+                  song_id: queue_state.now_playing.song.id,
+                  title: queue_state.now_playing.song.title,
+                  link: queue_state.now_playing.song.link,
+                  queued_by: queue_state.now_playing.queued_by,
+                  start_position: queue_state.current_position
+                })
+              else
+                socket
+              end
 
-          socket
-          |> assign(:music_queue, queue_state)
-          |> assign(:online_users, get_presence_list())
+            socket
+            |> assign(:music_queue, queue_state)
+            |> assign(:online_users, get_presence_list())
+            |> assign(:initialized, true)
+          end
       end
 
     {:ok, assign(socket, assigns)}
@@ -77,8 +74,12 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
     ~H"""
       <div id="music-player" style="z-index: 100;" class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur border-t border-purple-500/30 p-4" phx-hook="MusicPlayer" phx-target={@myself}>
         <audio id="audio-player" class="hidden"></audio>
-
         <div class="container mx-auto flex items-center gap-4">
+          <%= if @current_user != nil and @current_user.role == :dragon do %>
+            <button id="clear_queue" data-confirm="Confirm queue clear?" phx-click="clear_queue" class="px-4 py-2 bg-red-600 rounded-full">✘</button>
+            <button id="emit_message" phx-click="emit_message" class="px-3 py-2 bg-purple-900 rounded-full">🎉</button>
+          <% end %>
+
           <button id="manual-play-btn" class="hidden px-4 py-2 bg-purple-600 rounded">
             ▶
           </button>

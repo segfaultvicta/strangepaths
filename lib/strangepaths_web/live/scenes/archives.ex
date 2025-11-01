@@ -96,8 +96,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
      |> assign(:viewing_elsewhere, false)}
   end
 
-  defp handle_archive_event(event, params, socket) do
-    IO.puts("unhandled archive event #{event} with params #{inspect(params)}")
+  defp handle_archive_event(_event, _params, socket) do
     {:noreply, socket}
   end
 
