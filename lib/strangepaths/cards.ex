@@ -715,6 +715,71 @@ defmodule Strangepaths.Cards do
     end
   end
 
+  defimpl Inspect, for: Entity do
+    def inspect(
+          %Entity{
+            name: name,
+            uuid: uuid,
+            x: x,
+            y: y,
+            img: _img,
+            deckID: _deckID,
+            cards: cards,
+            tolerance: _tolerance,
+            blockcap: _blockcap,
+            stress: _stress,
+            defence: _defence,
+            glory: _glory,
+            deckmana: _deckmana,
+            rulestext: _rulestext,
+            type: type,
+            card_id: _card_id,
+            glorified: _glorified,
+            gnosis: _gnosis,
+            smol: _smol,
+            bright: _bright,
+            owner_id: _owner_id
+          },
+          _opts
+        ) do
+      """
+      E[#{name} (#{uuid}) #{type}@#{x}, #{y}]:
+      """ <>
+        case type do
+          :Avatar ->
+            "Avatar! \n" <>
+              "HAND: " <>
+              (cards.hand
+               |> Enum.map(fn c -> c.name end)
+               |> Enum.join(", ")) <>
+              "\n" <>
+              "DISCARD: " <>
+              (cards.discard
+               |> Enum.map(fn c -> c.name end)
+               |> Enum.join(", ")) <>
+              "\n" <>
+              "DECK: " <>
+              (cards.draw
+               |> Enum.map(fn c -> c.name end)
+               |> Enum.join(", ")) <>
+              "\n" <>
+              "GRACES: " <>
+              (cards.graces
+               |> Enum.map(fn c -> c.name end)
+               |> Enum.join(", "))
+
+          :Card ->
+            "Card"
+
+          :Counter ->
+            "Counter"
+
+          :Radial ->
+            "Radial"
+        end
+    end
+  end
+
   defmodule Ceremony do
     use Agent
 
@@ -753,16 +818,16 @@ defmodule Strangepaths.Cards do
       end
     end
 
-    def placeEntity(truename, entity) do
+    def placeEntity(truename, trueentity) do
       {ok, ceremony} = get(truename)
 
       entity =
-        if !Enum.find(ceremony.entities, fn e -> e.uuid == entity.uuid end) &&
-             entity.type == :Avatar &&
-             entity.deckID != nil do
+        if !Enum.find(ceremony.entities, fn e -> e.uuid == trueentity.uuid end) &&
+             trueentity.type == :Avatar &&
+             trueentity.deckID != nil do
           deck =
-            if(Strangepaths.Cards.deck_exists?(entity.deckID)) do
-              Strangepaths.Cards.get_full_deck(entity.deckID).cards
+            if(Strangepaths.Cards.deck_exists?(trueentity.deckID)) do
+              Strangepaths.Cards.get_full_deck(trueentity.deckID).cards
             else
               []
             end
@@ -777,9 +842,9 @@ defmodule Strangepaths.Cards do
 
           {hand, rites} = Enum.split(rites, 4)
 
-          %{entity | cards: %{entity.cards | hand: hand, graces: graces, draw: rites}}
+          %{trueentity | cards: %{trueentity.cards | hand: hand, graces: graces, draw: rites}}
         else
-          entity
+          trueentity
         end
 
       # if entity already exists, remove it from the list of entities (handles moves)
@@ -870,6 +935,7 @@ defmodule Strangepaths.Cards do
 
     def add_card_to_entity_hand(truename, entity, card_id, n \\ 1) do
       card = Strangepaths.Cards.get_card!(card_id)
+      entity = get_entity(truename, entity.uuid)
 
       hand =
         if n == 1 do
@@ -884,6 +950,8 @@ defmodule Strangepaths.Cards do
     end
 
     def draw(truename, entity) do
+      entity = get_entity(truename, entity.uuid)
+
       entity =
         if Enum.count(entity.cards.draw) == 0 do
           %{entity | cards: %{entity.cards | draw: _shuffle(entity.cards.discard), discard: []}}
@@ -904,6 +972,8 @@ defmodule Strangepaths.Cards do
     end
 
     def shuffle(truename, entity) do
+      # make sure we are dealing with the most up to date version of that entity
+      entity = get_entity(truename, entity.uuid)
       entity = %{entity | cards: %{entity.cards | draw: _shuffle(entity.cards.draw)}}
       placeEntity(truename, entity)
     end
@@ -922,6 +992,7 @@ defmodule Strangepaths.Cards do
     end
 
     def return_random(truename, entity) do
+      entity = get_entity(truename, entity.uuid)
       # selects random card from discard and sends it to the hand
       if entity.cards.discard |> Enum.count() > 0 do
         card = entity.cards.discard |> Enum.random()
@@ -933,6 +1004,7 @@ defmodule Strangepaths.Cards do
     end
 
     def discard(truename, entity, card_uuid) do
+      entity = get_entity(truename, entity.uuid)
       card = entity.cards.hand |> Enum.find(fn c -> c.uuid == card_uuid end)
       discard = [card | entity.cards.discard]
       hand = entity.cards.hand |> Enum.reject(fn c -> c.uuid == card.uuid end)
@@ -943,6 +1015,7 @@ defmodule Strangepaths.Cards do
     def discard_from_field(truename, card, entity) do
       # need to turn card entity back into a card proper
       truecard = Strangepaths.Cards.get_card!(card.card_id)
+      entity = get_entity(truename, entity.uuid)
 
       entity = %{
         entity
@@ -955,6 +1028,7 @@ defmodule Strangepaths.Cards do
 
     def card_to_hand(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
+      entity = get_entity(truename, entity.uuid)
 
       entity = %{
         entity
@@ -974,6 +1048,7 @@ defmodule Strangepaths.Cards do
 
     def card_id_to_deck(truename, card_id, entity) do
       truecard = Strangepaths.Cards.get_card!(card_id)
+      entity = get_entity(truename, entity.uuid)
 
       entity = %{
         entity
@@ -985,6 +1060,7 @@ defmodule Strangepaths.Cards do
 
     def card_to_deck(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
+      entity = get_entity(truename, entity.uuid)
 
       entity = %{
         entity
@@ -997,6 +1073,7 @@ defmodule Strangepaths.Cards do
 
     def card_to_top_deck(truename, card, entity) do
       truecard = Strangepaths.Cards.get_card!(card.card_id)
+      entity = get_entity(truename, entity.uuid)
 
       entity = %{
         entity
@@ -1008,11 +1085,13 @@ defmodule Strangepaths.Cards do
     end
 
     def remove_from_hand(truename, originalUUID, entity) do
+      entity = get_entity(truename, entity.uuid)
       hand = entity.cards.hand |> Enum.reject(fn c -> c.uuid == originalUUID end)
       placeEntity(truename, %{entity | cards: %{entity.cards | hand: hand}})
     end
 
     def scry(truename, entity, card_uuid) do
+      entity = get_entity(truename, entity.uuid)
       card = entity.cards.draw |> Enum.find(fn c -> c.uuid == card_uuid end)
       hand = [card | entity.cards.hand]
       draw = entity.cards.draw |> Enum.reject(fn c -> c.uuid == card.uuid end)
@@ -1021,6 +1100,7 @@ defmodule Strangepaths.Cards do
     end
 
     def return(truename, entity, card_uuid) do
+      entity = get_entity(truename, entity.uuid)
       card = entity.cards.discard |> Enum.find(fn c -> c.uuid == card_uuid end)
       hand = [card | entity.cards.hand]
       discard = entity.cards.discard |> Enum.reject(fn c -> c.uuid == card.uuid end)

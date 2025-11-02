@@ -999,7 +999,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   end
 
   defp handle_ceremony_event("buttonShuffle", _data, socket) do
-    # TODO shuffle the deck
     cid = socket.assigns.ceremony.id
     Cards.Ceremony.shuffle(cid, socket.assigns.selectedEntity)
 

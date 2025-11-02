@@ -79,7 +79,7 @@ Hooks.ChatScrollManager = {
     },
 
     isNearBottom() {
-        const threshold = 150; // pixels from bottom
+        const threshold = 200; // pixels from bottom
         return (this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight) < threshold;
     }
 }
