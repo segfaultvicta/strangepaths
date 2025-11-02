@@ -5,6 +5,10 @@ defmodule StrangepathsWeb.LayoutView do
   # so we instruct Elixir to not warn if the dashboard route is missing.
   @compile {:no_warn_undefined, {Routes, :live_dashboard_path, 2}}
 
+  def path_head(conn),
+    do:
+      conn.request_path |> String.trim_leading("/") |> String.split("/", parts: 2) |> List.first()
+
   def navclass(conn, item) do
     "my-1 text-lg font-large lg:mx-4 lg:my-0 hover:text-sky-300 " <>
       if conn.request_path =~ Atom.to_string(item), do: "activenav", else: "inactivenav"

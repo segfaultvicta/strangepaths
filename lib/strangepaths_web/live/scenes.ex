@@ -76,6 +76,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:collapse_devour, true)
         |> assign(:unread_counts, %{})
         |> assign(:dragon_selections, %{})
+        |> assign(:layout_preference, socket.assigns.current_user.layout_preference)
 
       # Only load data and subscribe when connected (WebSocket established)
       if connected?(socket) do
@@ -270,6 +271,11 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   # JOIN A SCENE FROM THE LIST OF SCENES
+
+  defp handle_scene_event("select_scene_from_dropdown", %{"scene_id" => scene_id_str}, socket) do
+    # Handle dropdown scene selection (same logic as select_scene)
+    handle_scene_event("select_scene", %{"scene_id" => scene_id_str}, socket)
+  end
 
   defp handle_scene_event("select_scene", %{"scene_id" => scene_id_str}, socket) do
     scene_id = String.to_integer(scene_id_str)
@@ -1313,12 +1319,28 @@ defmodule StrangepathsWeb.Scenes do
       more_posts = Scenes.list_posts(scene.id, 30, offset)
       has_more = length(more_posts) >= 30
 
-      {:noreply,
-       socket
-       |> assign(:posts, socket.assigns.posts ++ more_posts)
-       |> assign(:posts_offset, offset + length(more_posts))
-       |> assign(:has_more_posts, has_more)
-       |> assign(:loading_more, false)}
+      # For chat layout: remember the first post ID before adding more
+      old_first_post_id = if socket.assigns.layout_preference == "icecylee" && length(socket.assigns.posts) > 0 do
+        List.first(Enum.reverse(socket.assigns.posts)).id
+      else
+        nil
+      end
+
+      socket =
+        socket
+        |> assign(:posts, socket.assigns.posts ++ more_posts)
+        |> assign(:posts_offset, offset + length(more_posts))
+        |> assign(:has_more_posts, has_more)
+        |> assign(:loading_more, false)
+
+      # Notify chat scroll manager to preserve scroll position
+      socket = if old_first_post_id do
+        push_event(socket, "posts_loaded", %{old_first_post_id: old_first_post_id})
+      else
+        socket
+      end
+
+      {:noreply, socket}
     else
       {:noreply, socket}
     end
@@ -1349,7 +1371,15 @@ defmodule StrangepathsWeb.Scenes do
     # If this is the current scene, add to posts list
     if socket.assigns.current_scene && socket.assigns.current_scene.id == scene_id do
       posts = [post | socket.assigns.posts]
-      {:noreply, assign(socket, :posts, posts)}
+
+      # For chat layout: notify scroll manager about new post
+      is_own_post = post.user_id == socket.assigns.current_user.id
+      socket =
+        socket
+        |> assign(:posts, posts)
+        |> push_event("new_post_received", %{is_own_post: is_own_post})
+
+      {:noreply, socket}
     else
       # Otherwise, increment unread count for this scene
       unread_counts = Map.update(socket.assigns.unread_counts, scene_id, 1, &(&1 + 1))

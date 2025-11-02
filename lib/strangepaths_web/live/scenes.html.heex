@@ -68,9 +68,251 @@
   class="fixed inset-0 top-[100px] bottom-24 p-4 overflow-hidden"
   phx-hook="SceneFocusManager"
 >
-  <div
-    class="flex flex-col md:flex-row h-full gap-0"
-    x-data="{
+  <%= if @layout_preference == "icecylee" do %>
+    <!-- CHAT MODE LAYOUT (Icecylee Style) -->
+    <!-- 2 columns: Left 75% (with posts + bottom bar) | Right 25% (controls, full height) -->
+    <div class="flex flex-row h-full gap-1">
+
+      <!-- LEFT COLUMN (75%): Flex column with 2 rows -->
+      <div class="flex flex-col flex-1">
+
+        <!-- Row 1: Posts container -->
+        <div class="flex-1 overflow-y-auto bg-indigo-300 dark:bg-gray-900 rounded p-4"
+             phx-hook="ChatScrollManager" id="chat-posts-container">
+
+          <%= if @current_scene do %>
+            <!-- Scene Header (sticky) -->
+            <div class="flex justify-between items-center mb-2 pr-4 sticky z-30 border border-indigo-900 dark:border-indigo-50 top-0 bg-indigo-200 dark:bg-gray-900">
+              <h4 class="text-2xl font-light m-2 p-2 uppercase"><%= @current_scene.name %></h4>
+              <%= if @role == :dragon && !@current_scene.is_elsewhere do %>
+                <button
+                  phx-click="archive_scene"
+                  phx-value-scene_id={@current_scene.id}
+                  data-confirm="Are you sure you want to archive this scene?"
+                  class="bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded transition"
+                >
+                  Archive
+                </button>
+              <% end %>
+            </div>
+
+            <!-- Load More at TOP -->
+            <%= if @has_more_posts do %>
+              <button
+                phx-click="load_more_posts"
+                class="mb-4 w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition"
+              >
+                <%= if @loading_more, do: "Loading...", else: "Load older posts..." %>
+              </button>
+            <% end %>
+
+            <!-- Posts (REVERSED for chat style - oldest at top, newest at bottom) -->
+            <%= if @posts && length(@posts) > 0 do %>
+              <div class="space-y-4">
+                <%= for post <- Enum.reverse(@posts) do %>
+                  <div data-post-id={post.id} class={"p-4 rounded flex flex-row " <> case post.post_type do
+                    :narrative -> "bg-purple-100 dark:bg-purple-900 border-l-4 border-purple-500"
+                    :system -> "bg-blue-200 dark:bg-blue-900 border-l-4 border-blue-500"
+                    _ -> "bg-indigo-100 dark:bg-gray-800"
+                  end}>
+                    <!-- Post Header -->
+                    <%= if post.post_type not in [:narrative, :system] do %>
+                      <div class="post-header">
+                        <%= if post.avatar do %>
+                          <img
+                            src={post.avatar.filepath}
+                            alt="Avatar"
+                            class="w-24 h-24 rounded mr-3"
+                          />
+                        <% end %>
+                      </div>
+                    <% end %>
+
+                    <!-- Post Content -->
+                    <div class="post-content">
+                      <div class="post-ic-content">
+                        <span class="post-ic-authorspan">
+                          <%= cond do %>
+                            <% post.post_type == :system -> %>
+
+                            <% post.post_type == :narrative -> %>
+
+                            <% post.narrative_author_name != nil -> %>
+                              <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                            <% post.user -> %>
+                              <%= post.user.nickname %>
+                            <% true -> %>
+                              Unknown
+                          <% end %>
+                        </span>
+                          <%= raw Earmark.as_html!(post.content, sub_sup: true) %>
+                      </div>
+
+                      <!-- OOC Content -->
+                      <%= if post.ooc_content do %>
+                        <div class="post-ooc-container">
+                          <hr class="post-ooc-divider">
+                            <span class="post-ooc-content"><%= post.ooc_content %></span>
+                        </div>
+                      <% end %>
+                      <div class={if post.ooc_content do "post-timestamp-with-ooc" else "post-timestamp-no-ooc" end <> " mt-2"}>
+                        <%= Calendar.strftime(post.posted_at, "%B %d, %Y at %I:%M %p") %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-gray-400">No posts yet.</p>
+            <% end %>
+          <% else %>
+            <div class="flex items-center justify-center h-full text-gray-400">
+              <p>Select a scene to view posts</p>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Row 2: Bottom bar -->
+        <%= if @current_scene do %>
+          <div class="bg-indigo-200 dark:bg-gray-900 p-4 border-t-4 border-purple-500 mt-1 flex gap-4 items-start">
+
+            <!-- Avatar + Narrative Toggle Column (80px) -->
+            <div class="flex flex-col items-center gap-2" style="width: 80px; flex-shrink: 0;">
+              <button phx-click="open_avatar_picker" class="group relative inline-block">
+                <%= if @selected_avatar_id do %>
+                  <img src={@selected_avatar.filepath} alt="Avatar" class="w-16 h-16 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
+                <% else %>
+                  <div class="w-16 h-16 rounded-full border-2 border-gray-600 group-hover:border-purple-400 bg-gray-800 flex items-center justify-center transition">
+                    <i class="fa-solid fa-user text-4xl text-gray-500"></i>
+                  </div>
+                <% end %>
+                <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
+                  <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+                </div>
+              </button>
+
+              <%= if @role == :dragon do %>
+                <button
+                  phx-click="toggle_narrative_mode"
+                  class={"text-xs px-2 py-1 rounded transition " <>
+                         if(@narrative_mode, do: "bg-purple-600 hover:bg-purple-700 text-white", else: "bg-gray-700 hover:bg-gray-600 text-white")}
+                >
+                  <%= if @narrative_mode, do: "Narr", else: "Char" %>
+                </button>
+              <% end %>
+            </div>
+
+            <!-- Composer Column (flex-1) -->
+            <div class="flex-1">
+              <div class="text-sm mb-1 text-gray-600 dark:text-gray-400">
+                <%= @current_user.nickname %>
+              </div>
+
+              <%= if @eligible do %>
+                <form phx-change="update_post_content"
+                      phx-submit={if @narrative_mode, do: "post_narrative", else: "post_message"}>
+
+                  <%= if @role == :dragon && !@narrative_mode do %>
+                    <input
+                      type="text"
+                      name="author_name"
+                      value={@narrative_author_name}
+                      placeholder="Author name (optional)"
+                      phx-change="update_narrative_author_name"
+                      class="w-full p-1 mb-1 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white text-sm"
+                    />
+                  <% end %>
+
+                  <textarea
+                    id="post-content-input-chat"
+                    name="content"
+                    placeholder="Write your post..."
+                    class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none"
+                    rows="2"
+                    required
+                    phx-hook="PostContentInput"
+                  ><%= @post_content %></textarea>
+
+                  <%= if @role == :user or (@role == :dragon && !@narrative_mode) do %>
+                    <textarea
+                      name="ooc_content"
+                      placeholder="OOC comment (optional)"
+                      class="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none text-sm"
+                      rows="1"
+                    ><%= @ooc_content %></textarea>
+                  <% end %>
+
+                  <div class="flex justify-between items-center mt-1">
+                    <%= if !@narrative_mode do %>
+                      <button
+                        type="button"
+                        phx-click="toggle_post_mode"
+                        class={"text-xs px-2 py-1 rounded transition " <>
+                               if(@post_mode == :speech, do: "bg-blue-600 hover:bg-blue-700 text-white", else: "bg-gray-600 hover:bg-gray-700 text-white")}
+                      >
+                        <%= if @post_mode == :speech, do: "Speech", else: "Action" %>
+                      </button>
+                    <% else %>
+                      <div></div>
+                    <% end %>
+
+                    <button
+                      type="submit"
+                      class="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+                    >
+                      Post
+                    </button>
+                  </div>
+                </form>
+              <% else %>
+                <div class="text-sm text-gray-500 italic">You are not eligible to post in this scene.</div>
+              <% end %>
+            </div>
+
+            <!-- Scene Picker Column (200px) -->
+            <div style="width: 200px; flex-shrink: 0;">
+              <label class="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Scene:</label>
+              <select
+                phx-change="select_scene_from_dropdown"
+                name="scene_id"
+                class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white text-sm"
+              >
+                <%= for scene <- @scenes do %>
+                  <option
+                    value={scene.id}
+                    selected={@current_scene && @current_scene.id == scene.id}
+                  >
+                    <%= scene.name %>
+                    <%= if scene.is_elsewhere, do: " (Elsewhere)" %>
+                    <%= if Strangepaths.Scenes.Scene.locked?(scene), do: " 🔒" %>
+                  </option>
+                <% end %>
+              </select>
+
+              <%= if @current_scene do %>
+                <% unread = Map.get(@unread_counts, @current_scene.id, 0) %>
+                <%= if unread > 0 do %>
+                  <div class="text-xs text-purple-400 mt-1"><%= unread %> unread</div>
+                <% end %>
+              <% end %>
+            </div>
+
+          </div>
+        <% end %>
+
+      </div>
+
+      <!-- RIGHT COLUMN (25%): Full height controls -->
+      <div style="width: 25%;" class="overflow-y-auto bg-indigo-200 dark:bg-gray-900 rounded p-4">
+        <p class="text-gray-400">Right controls will go here...</p>
+      </div>
+
+    </div>
+  <% else %>
+    <!-- DEFAULT MODE LAYOUT -->
+    <div
+      class="flex flex-col md:flex-row h-full gap-0"
+      x-data="{
       leftWidth: parseFloat(localStorage.getItem('scenes-left-width') || '20'),
       rightWidth: parseFloat(localStorage.getItem('scenes-right-width') || '16'),
       isDragging: false,
@@ -192,10 +434,12 @@
 
             <%= if @role == :user or (@role == :dragon && !@narrative_mode) do %>
               <textarea
+                id="ooc-content-input"
                 name="ooc_content"
                 placeholder="OOC comment (optional)"
                 class="w-full p-2 mt-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white text-sm resize-none"
                 rows="2"
+                phx-hook="OOCContentInput"
               ><%= @ooc_content %></textarea>
             <% end %>
 
@@ -381,7 +625,7 @@
       <%= if @posts && length(@posts) > 0 do %>
         <div class="space-y-4">
           <%= for post <- @posts do %>
-            <div class={"p-4 rounded flex flex-row " <> case post.post_type do
+            <div data-post-id={post.id} class={"p-4 rounded flex flex-row " <> case post.post_type do
               :narrative -> "bg-purple-100 dark:bg-purple-900 border-l-4 border-purple-500"
               :system -> "bg-blue-200 dark:bg-blue-900 border-l-4 border-blue-500"
               _ -> "bg-indigo-100 dark:bg-gray-800"
@@ -1255,5 +1499,6 @@
       </div>
     </div>
   <% end %>
-  </div> <!-- Close flex container -->
+    </div> <!-- Close flex container -->
+  <% end %>
 </div> <!-- Close scenes-container -->

@@ -1395,6 +1395,12 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket}
   end
 
+  defp handle_ceremony_event("key", "Escape", socket)
+       when socket.assigns.state == :ready do
+    # unset user's last_rite and redirect to /ceremony
+    {:noreply, socket |> redirect(to: "/ceremony?force_index")}
+  end
+
   defp handle_ceremony_event("key", _data, socket) do
     # noop a key event if we're not in a state that accepts keys
     {:noreply, socket}
@@ -1460,6 +1466,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
           else
             "ANONYMOUS GOOBER"
           end
+
+        Strangepaths.Accounts.update_user_last_rite_id(
+          socket.assigns.current_user,
+          %{last_rite_id: id}
+        )
 
         Strangepaths.Presence.track(self(), id, socket.id, %{nickname: nick})
 

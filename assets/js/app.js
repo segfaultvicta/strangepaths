@@ -27,11 +27,6 @@ import topbar from "../vendor/topbar"
 
 let Hooks = {}
 
-Hooks.FocusOnMount = {
-    mounted() {
-        this.el.focus();
-    }
-}
 
 Hooks.SceneFocusManager = {
     mounted() {
@@ -47,11 +42,71 @@ Hooks.SceneFocusManager = {
     }
 }
 
+Hooks.ChatScrollManager = {
+    mounted() {
+        // Scroll to bottom on mount
+        this.scrollToBottom();
+
+        // Listen for new posts from server
+        this.handleEvent("new_post_received", ({ is_own_post }) => {
+            if (is_own_post) {
+                // Always scroll for own posts
+                this.scrollToBottom();
+            } else {
+                // Only scroll if user is near bottom
+                if (this.isNearBottom()) {
+                    this.scrollToBottom();
+                }
+            }
+        });
+
+        // Handle "Load More" - preserve scroll position
+        this.handleEvent("posts_loaded", ({ old_first_post_id }) => {
+            requestAnimationFrame(() => {
+                // Find the old first post and scroll to it
+                const oldFirstPost = document.querySelector(`[data-post-id="${old_first_post_id}"]`);
+                if (oldFirstPost) {
+                    oldFirstPost.scrollIntoView({ block: 'start' });
+                }
+            });
+        });
+    },
+
+    scrollToBottom() {
+        requestAnimationFrame(() => {
+            this.el.scrollTop = this.el.scrollHeight;
+        });
+    },
+
+    isNearBottom() {
+        const threshold = 150; // pixels from bottom
+        return (this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight) < threshold;
+    }
+}
+
 Hooks.PostContentInput = {
     mounted() {
         // Focus on mount (combining FocusOnMount behavior)
         this.el.focus();
 
+        // Handle Ctrl+Enter to submit
+        this.el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && e.ctrlKey) {
+                e.preventDefault();
+                // Find the form and submit it
+                const form = this.el.closest("form");
+                if (form) {
+                    // Trigger form submission
+                    const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
+                }
+            }
+        });
+    }
+}
+
+Hooks.OOCContentInput = {
+    mounted() {
         // Handle Ctrl+Enter to submit
         this.el.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && e.ctrlKey) {

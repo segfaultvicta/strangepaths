@@ -193,6 +193,15 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
+  def update_user_last_rite_id(user, post_attrs \\ %{}) do
+    IO.puts(user.nickname)
+    IO.inspect(post_attrs)
+
+    user
+    |> User.last_rite_id_changeset(post_attrs)
+    |> Repo.update()
+  end
+
   def update_user_arete(user, attrs \\ %{}) do
     user
     |> User.arete_changeset(attrs)
@@ -208,6 +217,12 @@ defmodule Strangepaths.Accounts do
   def update_user_theme(user, attrs \\ %{}) do
     user
     |> User.theme_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_user_layout_preference(user, attrs \\ %{}) do
+    user
+    |> User.layout_preference_changeset(attrs)
     |> Repo.update()
   end
 
