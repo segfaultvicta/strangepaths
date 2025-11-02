@@ -36,9 +36,33 @@ Hooks.FocusOnMount = {
 Hooks.SceneFocusManager = {
     mounted() {
         this.handleEvent("focus_post_input", () => {
-            const input = document.getElementById("post-content-input");
-            if (input) {
-                input.focus();
+            // Use requestAnimationFrame to ensure DOM has updated
+            requestAnimationFrame(() => {
+                const input = document.getElementById("post-content-input");
+                if (input) {
+                    input.focus();
+                }
+            });
+        });
+    }
+}
+
+Hooks.PostContentInput = {
+    mounted() {
+        // Focus on mount (combining FocusOnMount behavior)
+        this.el.focus();
+
+        // Handle Ctrl+Enter to submit
+        this.el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && e.ctrlKey) {
+                e.preventDefault();
+                // Find the form and submit it
+                const form = this.el.closest("form");
+                if (form) {
+                    // Trigger form submission
+                    const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
+                }
             }
         });
     }

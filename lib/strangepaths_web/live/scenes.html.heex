@@ -187,7 +187,7 @@
               class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none"
               rows="4"
               required
-              phx-hook="FocusOnMount"
+              phx-hook="PostContentInput"
             ><%= @post_content %></textarea>
 
             <%= if @role == :user or (@role == :dragon && !@narrative_mode) do %>
@@ -201,9 +201,9 @@
 
             <%= if !@narrative_mode do %>
               <%= if @post_mode == :action do %>
-                <button type="button" class="text-lg" phx-click="toggle_post_mode">Post Mode: Action <span class="font-light text-xs">(click to switch)</span></button>
+                <button type="button" class="text-lg underline" phx-click="toggle_post_mode">Post Mode: Action <span class="font-light text-xs">(click to switch)</span></button>
               <% else %>
-                <button type="button"class="text-lg" phx-click="toggle_post_mode">Post Mode: Speech <span class="font-light text-xs">(click to switch)</span></button>
+                <button type="button"class="text-lg underline" phx-click="toggle_post_mode">Post Mode: Speech <span class="font-light text-xs">(click to switch)</span></button>
               <% end %>
             <% end %>
 

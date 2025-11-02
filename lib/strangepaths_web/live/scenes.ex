@@ -399,7 +399,8 @@ defmodule StrangepathsWeb.Scenes do
            socket
            |> assign(:post_content, "")
            |> assign(:narrative_author_name, author_name)
-           |> assign(:ooc_content, "")}
+           |> assign(:ooc_content, "")
+           |> push_event("focus_post_input", %{})}
 
         {:error, _changeset} ->
           {:noreply, put_flash(socket, :error, "Failed to post message")}
@@ -432,7 +433,8 @@ defmodule StrangepathsWeb.Scenes do
            socket
            |> assign(:post_content, "")
            |> assign(:ooc_content, "")
-           |> assign(:narrative_author_name, "")}
+           |> assign(:narrative_author_name, "")
+           |> push_event("focus_post_input", %{})}
 
         {:error, _changeset} ->
           {:noreply, put_flash(socket, :error, "Failed to post narrative")}
