@@ -121,7 +121,8 @@ body {
 }
 
 #music a {
-  @apply text-2xl font-light text-indigo-800 dark:text-indigo-200 hover:underline;
+  @apply text-xl font-light text-indigo-800 dark:text-indigo-200 hover:underline;
+  word-break: break-word;
 }
 
 .queue-song-button {

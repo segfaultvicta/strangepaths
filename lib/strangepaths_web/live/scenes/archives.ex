@@ -58,7 +58,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
 
     if scene && Scenes.can_view_scene?(scene, socket.assigns.current_user) do
       # Load all posts for the archived scene
-      posts = Scenes.list_posts(scene.id, 1000)
+      posts = Scenes.list_posts_for_archive(scene.id)
 
       {:noreply,
        socket

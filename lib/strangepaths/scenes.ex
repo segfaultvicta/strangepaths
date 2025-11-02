@@ -184,6 +184,14 @@ defmodule Strangepaths.Scenes do
     |> Repo.all()
   end
 
+  def list_posts_for_archive(scene_id) do
+    Post
+    |> where([p], p.scene_id == ^scene_id)
+    |> order_by([p], asc: p.posted_at)
+    |> preload([:user, :avatar])
+    |> Repo.all()
+  end
+
   @doc """
   Lists posts for a scene with date range filtering (useful for Elsewhere weekly archives).
   """
@@ -360,7 +368,7 @@ defmodule Strangepaths.Scenes do
     posts =
       Post
       |> where([p], p.scene_id == ^scene_id)
-      |> order_by([p], desc: p.posted_at)
+      |> order_by([p], asc: p.posted_at)
       |> preload([:user, :avatar])
       |> Repo.all()
 
