@@ -78,15 +78,60 @@ body {
     }
 }
 
+.slim-accordion {
+    @apply w-full flex justify-between items-center mb-1;
+}
+
+.slim-accordion span {
+    @apply text-lg font-light uppercase;
+}
+
+.slim-accordion .line {
+    @apply flex-grow border-t border-dotted border-current;
+}
+
+.slim-accordion i {
+    @apply text-2xl;
+}
+
 /* Scene Posts */
+
+#scenes-container {
+    @apply fixed inset-0 top-[100px] overflow-hidden;
+    bottom: 5rem;
+}
+
+.post-container {
+    @apply p-4 rounded flex flex-row
+}
+
+.post-container-icecylee {
+    @apply p-1 rounded flex flex-row
+}
 
 .post-header {
     @apply flex flex-col items-center m-2;
     width: 120px;
 }
 
+.post-header-icecylee {
+    @apply flex flex-col items-center my-1;
+}
+
 .post-content {
     @apply flex-1 flex flex-col relative;
+}
+
+.post-content-icecylee {
+    @apply flex-1 p-1 flex flex-col relative;
+}
+
+.post-avatar {
+    @apply w-24 h-24 rounded mr-3
+}
+
+.post-avatar-icecylee {
+    @apply w-12 h-12 rounded m-2
 }
 
 .post-timestamp-with-ooc {
@@ -102,6 +147,10 @@ body {
     @apply text-xl max-w-none;
 }
 
+.post-ic-content-icecylee {
+    @apply text-base max-w-none;
+}
+
 .post-ic-content p:first-of-type {
     display: inline;
 }
@@ -110,8 +159,20 @@ body {
     list-style: inside;
 }
 
+.post-ic-content-icecylee p:first-of-type {
+    display: inline;
+}
+
+.post-ic-content-icecylee li {
+    list-style: inside;
+}
+
 .post-ic-authorspan {
     @apply font-bold;
+}
+
+.post-ooc-content-icecylee {
+    @apply mt-2 p-2 text-sm italic text-gray-700 dark:text-gray-300;
 }
 
 .post-ooc-content {
@@ -126,6 +187,12 @@ body {
     padding-bottom: 10px;
 }
 
+.post-ooc-divider-icecylee {
+    margin-top: 5px;
+    margin-left: 100px;
+    margin-right: 100px;
+    border-top: 2px dotted #999;
+}
 
 #music a {
     @apply text-xl font-light text-indigo-800 dark:text-indigo-200 hover:underline;

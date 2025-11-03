@@ -85,32 +85,6 @@
       </.form>
     </div>
 
-    <div class="section p-6">
-      <h2 class="mb-4">Scene Layout Preference</h2>
-
-      <.form let={f} for={@layout_preference_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_layout_preferences" class="formstyle">
-        <%= hidden_input f, :action, name: "action", value: "update_layout_preferences" %>
-
-        <div class="mb-4">
-          <div class="flex gap-4">
-            <label class="flex items-center cursor-pointer">
-              <%= radio_button f, :layout_preference, "default", class: "mr-2" %>
-              <span>Teakwood Style (Three Column)</span>
-            </label>
-
-            <label class="flex items-center cursor-pointer">
-              <%= radio_button f, :layout_preference, "icecylee", class: "mr-2" %>
-              <span>Icecylee Style (like IRC or Discord)</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="pt-2">
-          <%= submit "Save Layout Preference", class: "submit" %>
-        </div>
-      </.form>
-    </div>
-
     <!-- Change Password Section -->
     <div class="section p-6">
       <h2 class="mb-4">Change Password</h2>

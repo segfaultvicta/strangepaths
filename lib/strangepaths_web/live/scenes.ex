@@ -44,11 +44,13 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:create_scene_locked, false)
         |> assign(:create_scene_user_ids, [])
         |> assign(:narrative_mode, false)
-        |> assign(:narrative_author_name, "")
+        |> assign(:narrative_author_name, "The Dragon")
+        |> assign(:narrative_author_editing, false)
         |> assign(:drawer_open, false)
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
         |> assign(:private_users, [])
+        |> assign(:collapse_scenepicker, false)
         |> assign(:collapse_manage_users, true)
         |> assign(:collapse_userlist, false)
         |> assign(:collapse_private_users, true)
@@ -272,11 +274,6 @@ defmodule StrangepathsWeb.Scenes do
 
   # JOIN A SCENE FROM THE LIST OF SCENES
 
-  defp handle_scene_event("select_scene_from_dropdown", %{"scene_id" => scene_id_str}, socket) do
-    # Handle dropdown scene selection (same logic as select_scene)
-    handle_scene_event("select_scene", %{"scene_id" => scene_id_str}, socket)
-  end
-
   defp handle_scene_event("select_scene", %{"scene_id" => scene_id_str}, socket) do
     scene_id = String.to_integer(scene_id_str)
     scene = Scenes.get_scene(scene_id)
@@ -352,67 +349,72 @@ defmodule StrangepathsWeb.Scenes do
      |> assign(:ooc_content, ooc_content)}
   end
 
-  defp handle_scene_event("update_narrative_author_name", %{"author_name" => author_name}, socket) do
-    {:noreply, assign(socket, :narrative_author_name, author_name)}
-  end
-
   defp handle_scene_event("post_message", %{"content" => content} = params, socket) do
     scene = socket.assigns.current_scene
     user = socket.assigns.current_user
 
-    if scene && user.id in (Scenes.rhs_eligible(scene) |> Enum.map(& &1.id)) do
-      author_name =
-        if user.role == :dragon do
-          Map.get(params, "author_name", "")
-        else
-          nil
-        end
-
-      ooc_content = Map.get(params, "ooc_content", "")
-
-      content =
-        if socket.assigns.post_mode == :speech do
-          "*says,* \“" <> content <> "\”"
-        else
-          "*" <> transform_quotes(content) <> "*"
-        end
-
-      # if the last two characters of content are "**" preceded by a "”",
-      # remove the final asterisks.
-      content =
-        if String.ends_with?(content, "”**") do
-          String.slice(content, 0..-3//-1)
-        else
-          content
-        end
-
-      post_attrs = %{
-        scene_id: scene.id,
-        user_id: user.id,
-        avatar_id: socket.assigns.selected_avatar_id,
-        content: String.trim(content),
-        narrative_author_name: author_name,
-        ooc_content: if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil)
-      }
-
-      case Scenes.create_character_post(post_attrs) do
-        {:ok, post} ->
-          # Preload associations for broadcasting
-          post = Strangepaths.Repo.preload(post, [:user, :avatar])
-          SceneServer.broadcast_post(scene.id, post)
-
-          {:noreply,
-           socket
-           |> assign(:post_content, "")
-           |> assign(:narrative_author_name, author_name)
-           |> assign(:ooc_content, "")
-           |> push_event("focus_post_input", %{})}
-
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Failed to post message")}
-      end
+    if String.trim(content) == "" do
+      {:noreply, socket}
     else
-      {:noreply, put_flash(socket, :error, "You don't have permission to post in this scene")}
+      if scene && user.id in (Scenes.rhs_eligible(scene) |> Enum.map(& &1.id)) do
+        author_name =
+          if user.role == :dragon do
+            if socket.assigns.narrative_author_name != nil and
+                 socket.assigns.narrative_author_name != "" do
+              socket.assigns.narrative_author_name
+            else
+              user.nickname
+            end
+          else
+            nil
+          end
+
+        ooc_content = Map.get(params, "ooc_content", "")
+
+        content =
+          if socket.assigns.post_mode == :speech do
+            "*says,* \“" <> content <> "\”"
+          else
+            "*" <> transform_quotes(content) <> "*"
+          end
+
+        # if the last two characters of content are "**" preceded by a "”",
+        # remove the final asterisks.
+        content =
+          if String.ends_with?(content, "”**") do
+            String.slice(content, 0..-3//-1)
+          else
+            content
+          end
+
+        post_attrs = %{
+          scene_id: scene.id,
+          user_id: user.id,
+          avatar_id: socket.assigns.selected_avatar_id,
+          content: String.trim(content),
+          narrative_author_name: author_name,
+          ooc_content: if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil)
+        }
+
+        case Scenes.create_character_post(post_attrs) do
+          {:ok, post} ->
+            # Preload associations for broadcasting
+            post = Strangepaths.Repo.preload(post, [:user, :avatar])
+            SceneServer.broadcast_post(scene.id, post)
+
+            {:noreply,
+             socket
+             |> assign(:post_content, "")
+             |> assign(:narrative_author_name, author_name)
+             |> assign(:ooc_content, "")
+             |> push_event("focus_post_input", %{})}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to post message")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "You don't have permission to post in this scene")}
+      end
     end
   end
 
@@ -420,33 +422,35 @@ defmodule StrangepathsWeb.Scenes do
     scene = socket.assigns.current_scene
     user = socket.assigns.current_user
 
-    if scene && user.role == :dragon do
-      post_attrs = %{
-        scene_id: scene.id,
-        user_id: user.id,
-        avatar_id: nil,
-        content: "ꙮ " <> String.trim(content),
-        ooc_content: nil,
-        narrative_author_name: nil
-      }
-
-      case Scenes.create_narrative_post(post_attrs) do
-        {:ok, post} ->
-          post = Strangepaths.Repo.preload(post, [:user, :avatar])
-          SceneServer.broadcast_post(scene.id, post)
-
-          {:noreply,
-           socket
-           |> assign(:post_content, "")
-           |> assign(:ooc_content, "")
-           |> assign(:narrative_author_name, "")
-           |> push_event("focus_post_input", %{})}
-
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Failed to post narrative")}
-      end
+    if String.trim(content) == "" do
+      {:noreply, socket}
     else
-      {:noreply, put_flash(socket, :error, "Only the Dragon can post narratives")}
+      if scene && user.role == :dragon do
+        post_attrs = %{
+          scene_id: scene.id,
+          user_id: user.id,
+          avatar_id: nil,
+          content: "ꙮ " <> String.trim(content),
+          ooc_content: nil,
+          narrative_author_name: nil
+        }
+
+        case Scenes.create_narrative_post(post_attrs) do
+          {:ok, post} ->
+            post = Strangepaths.Repo.preload(post, [:user, :avatar])
+            SceneServer.broadcast_post(scene.id, post)
+
+            {:noreply,
+             socket
+             |> assign(:post_content, "")
+             |> push_event("focus_post_input", %{})}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to post narrative")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "Only the Dragon can post narratives")}
+      end
     end
   end
 
@@ -516,6 +520,12 @@ defmodule StrangepathsWeb.Scenes do
      |> assign(:collapse_manage_users, !socket.assigns.collapse_manage_users)}
   end
 
+  defp handle_scene_event("toggle_scenepicker", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:collapse_scenepicker, !socket.assigns.collapse_scenepicker)}
+  end
+
   defp handle_scene_event("toggle_drawer", _params, socket) do
     {:noreply, assign(socket, :drawer_open, !socket.assigns.drawer_open)}
   end
@@ -552,6 +562,19 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_new_techne", _params, socket) do
     {:noreply, assign(socket, :collapse_new_techne, !socket.assigns.collapse_new_techne)}
+  end
+
+  defp handle_scene_event("edit_narr_author", _params, socket) do
+    {:noreply,
+     assign(socket, :narrative_author_editing, !socket.assigns.narrative_author_editing)}
+  end
+
+  defp handle_scene_event(
+         "change_narrative_author",
+         %{"narrative_author_name" => narrative_author},
+         socket
+       ) do
+    {:noreply, assign(socket, :narrative_author_name, narrative_author)}
   end
 
   defp handle_scene_event("toggle_presets", _params, socket) do
@@ -992,8 +1015,6 @@ defmodule StrangepathsWeb.Scenes do
           ""
         end
 
-    IO.inspect(msg)
-
     Scenes.system_message(msg, false, socket.assigns.current_scene.id)
 
     {:noreply,
@@ -1320,11 +1341,12 @@ defmodule StrangepathsWeb.Scenes do
       has_more = length(more_posts) >= 30
 
       # For chat layout: remember the first post ID before adding more
-      old_first_post_id = if socket.assigns.layout_preference == "icecylee" && length(socket.assigns.posts) > 0 do
-        List.first(Enum.reverse(socket.assigns.posts)).id
-      else
-        nil
-      end
+      old_first_post_id =
+        if socket.assigns.layout_preference == "icecylee" && length(socket.assigns.posts) > 0 do
+          List.first(Enum.reverse(socket.assigns.posts)).id
+        else
+          nil
+        end
 
       socket =
         socket
@@ -1334,11 +1356,12 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:loading_more, false)
 
       # Notify chat scroll manager to preserve scroll position
-      socket = if old_first_post_id do
-        push_event(socket, "posts_loaded", %{old_first_post_id: old_first_post_id})
-      else
-        socket
-      end
+      socket =
+        if old_first_post_id do
+          push_event(socket, "posts_loaded", %{old_first_post_id: old_first_post_id})
+        else
+          socket
+        end
 
       {:noreply, socket}
     else
@@ -1374,6 +1397,7 @@ defmodule StrangepathsWeb.Scenes do
 
       # For chat layout: notify scroll manager about new post
       is_own_post = post.user_id == socket.assigns.current_user.id
+
       socket =
         socket
         |> assign(:posts, posts)
@@ -1463,24 +1487,34 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp transform_quotes(text) do
-    text
-    |> String.graphemes()
-    |> Enum.reduce({[], false}, fn char, {acc, in_quote} ->
-      case char do
-        "\"" when in_quote ->
-          # Closing quote - add italic marker after the quote
-          {acc ++ ["\”", "*"], false}
+    text = Regex.replace(~r/\R+/, text, "\n")
 
-        "\"" when not in_quote ->
-          # Opening quote - add italic marker before the quote
-          {acc ++ ["*", "\“"], true}
+    return =
+      text
+      |> String.graphemes()
+      |> Enum.reduce({[], false}, fn char, {acc, in_quote} ->
+        case char do
+          "\"" when in_quote ->
+            # Closing quote - add italic marker after the quote
+            {acc ++ ["\”", "*"], false}
 
-        other ->
-          {acc ++ [other], in_quote}
-      end
-    end)
-    |> elem(0)
-    |> Enum.join()
+          "\"" when not in_quote ->
+            # Opening quote - add italic marker before the quote
+            {acc ++ ["*", "\“"], true}
+
+          "\n" ->
+            {acc ++ ["*", "\n", "\n", "\n", "*"], in_quote}
+
+          other ->
+            {acc ++ [other], in_quote}
+        end
+      end)
+      |> elem(0)
+      |> Enum.join()
+      |> String.replace("\n\n\n**\“", "\n\n\n\“")
+      |> String.replace("\”**\n\n\n", "\”\n\n\n")
+
+    return
   end
 
   defp color_lookup(color) do
@@ -1510,22 +1544,22 @@ defmodule StrangepathsWeb.Scenes do
   defp get_desc(color) do
     case color do
       "red" ->
-        "Red actions are impulsive, physical, brave or foolish; they are sparked by passion and emotions running high and a love of freedom above all else."
+        "🔴Burning actions are impulsive, physical, brave or foolish; they are sparked by passion and emotions running high and a love of freedom above all else."
 
       "green" ->
-        "Green actions are instinctive, harmonious and accepting of the world as it is; they are focused on growth, interdependence and deep context."
+        "🟢Flourishing actions are instinctive, harmonious and accepting of the world as it is; they are focused on growth, interdependence and deep context."
 
       "blue" ->
-        "Blue actions are clever, cunning, and logical; they are taken towards achieving perfection and certainty, understanding the world through analysis and study, or fulfilling one's inherent potential."
+        "🔵Pellucid actions are clever, cunning, and logical; they are taken towards achieving perfection and certainty, understanding the world through analysis and study, or fulfilling one's inherent potential."
 
       "white" ->
-        "White actions are lawful and selfless; they advance the community rather than the individual, and are concerned with morality, fairness, and symmetry."
+        "⚪Radiant actions are lawful and selfless; they advance the community rather than the individual, and are concerned with morality, fairness, and symmetry."
 
       "black" ->
-        "Black actions are powerful and selfish; ambitious, willing to treat anything and everything as a resource to be spent; willing to sacrifice for gain."
+        "⚫Tenebrous actions are powerful and selfish; ambitious, willing to treat anything and everything as a resource to be spent; willing to sacrifice for gain."
 
       _ ->
-        "Empty actions are mysterious and defy systematising ontologies; they concern magic, metaphysics, the will to overcome and transgress the bounds of reality."
+        "🌌Liminal actions are mysterious and defy systematising ontologies; they concern magic, metaphysics, the will to overcome and transgress the bounds of reality."
     end
   end
 

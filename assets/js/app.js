@@ -72,6 +72,11 @@ Hooks.ChatScrollManager = {
         });
     },
 
+    updated() {
+        // When DOM updates (like scene change), scroll to bottom
+        this.scrollToBottom();
+    },
+
     scrollToBottom() {
         requestAnimationFrame(() => {
             this.el.scrollTop = this.el.scrollHeight;
@@ -100,6 +105,16 @@ Hooks.PostContentInput = {
                     const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
                     form.dispatchEvent(submitEvent);
                 }
+            }
+
+            if (e.key === " " && e.ctrlKey) {
+                e.preventDefault();
+                this.pushEvent("toggle_post_mode", {});
+            }
+
+            if (e.key === "." && e.ctrlKey) {
+                e.preventDefault();
+                this.pushEvent("toggle_narrative_mode", {});
             }
         });
     }
