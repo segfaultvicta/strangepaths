@@ -98,36 +98,48 @@ body {
 
 #scenes-container {
     @apply fixed inset-0 top-[100px] overflow-hidden;
-    bottom: 5rem;
+    bottom: 4rem;
 }
 
-.post-container {
-    @apply p-4 rounded flex flex-row
+#icecylee-container {
+    @apply flex flex-row h-full gap-1;
+}
+
+#scene-left-col {
+    @apply flex flex-col flex-1;
+}
+
+#scene-right-col {
+    @apply overflow-y-auto bg-indigo-200 dark:bg-gray-900 rounded p-1;
+    width: 20%;
+}
+
+#chat-posts-container {
+    @apply flex-1 overflow-y-auto bg-indigo-300 dark:bg-gray-900 rounded px-4;
 }
 
 .post-container-icecylee {
-    @apply p-1 rounded flex flex-row
+    @apply flex flex-row;
 }
 
-.post-header {
-    @apply flex flex-col items-center m-2;
-    width: 120px;
+.post-container-narrative {
+    @apply rounded-full bg-purple-100 my-2 px-4 dark:bg-purple-900 border-l-8 border-purple-500;
+}
+
+.post-container-system {
+    @apply rounded-full bg-blue-200 my-2 px-2 dark:bg-blue-900 border-l-8 border-blue-500;
+}
+
+.post-container-post {
+    @apply text-lg;
 }
 
 .post-header-icecylee {
-    @apply flex flex-col items-center my-1;
-}
-
-.post-content {
-    @apply flex-1 flex flex-col relative;
+    @apply flex flex-col items-center;
 }
 
 .post-content-icecylee {
-    @apply flex-1 p-1 flex flex-col relative;
-}
-
-.post-avatar {
-    @apply w-24 h-24 rounded mr-3
+    @apply flex-1 p-1 flex flex-col justify-center relative;
 }
 
 .post-avatar-icecylee {
@@ -143,20 +155,8 @@ body {
     margin-top: 55px;
 }
 
-.post-ic-content {
-    @apply text-xl max-w-none;
-}
-
 .post-ic-content-icecylee {
-    @apply text-base max-w-none;
-}
-
-.post-ic-content p:first-of-type {
-    display: inline;
-}
-
-.post-ic-content li {
-    list-style: inside;
+    @apply max-w-none;
 }
 
 .post-ic-content-icecylee p:first-of-type {
@@ -173,18 +173,6 @@ body {
 
 .post-ooc-content-icecylee {
     @apply mt-2 p-2 text-sm italic text-gray-700 dark:text-gray-300;
-}
-
-.post-ooc-content {
-    @apply mt-2 p-2 text-sm italic text-gray-700 dark:text-gray-300;
-}
-
-.post-ooc-divider {
-    margin-top: 20px;
-    margin-left: 100px;
-    margin-right: 100px;
-    border-top: 2px dotted #999;
-    padding-bottom: 10px;
 }
 
 .post-ooc-divider-icecylee {

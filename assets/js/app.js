@@ -60,6 +60,12 @@ Hooks.ChatScrollManager = {
             }
         });
 
+        this.handleEvent("scroll_to_bottom", () => {
+            if (this.isNearBottom()) {
+                this.scrollToBottom();
+            }
+        })
+
         // Handle "Load More" - preserve scroll position
         this.handleEvent("posts_loaded", ({ old_first_post_id }) => {
             requestAnimationFrame(() => {
@@ -133,6 +139,11 @@ Hooks.OOCContentInput = {
                     const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
                     form.dispatchEvent(submitEvent);
                 }
+            }
+
+            if (e.key === " " && e.ctrlKey) {
+                e.preventDefault();
+                this.pushEvent("toggle_post_mode", {});
             }
         });
     }

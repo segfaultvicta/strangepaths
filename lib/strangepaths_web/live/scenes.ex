@@ -27,12 +27,19 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:avatars, [])
         |> assign(:avatar_picker_open, false)
         |> assign(:selected_avatar_id, nil)
-        |> assign(:selected_avatar, nil)
+        |> assign(:selected_avatar_filepath, nil)
         |> assign(:open_categories, [])
         |> assign(:present_users, [])
         |> assign(:rhs_users, [])
         |> assign(:eligible, false)
-        |> assign(:post_mode, :action)
+        |> assign(
+          :post_mode,
+          if socket.assigns.current_user.action_default == "speech" do
+            :speech
+          else
+            :action
+          end
+        )
         |> assign(:post_content, "")
         |> assign(:saved_post_content, "")
         |> assign(:saved_ooc_content, "")
@@ -44,7 +51,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:create_scene_locked, false)
         |> assign(:create_scene_user_ids, [])
         |> assign(:narrative_mode, false)
-        |> assign(:narrative_author_name, "The Dragon")
+        |> assign(:narrative_author_name, socket.assigns.current_user.nickname)
         |> assign(:narrative_author_editing, false)
         |> assign(:drawer_open, false)
         |> assign(:all_users, [])
@@ -78,7 +85,6 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:collapse_devour, true)
         |> assign(:unread_counts, %{})
         |> assign(:dragon_selections, %{})
-        |> assign(:layout_preference, socket.assigns.current_user.layout_preference)
 
       # Only load data and subscribe when connected (WebSocket established)
       if connected?(socket) do
@@ -100,8 +106,8 @@ defmodule StrangepathsWeb.Scenes do
 
         selected_avatar_id = socket.assigns.current_user.selected_avatar_id || nil
         # get that avatar
-        selected_avatar =
-          if selected_avatar_id, do: Accounts.get_avatar!(selected_avatar_id), else: nil
+        selected_avatar_filepath =
+          if selected_avatar_id, do: Accounts.get_avatar!(selected_avatar_id).filepath, else: nil
 
         # Eventually, I'll want to replace this with
         # "join the last scene your session remembers you being joined on"
@@ -200,7 +206,7 @@ defmodule StrangepathsWeb.Scenes do
          socket
          |> assign(:scenes, scenes)
          |> assign(:selected_avatar_id, selected_avatar_id)
-         |> assign(:selected_avatar, selected_avatar)
+         |> assign(:selected_avatar_filepath, selected_avatar_filepath)
          |> assign(:all_users, all_users)}
       else
         # Disconnected mount - just return socket with empty data
@@ -260,15 +266,16 @@ defmodule StrangepathsWeb.Scenes do
     avatar = Accounts.get_avatar!(avatar_id)
 
     # save avatar ID
-    {:ok, _user} =
+    {:ok, user} =
       Accounts.update_user_selected_avatar_id(socket.assigns.current_user, %{
         selected_avatar_id: avatar_id
       })
 
     {:noreply,
      socket
+     |> assign(:current_user, user)
      |> assign(:avatar_picker_open, false)
-     |> assign(:selected_avatar, avatar)
+     |> assign(:selected_avatar_filepath, avatar.filepath)
      |> assign(:selected_avatar_id, avatar_id)}
   end
 
@@ -390,7 +397,7 @@ defmodule StrangepathsWeb.Scenes do
         post_attrs = %{
           scene_id: scene.id,
           user_id: user.id,
-          avatar_id: socket.assigns.selected_avatar_id,
+          avatar_id: socket.assigns.current_user.selected_avatar_id,
           content: String.trim(content),
           narrative_author_name: author_name,
           ooc_content: if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil)
@@ -455,7 +462,9 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_event("toggle_narrative_mode", _params, socket) do
-    {:noreply, assign(socket, :narrative_mode, !socket.assigns.narrative_mode)}
+    {:noreply,
+     assign(socket, :narrative_mode, !socket.assigns.narrative_mode)
+     |> push_event("scroll_to_bottom", %{})}
   end
 
   defp handle_scene_event("create_scene", params, socket) do
@@ -574,6 +583,7 @@ defmodule StrangepathsWeb.Scenes do
          %{"narrative_author_name" => narrative_author},
          socket
        ) do
+    IO.puts("is this only happening when I edit the text field?")
     {:noreply, assign(socket, :narrative_author_name, narrative_author)}
   end
 
@@ -606,7 +616,9 @@ defmodule StrangepathsWeb.Scenes do
 
         {:noreply,
          assign(socket, :current_user, user)
-         |> assign(:selected_avatar_id, nil)}
+         |> assign(:narrative_author_name, "The Dragon")
+         |> assign(:selected_avatar_id, nil)
+         |> assign(:selected_avatar_filepath, nil)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to reset to dragon basis")}
@@ -681,10 +693,9 @@ defmodule StrangepathsWeb.Scenes do
             {:noreply,
              socket
              |> assign(:current_user, %{updated_user | techne: techne})
-             |> assign(:selected_avatar, avatar)
+             |> assign(:selected_avatar_filepath, avatar.filepath)
              |> assign(:selected_avatar_id, preset.selected_avatar_id)
-             |> assign(:narrative_author_name, preset.narrative_author_name || "")
-             |> put_flash(:info, "Preset '#{preset.name}' loaded successfully")}
+             |> assign(:narrative_author_name, preset.narrative_author_name || "")}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Failed to load preset")}
@@ -809,7 +820,9 @@ defmodule StrangepathsWeb.Scenes do
           end
 
         update_attrs = %{
+          name: editing_data.name,
           arete: editing_data.arete,
+          selected_avatar_id: editing_data.selected_avatar_id,
           primary_red: editing_data.primary_red,
           primary_green: editing_data.primary_green,
           primary_blue: editing_data.primary_blue,
@@ -920,7 +933,7 @@ defmodule StrangepathsWeb.Scenes do
       if arete_amount > 0 do
         Accounts.update_user_arete(user, %{arete: user.arete + arete_amount})
 
-        "- #{user.nickname} has gained #{arete_amount} Arete, and now has #{user.arete + arete_amount}."
+        "- **#{user.nickname}** has gained #{arete_amount} Arete, and now has #{user.arete + arete_amount}."
       else
         msg
       end
@@ -933,7 +946,7 @@ defmodule StrangepathsWeb.Scenes do
       if color && ranks > 0 && color in ["red", "green", "blue", "white", "black", "empty"] do
         case Strangepaths.Accounts.gm_driven_sacrifice_of(user, color, ranks) do
           {:ok, n} ->
-            "- #{user.nickname} was made to sacrifice #{cardinality_lookup(n)} of their #{color_lookup(color)} gnosis."
+            "- **#{user.nickname}** was made to sacrifice #{cardinality_lookup(n)} of their #{color_lookup(color)} gnosis."
 
           {:error, reason} ->
             "ERROR: #{user.nickname}'s sacrifice failed: #{reason}"
@@ -1010,7 +1023,7 @@ defmodule StrangepathsWeb.Scenes do
     msg =
       msg <>
         if socket.assigns.gm_techne_name != "" && socket.assigns.gm_techne_name != nil do
-          "\n\n- **#{nickname}** invoked their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
+          "\n\n- **#{nickname}** used their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
         else
           ""
         end
@@ -1035,7 +1048,7 @@ defmodule StrangepathsWeb.Scenes do
         end
 
       msg =
-        "- **#{nickname}** invoked their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
+        "- **#{nickname}** used their techné **#{socket.assigns.gm_techne_name}** *(#{socket.assigns.gm_techne_desc})*"
 
       Scenes.system_message(msg, false, socket.assigns.current_scene.id)
 
@@ -1209,7 +1222,7 @@ defmodule StrangepathsWeb.Scenes do
           name = socket.assigns.selected_techne_name
           desc = socket.assigns.selected_techne_desc
 
-          "- **#{user.nickname}** invoked their techné **#{name}** *(#{desc})*"
+          "- **#{user.nickname}** used their techné **#{name}** *(#{desc})*"
         else
           ""
         end
@@ -1342,7 +1355,7 @@ defmodule StrangepathsWeb.Scenes do
 
       # For chat layout: remember the first post ID before adding more
       old_first_post_id =
-        if socket.assigns.layout_preference == "icecylee" && length(socket.assigns.posts) > 0 do
+        if length(socket.assigns.posts) > 0 do
           List.first(Enum.reverse(socket.assigns.posts)).id
         else
           nil
@@ -1491,6 +1504,7 @@ defmodule StrangepathsWeb.Scenes do
 
     return =
       text
+      |> String.trim_trailing()
       |> String.graphemes()
       |> Enum.reduce({[], false}, fn char, {acc, in_quote} ->
         case char do

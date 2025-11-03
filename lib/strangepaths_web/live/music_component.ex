@@ -76,11 +76,11 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
         <audio id="audio-player" class="hidden"></audio>
         <div class="container mx-auto flex items-center gap-4">
           <%= if @current_user != nil and @current_user.role == :dragon do %>
-            <button id="clear_queue" data-confirm="Confirm queue clear?" phx-click="clear_queue" class="px-4 py-2 bg-red-600 rounded-full">✘</button>
-            <button id="emit_message" phx-click="emit_message" class="px-3 py-2 bg-purple-900 rounded-full">🎉</button>
+            <button id="clear_queue" data-confirm="Confirm queue clear?" phx-click="clear_queue" class="text-red-500">✘</button>
+            <button id="emit_message" phx-click="emit_message" class="">🎉</button>
           <% end %>
 
-          <button id="manual-play-btn" class="hidden px-4 py-2 bg-purple-600 rounded">
+          <button id="manual-play-btn" class="hidden text-purple-600">
             ▶
           </button>
 

@@ -27,7 +27,7 @@ defmodule Strangepaths.Accounts.User do
     field(:alethic_void, :integer, default: 0)
     field(:techne, {:array, :string}, default: [])
     field(:theme, :string, default: "dark")
-    field(:layout_preference, :string, default: "default")
+    field(:action_default, :string, default: "action")
     field(:last_rite_id, :string)
 
     timestamps()
@@ -166,10 +166,10 @@ defmodule Strangepaths.Accounts.User do
     |> cast(attrs, [:last_rite_id])
   end
 
-  def layout_preference_changeset(user, attrs) do
+  def action_default_changeset(user, attrs) do
     user
-    |> cast(attrs, [:layout_preference])
-    |> validate_inclusion(:layout_preference, ["default", "icecylee"])
+    |> cast(attrs, [:action_default])
+    |> validate_inclusion(:action_default, ["action", "speech"])
   end
 
   # Change user's primary and alethic die values

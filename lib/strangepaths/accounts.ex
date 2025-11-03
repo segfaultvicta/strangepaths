@@ -220,9 +220,9 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
-  def update_user_layout_preference(user, attrs \\ %{}) do
+  def update_user_action_default(user, attrs \\ %{}) do
     user
-    |> User.layout_preference_changeset(attrs)
+    |> User.action_default_changeset(attrs)
     |> Repo.update()
   end
 
@@ -889,28 +889,29 @@ defmodule Strangepaths.Accounts do
   """
   def create_preset_from_user(%User{} = user, preset_name) do
     # Get the raw user from DB to ensure we have string-format techne (not transformed maps)
-    raw_user = get_user!(user.id)
-
     attrs = %{
       name: preset_name,
       selected_avatar_id: user.selected_avatar_id,
       narrative_author_name: preset_name,
-      arete: user.arete,
-      primary_red: user.primary_red,
-      primary_green: user.primary_green,
-      primary_blue: user.primary_blue,
-      primary_white: user.primary_white,
-      primary_black: user.primary_black,
-      primary_void: user.primary_void,
-      alethic_red: user.alethic_red,
-      alethic_green: user.alethic_green,
-      alethic_blue: user.alethic_blue,
-      alethic_white: user.alethic_white,
-      alethic_black: user.alethic_black,
-      alethic_void: user.alethic_void,
-      techne: raw_user.techne,
+      arete: 0,
+      primary_red: 4,
+      primary_green: 4,
+      primary_blue: 4,
+      primary_white: 4,
+      primary_black: 4,
+      primary_void: 4,
+      alethic_red: 0,
+      alethic_green: 0,
+      alethic_blue: 0,
+      alethic_white: 0,
+      alethic_black: 0,
+      alethic_void: 0,
+      techne: [],
       user_id: user.id
     }
+
+    IO.puts("in create_preset")
+    IO.inspect(attrs.selected_avatar_id)
 
     %CharacterPreset{}
     |> CharacterPreset.changeset(attrs)
@@ -921,8 +922,6 @@ defmodule Strangepaths.Accounts do
   Updates a character preset.
   """
   def update_character_preset(%CharacterPreset{} = preset, attrs) do
-    IO.inspect(attrs)
-
     preset
     |> CharacterPreset.changeset(attrs)
     |> Repo.update()

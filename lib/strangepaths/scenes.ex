@@ -93,6 +93,14 @@ defmodule Strangepaths.Scenes do
   end
 
   @doc """
+  Gets a scene by its slug.
+  """
+  def get_scene_by_slug(slug) do
+    Repo.get_by(Scene, slug: slug)
+    |> Repo.preload(:owner)
+  end
+
+  @doc """
   Gets the Elsewhere scene (OOC chat).
   """
   def get_elsewhere_scene do
@@ -166,6 +174,21 @@ defmodule Strangepaths.Scenes do
 
   def archive_scene(_scene, _user) do
     {:error, "Only the Dragon or scene owner can archive this scene"}
+  end
+
+  @doc """
+  Updates the name of an archived scene.
+  Only the Dragon can update archived scene names.
+  """
+  def update_archived_scene_name(%Scene{archived_at: archived_at} = scene, new_name)
+      when not is_nil(archived_at) do
+    scene
+    |> Scene.update_name_changeset(%{name: new_name})
+    |> Repo.update()
+  end
+
+  def update_archived_scene_name(_scene, _new_name) do
+    {:error, "Scene is not archived"}
   end
 
   ## Post functions

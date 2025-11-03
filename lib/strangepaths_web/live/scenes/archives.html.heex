@@ -9,12 +9,10 @@
   <%= if @selected_scene || @viewing_elsewhere do %>
     <!-- Viewing a specific scene or week -->
     <div class="mb-4">
-      <button
-        phx-click="back_to_list"
-        class="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded transition"
-      >
-        ← Back to Archive List
-      </button>
+      <%= live_patch to: "/scenes/archives",
+                        class: "flex-1 p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition" do %>
+        ← Back to Archive List woo
+      <% end %>
     </div>
 
     <div class="bg-gray-900 rounded p-6">
@@ -82,6 +80,13 @@
         <p class="text-gray-400">No posts found in this archive.</p>
       <% end %>
     </div>
+
+    <div class="mb-4">
+      <%= live_patch to: "/scenes/archives",
+                        class: "flex-1 p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition" do %>
+        ← Back to Archive List woo
+      <% end %>
+    </div>
   <% else %>
     <!-- Archive list view -->
     Archive Search Coming Soon™ To A Bespoke TTRPG Website Near You
@@ -92,14 +97,11 @@
           <span class="text-2xl font-bold mb-4 text-purple-700 dark:text-purple-400">✨Elsewhere✨</span>
           <div class="space-y-2">
             <%= for {week_start, posts} <- @elsewhere_weeks do %>
-              <div
-                phx-click="view_elsewhere_week"
-                phx-value-week={Date.to_iso8601(week_start)}
-                class="p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition"
-              >
+              <%= live_patch to: "/scenes/archives/elsewhere/" <> Date.to_iso8601(week_start),
+                class: "" do %>
                 <div class="font-semibold">Week of <%= Calendar.strftime(week_start, "%B %d, %Y") %></div>
                 <div class="text-sm font-light dark:text-gray-400"><%= length(posts) %> posts</div>
-              </div>
+              <% end %>
             <% end %>
           </div>
         </div>
@@ -113,19 +115,70 @@
           <div class="space-y-2">
             <%= for scene <- @archived_scenes do %>
               <%= unless scene.is_elsewhere do %>
-                <div
-                  phx-click="view_scene"
-                  phx-value-scene_id={scene.id}
-                  class="p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition"
-                >
-                  <div class="font-semibold"><%= scene.name %></div>
-                  <div class="text-sm font-light dark:text-gray-400">
-                    Archived <%= Calendar.strftime(scene.archived_at, "%B %d, %Y") %>
-                    <%= if Strangepaths.Scenes.Scene.locked?(scene) do %>
-                      <span class="text-yellow-400">🔒 Private</span>
+                <%= if @editing_scene_id == scene.id do %>
+                  <!-- Edit Mode -->
+                  <div class="flex flex-row gap-2 mb-2">
+                    <form phx-submit="save_archived_scene_edit" phx-change="update_editing_scene_name" class="flex-1">
+                      <input type="hidden" name="scene_id" value={scene.id} />
+                      <input
+                        type="text"
+                        name="scene_name"
+                        value={@editing_scene_name}
+                        placeholder="Scene name"
+                        class="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white"
+                        required
+                        autofocus
+                      />
+                    </form>
+                    <button
+                      phx-click="save_archived_scene_edit"
+                      phx-value-scene_id={scene.id}
+                      class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition"
+                    >
+                      Save
+                    </button>
+                    <button
+                      phx-click="cancel_edit_archived_scene"
+                      class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                <% else %>
+                  <!-- View Mode -->
+                  <div class="flex flex-row gap-2 mb-2">
+                    <%= live_patch to: "/scenes/archives/#{scene.slug}",
+                        class: "flex-1 p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition" do %>
+
+                      <div class="font-semibold"><%= scene.name %></div>
+                      <div class="text-sm font-light dark:text-gray-400">
+                        Archived <%= Calendar.strftime(scene.archived_at, "%B %d, %Y") %>
+                        <%= if Strangepaths.Scenes.Scene.locked?(scene) do %>
+                          <span class="text-yellow-400">🔒 Private</span>
+                        <% end %>
+                      </div>
+                    <% end %>
+                    <%= if @role == :dragon do %>
+                      <div class="flex flex-col gap-1">
+                        <button
+                          phx-click="edit_archived_scene"
+                          phx-value-scene_id={scene.id}
+                          class="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          phx-click="delete_archived_scene"
+                          phx-value-scene_id={scene.id}
+                          data-confirm="Are you sure you want to permanently delete this archived scene and all its posts?"
+                          class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     <% end %>
                   </div>
-                </div>
+                <% end %>
               <% end %>
             <% end %>
           </div>

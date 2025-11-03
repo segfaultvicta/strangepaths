@@ -64,18 +64,18 @@ defmodule StrangepathsWeb.UserSettingsController do
     end
   end
 
-  def update(conn, %{"action" => "update_layout_preferences"} = params) do
+  def update(conn, %{"action" => "update_action_default"} = params) do
     %{"user" => user_params} = params
     user = conn.assigns.current_user
 
-    case Accounts.update_user_layout_preference(user, user_params) do
+    case Accounts.update_user_action_default(user, user_params) do
       {:ok, _} ->
         conn
-        |> put_flash(:info, "Layout preference saved!")
+        |> put_flash(:info, "Default action preference saved!")
         |> redirect(to: Routes.user_settings_path(conn, :edit))
 
       {:error, changeset} ->
-        render(conn, "edit.html", layout_preference_changeset: changeset)
+        render(conn, "edit.html", action_default_changeset: changeset)
     end
   end
 
@@ -116,7 +116,7 @@ defmodule StrangepathsWeb.UserSettingsController do
     |> assign(:email_changeset, Accounts.change_user_email(user))
     |> assign(:password_changeset, Accounts.change_user_password(user))
     |> assign(:nick_changeset, Accounts.change_user_nickname(user))
-    |> assign(:layout_preference_changeset, Accounts.User.layout_preference_changeset(user, %{}))
+    |> assign(:action_default_changeset, Accounts.User.action_default_changeset(user, %{}))
     |> assign(:theme_changeset, Accounts.User.theme_changeset(user, %{}))
   end
 end
