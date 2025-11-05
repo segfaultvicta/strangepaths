@@ -111,7 +111,6 @@ body {
 
 #scene-right-col {
     @apply overflow-y-auto bg-indigo-200 dark:bg-gray-900 rounded p-1;
-    width: 20%;
 }
 
 #chat-posts-container {
@@ -123,11 +122,11 @@ body {
 }
 
 .post-container-narrative {
-    @apply rounded-full bg-purple-100 my-2 px-4 dark:bg-purple-900 border-l-8 border-purple-500;
+    @apply lg:rounded-full bg-purple-100 my-2 px-4 dark:bg-purple-900 border-l-8 border-purple-500;
 }
 
 .post-container-system {
-    @apply rounded-full bg-blue-200 my-2 px-2 dark:bg-blue-900 border-l-8 border-blue-500;
+    @apply lg:rounded-full bg-blue-200 my-2 px-2 dark:bg-blue-900 border-l-8 border-blue-500;
 }
 
 .post-container-post {

@@ -68,9 +68,9 @@
   phx-hook="SceneFocusManager"
 >
   <!-- 2 columns: Left 75% (with posts + bottom bar) | Right 25% (controls, full height) -->
-  <div id="icecylee-container">
+  <div id="icecylee-container" class="flex flex-col lg:flex-row h-full gap-1">
     <!-- LEFT COLUMN (75%): Flex column with 2 rows -->
-    <div id="scene-left-col">
+    <div id="scene-left-col" class="flex flex-col flex-1">
       <!-- Row 1: Posts container -->
       <div id="chat-posts-container" phx-hook="ChatScrollManager">
         <%= if @current_scene do %>
@@ -150,10 +150,11 @@
       <%= if @current_scene do %>
         <%= if @eligible do %>
           <form phx-change="update_post_content"
-                    phx-submit={if @narrative_mode, do: "post_narrative", else: "post_message"}>
+                    phx-submit={if @narrative_mode, do: "post_narrative", else: "post_message"}
+                    class="pb-0 lg:pb-0 mb-24 lg:mb-0">
             <div class="bg-indigo-200 dark:bg-gray-900 px-4 pb-1 pt-2 border-t-4 border-purple-500 mt-1 flex gap-4 items-start">
               <%= if !@narrative_mode do %>
-                <div class="flex flex-col items-center">
+                <div class="hidden lg:flex flex-col items-center">
                   <button type="button" phx-click="open_avatar_picker" class="group relative inline-block">
                     <%= if @selected_avatar_id != nil do %>
                       <img src={@selected_avatar_filepath} alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
@@ -254,7 +255,28 @@
     </div>
 
     <!-- RIGHT COLUMN (25%): Full height controls -->
-    <div id="scene-right-col">
+    <div id="scene-right-col" class={"
+      overflow-y-auto transition-transform duration-300 ease-in-out
+      #{if @drawer_open, do: "translate-y-0", else: "translate-y-full lg:translate-y-0"}
+      fixed inset-x-0 bottom-0 z-50 h-[70vh] w-full bg-gray-800 rounded-t-xl
+      lg:relative lg:w-1/5 lg:h-auto lg:bg-transparent lg:rounded-none
+    "}>
+
+      <!-- Avatar Picker, don't render unless @drawer_open since that means we'll be on mobile -->
+      <%= if @drawer_open do %>
+        <button type="button" phx-click="open_avatar_picker" class="group relative inline-block">
+          <%= if @selected_avatar_id != nil do %>
+            <img src={@selected_avatar_filepath} alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
+          <% else %>
+            <div class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 bg-gray-800 flex items-center justify-center transition">
+              <i class="fa-solid fa-user text-4xl text-gray-500"></i>
+            </div>
+          <% end %>
+          <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
+            <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+          </div>
+        </button>
+      <% end %>
 
       <!--  Scene Picker -->
       <button phx-click="toggle_scenepicker" class="slim-accordion">
@@ -1047,8 +1069,29 @@
           <% end %>
         </div>
       <% end %> <!-- end userlist -->
-    </div>
 
+    </div> <!-- Close scene-right-col -->
+
+  </div> <!-- Close icecylee-container -->
+
+  <!-- Mobile-only elements -->
+  <!-- Backdrop overlay (only when drawer open) -->
+  <%= if @drawer_open do %>
+    <div class="lg:hidden fixed inset-0 bg-black/50 z-40" phx-click="close_drawer"></div>
+  <% end %>
+
+  <!-- Mobile menu button (fixed at bottom, above music player) -->
+  <div class="lg:hidden fixed bottom-24 inset-x-0 z-30 bg-gray-900 border-t border-gray-700 safe-area-padding-bottom">
+    <button
+      phx-click="toggle_drawer"
+      class="w-full py-4 px-4 flex items-center justify-center gap-3 text-white hover:bg-gray-800 transition"
+    >
+      <i class="fa-solid fa-bars text-xl"></i>
+      <span class="font-semibold">Menu</span>
+      <%= if @unread_count > 0 do %>
+        <span class="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full"><%= @unread_count %></span>
+      <% end %>
+    </button>
   </div>
-  <!-- Right Column: Ascension Data (Desktop) / Drawer (Mobile) -->
+
 </div> <!-- Close scenes-container -->

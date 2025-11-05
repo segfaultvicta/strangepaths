@@ -84,6 +84,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:gm_techne_desc, "")
         |> assign(:collapse_devour, true)
         |> assign(:unread_counts, %{})
+        |> assign(:unread_count, 0)
         |> assign(:dragon_selections, %{})
 
       # Only load data and subscribe when connected (WebSocket established)
@@ -314,6 +315,7 @@ defmodule StrangepathsWeb.Scenes do
 
       # Clear unread count for this scene
       unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
+      unread_count = calculate_total_unread(unread_counts)
 
       {:noreply,
        socket
@@ -327,6 +329,8 @@ defmodule StrangepathsWeb.Scenes do
        |> assign(:post_content, "")
        |> assign(:ooc_content, "")
        |> assign(:unread_counts, unread_counts)
+       |> assign(:unread_count, unread_count)
+       |> assign(:drawer_open, false)
        |> push_event("focus_post_input", %{})}
     else
       {:noreply, put_flash(socket, :error, "You don't have permission to view this scene")}
@@ -537,6 +541,10 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_drawer", _params, socket) do
     {:noreply, assign(socket, :drawer_open, !socket.assigns.drawer_open)}
+  end
+
+  defp handle_scene_event("close_drawer", _params, socket) do
+    {:noreply, assign(socket, :drawer_open, false)}
   end
 
   defp handle_scene_event("toggle_userlist", _params, socket) do
@@ -1420,7 +1428,8 @@ defmodule StrangepathsWeb.Scenes do
     else
       # Otherwise, increment unread count for this scene
       unread_counts = Map.update(socket.assigns.unread_counts, scene_id, 1, &(&1 + 1))
-      {:noreply, assign(socket, :unread_counts, unread_counts)}
+      unread_count = calculate_total_unread(unread_counts)
+      {:noreply, socket |> assign(:unread_counts, unread_counts) |> assign(:unread_count, unread_count)}
     end
   end
 
@@ -1593,5 +1602,12 @@ defmodule StrangepathsWeb.Scenes do
           "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***."
         end
     end
+  end
+
+  # Calculate total unread count across all scenes
+  defp calculate_total_unread(unread_counts) do
+    unread_counts
+    |> Map.values()
+    |> Enum.sum()
   end
 end
