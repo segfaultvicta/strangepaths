@@ -342,6 +342,10 @@
         Glory <%= @deck.glory_used %> / <%= @deck.glory %>
       </div>
 
+      <div class={"text-center mb-4 text-lg font-bold " <> if @total_sidereals < 15 do "text-red-600 dark:text-red-400" else "text-indigo-800 dark:text-white" end}>
+        Sidereals <%= @total_sidereals %> / 15
+      </div>
+
       <div class="border-t border-gray-700 pt-4 mb-2">
         <div class="text-center text-sm mb-2">Cards in Deck</div>
       </div>
