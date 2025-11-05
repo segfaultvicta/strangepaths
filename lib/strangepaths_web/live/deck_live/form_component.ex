@@ -18,16 +18,12 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
     aspects = ["Fang", "Claw", "Scale", "Breath"]
 
     manabalance = %{
-      red: String.to_integer(deck_params["red"]),
-      green: String.to_integer(deck_params["green"]),
-      blue: String.to_integer(deck_params["blue"]),
-      white: String.to_integer(deck_params["white"]),
-      black: String.to_integer(deck_params["black"])
+      red: 0,
+      green: 0,
+      blue: 0,
+      white: 0,
+      black: 0
     }
-
-    manatotal =
-      manabalance.red + manabalance.green + manabalance.blue + manabalance.white +
-        manabalance.black
 
     changeset =
       %{socket.assigns.deck | manabalance: manabalance}
@@ -38,8 +34,7 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
      assign(socket,
        deck: %{socket.assigns.deck | manabalance: manabalance},
        changeset: changeset,
-       aspects: aspects,
-       manatotal: manatotal
+       aspects: aspects
      )}
   end
 
@@ -57,26 +52,13 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
     save_deck(socket, socket.assigns.action, deck_params)
   end
 
-  # defp save_deck(socket, :edit, deck_params) do
-  #  case Cards.update_deck(socket.assigns.deck, deck_params) do
-  #    {:ok, _deck} ->
-  #      {:noreply,
-  #       socket
-  #       |> put_flash(:info, "Deck updated successfully")
-  #       |> push_redirect(to: socket.assigns.return_to)}
-  #
-  #    {:error, %Ecto.Changeset{} = changeset} ->
-  #      {:noreply, assign(socket, :changeset, changeset)}
-  #  end
-  # end
-
   defp save_deck(socket, :new, deck_params) do
     manabalance = %{
-      red: String.to_integer(deck_params["red"]),
-      green: String.to_integer(deck_params["green"]),
-      blue: String.to_integer(deck_params["blue"]),
-      white: String.to_integer(deck_params["white"]),
-      black: String.to_integer(deck_params["black"])
+      red: 0,
+      green: 0,
+      blue: 0,
+      white: 0,
+      black: 0
     }
 
     case Cards.create_deck(Map.put(deck_params, "manabalance", manabalance)) do

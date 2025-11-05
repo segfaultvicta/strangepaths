@@ -1,104 +1,87 @@
 <div>
-  <h2><%= @title %></h2>
+  <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-indigo-900 dark:text-white"><%= @title %></h2>
 
   <%= if @id == :new do %>
-  <.form
-    let={f}
-    for={@changeset}
-    id="deck-form"
-    phx-target={@myself}
-    phx-change="validate_new"
-    phx-submit="save">
-  
-    <div class="formstyle">
-      <div class="py-4">
-        <%= label f, :name %>
-        <%= text_input f, :name, class: "text" %>
-        <%= error_tag f, :name %>
-      </div>
-    
-      <div class="pb-6 sm:pb-12">
-        <%= if @aspects != nil do %>
-          <%= label f, :aspect_id, class: "block sm:text-right mt-2" %>
-          <%= select f, :aspect_id, Strangepaths.Cards.list_aspects_for_form_permitting(@aspects), prompt: "Aspect:", class: "text w-full sm:w-auto" %>
+    <!-- Error Messages at Top -->
+    <%= if @changeset.errors != [] do %>
+      <div class="mb-6 bg-red-100 dark:bg-red-900 border-l-4 border-red-500 p-4 rounded">
+        <%= for {type, {error, _elist}} <- @changeset.errors do %>
+          <% e = case type do
+            :name -> "Please name your deck."
+            :aspect_id -> "Please select an Aspect."
+            _ -> "A mysterious error has occurred. #{inspect(error)}"
+          end %>
+          <div class="text-sm sm:text-base text-red-800 dark:text-red-200 font-semibold"><%= e %></div>
         <% end %>
       </div>
+    <% end %>
 
-      <div>
-        <!-- Mana Balance Header -->
-        <div class="text-xl sm:text-2xl font-black text-center mb-4">
-          MANA BALANCE: <%=
-            cond do
-              @manatotal > 15 ->
-                raw("<span class='text-red-500'>" <> Integer.to_string(@manatotal) <> "</span>")
-              @manatotal < 15 ->
-                raw("<span class='text-red-500'>" <> Integer.to_string(@manatotal) <> "</span>")
-              @manatotal == 15 ->
-                raw("<span class='text-green-500'>" <> Integer.to_string(@manatotal) <> "</span>")
-            end%>/15
-        </div>
-
-        <!-- Mana Sliders -->
-        <ul class="space-y-2 mb-4">
-          <li class="flex items-center gap-2">
-            <%= range_input f, :red, min: 0, max: 15, class: "flex-1", style: "accent-color: red", value: @deck.manabalance.red %>
-            <output class="text-xl sm:text-2xl w-8 text-center"><%= @deck.manabalance.red %></output>
-          </li>
-          <li class="flex items-center gap-2">
-            <%= range_input f, :green , min: 0, max: 15, class: "flex-1", style: "accent-color: green", value: @deck.manabalance.green %>
-            <output class="text-xl sm:text-2xl w-8 text-center"><%= @deck.manabalance.green %></output>
-          </li>
-          <li class="flex items-center gap-2">
-            <%= range_input f, :blue, min: 0, max: 15, class: "flex-1", style: "accent-color: blue", value: @deck.manabalance.blue %>
-            <output class="text-xl sm:text-2xl w-8 text-center"><%= @deck.manabalance.blue %></output>
-          </li>
-          <li class="flex items-center gap-2">
-            <%= range_input f, :white, min: 0, max: 15, class: "flex-1", style: "accent-color: white", value: @deck.manabalance.white %>
-            <output class="text-xl sm:text-2xl w-8 text-center"><%= @deck.manabalance.white %></output>
-          </li>
-          <li class="flex items-center gap-2">
-            <%= range_input f, :black, min: 0, max: 15, class: "flex-1", style: "accent-color: black", value: @deck.manabalance.black %>
-            <output class="text-xl sm:text-2xl w-8 text-center"><%= @deck.manabalance.black %></output>
-          </li>
-        </ul>
-
-        <!-- Error Messages -->
-        <div class="mb-4">
-          <%= for {type, {error, _elist}} <- @changeset.errors do %>
-            <% e = case type do
-              :name -> "Please name your deck."
-              :aspect_id -> "Please select an Aspect."
-              :manabalance -> error
-              _ -> "A mysterious error has occurred."
-            end %>
-            <div class="text-base sm:text-lg text-red-500 font-black text-center"><%= e %></div>
-          <% end %>
-        </div>
-      </div>
-      
-      <%= hidden_input f, :owner, value: @deck.owner %>
-    
-      <div class="flex justify-center pt-4">
-        <%= submit (if @changeset.errors == [] do "Save" else "..." end), phx_disable_with: "Saving...", class: "submit", disabled: @changeset.errors != [] %>
-      </div>
-    </div>
-  </.form>
-  <% else %>
     <.form
-    let={f}
-    for={@changeset}
-    id="deck-form"
-    phx-target={@myself}
-    phx-change="validate_edit"
-    phx-submit="save">
-  
-    <%= label f, :name %>
-    <%= text_input f, :name %>
-    <%= error_tag f, :name %>
-  
-    <div>
-      <%= submit "Save", phx_disable_with: "Saving..." %>
-    </div>
-  </.form>
+      let={f}
+      for={@changeset}
+      id="deck-form"
+      phx-target={@myself}
+      phx-change="validate_new"
+      phx-submit="save">
+
+      <div class="space-y-6">
+        <!-- Name Input -->
+        <div>
+          <%= label f, :name, class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+          <%= text_input f, :name,
+            class: "w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-indigo-300 dark:border-gray-700 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition",
+            placeholder: "Enter deck name..." %>
+        </div>
+
+        <!-- Aspect Selector -->
+        <%= if @aspects != nil do %>
+          <div>
+            <%= label f, :aspect_id, class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+            <%= select f, :aspect_id,
+              Strangepaths.Cards.list_aspects_for_form_permitting(@aspects),
+              prompt: "Select an Aspect...",
+              class: "w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-indigo-300 dark:border-gray-700 rounded-lg text-indigo-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" %>
+          </div>
+        <% end %>
+
+        <%= hidden_input f, :owner, value: @deck.owner %>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end pt-2">
+          <%= submit (if @changeset.errors == [] do "Create Deck" else "Please fix errors above" end),
+            phx_disable_with: "Saving...",
+            disabled: @changeset.errors != [],
+            class: "px-6 py-3 rounded-lg font-semibold transition #{if @changeset.errors == [] do "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer" else "bg-gray-400 dark:bg-gray-700 text-gray-600 dark:text-gray-500 cursor-not-allowed" end}" %>
+        </div>
+      </div>
+    </.form>
+  <% else %>
+    <!-- Edit Form -->
+    <.form
+      let={f}
+      for={@changeset}
+      id="deck-form"
+      phx-target={@myself}
+      phx-change="validate_edit"
+      phx-submit="save">
+
+      <div class="space-y-6">
+        <!-- Name Input -->
+        <div>
+          <%= label f, :name, class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+          <%= text_input f, :name,
+            class: "w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-indigo-300 dark:border-gray-700 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition",
+            placeholder: "Enter deck name..." %>
+          <%= error_tag f, :name %>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end pt-2">
+          <%= submit "Save Changes",
+            phx_disable_with: "Saving...",
+            class: "px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition cursor-pointer" %>
+        </div>
+      </div>
+    </.form>
   <% end %>
 </div>

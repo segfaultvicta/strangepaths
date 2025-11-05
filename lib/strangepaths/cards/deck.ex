@@ -71,10 +71,10 @@ defmodule Strangepaths.Cards.Deck do
     if balance == 15 do
       changeset
     else
-      if balance < 15 do
-        add_error(changeset, :manabalance, "Mana Balance is too low!")
-      else
+      if balance > 15 do
         add_error(changeset, :manabalance, "Mana Balance is too high!")
+      else
+        changeset
       end
     end
   end

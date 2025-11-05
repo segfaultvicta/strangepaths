@@ -202,44 +202,18 @@ defmodule StrangepathsWeb.DeckLive.Show do
      |> recalc(deck)}
   end
 
-  defp manabalance_div(deck) do
-    Enum.reduce(deck.manabalance, "", fn {color, cardinality}, acc ->
-      acc <>
-        Enum.reduce(0..cardinality, "", fn
-          i, acc2 ->
-            case i do
-              0 ->
-                ""
-
-              _ ->
-                acc2 <>
-                  "<img class='object-scale-down h-8 mr-4" <>
-                  if sidereal_satiation(
-                       deck.cards,
-                       Cards.get_aspect_id(String.capitalize(color)),
-                       i
-                     ) do
-                    ""
-                  else
-                    " blur-lg"
-                  end <>
-                  "' src='/images/" <>
-                  color <> "2.png'>"
-            end
-        end)
-    end)
-  end
-
   defp recalc(socket, deck) do
     deck_ids = Enum.map(deck.cards, fn c -> c.id end)
     cards = Cards.list_cards_for_codex()
     graces = Cards.rites(cards, deck.aspect_id, 1, :Grace)
-    aspectrites = Cards.rites(cards, deck.aspect_id, 10, :Rite)
+    aspectrites = Cards.rites(cards, deck.aspect_id, 20, :Rite)
     aspects = Cards.list_aspects()
 
     sidereals =
-      Enum.reduce(deck.manabalance, %{}, fn {color, cardinality}, acc ->
-        if cardinality > 0 do
+      Enum.reduce(
+        %{"red" => 0, "green" => 0, "blue" => 0, "white" => 0, "black" => 0},
+        %{},
+        fn {color, _}, acc ->
           Map.put(
             acc,
             String.to_atom(color),
@@ -266,13 +240,11 @@ defmodule StrangepathsWeb.DeckLive.Show do
             end)
             |> Enum.reject(fn c -> c == nil end)
           )
-        else
-          acc
         end
-      end)
+      )
 
     basecards =
-      ([Enum.at(graces, 0)] ++ Enum.slice(aspectrites, 0..9))
+      ([Enum.at(graces, 0)] ++ aspectrites)
       |> Enum.reject(fn c -> !Enum.member?(deck_ids, c.id) end)
       |> Enum.map(fn c ->
         Map.put(
@@ -301,30 +273,11 @@ defmodule StrangepathsWeb.DeckLive.Show do
         end
       end)
 
-    aspectrites =
-      aspectrites
-      |> Enum.slice(10, 10)
-      |> Enum.map(fn c ->
-        if Enum.member?(deck_ids, c.id) do
-          if c.glorified do
-            Map.put(c, :deckstatus, "glorified")
-          else
-            Map.put(c, :deckstatus, "extant")
-          end
-        else
-          if(!c.glorified && !Enum.member?(deck_ids, c.alt)) do
-            Map.put(c, :deckstatus, "latent")
-          end
-        end
-      end)
-      |> Enum.reject(fn c -> c == nil end)
-
     aletheia = Enum.filter(deck.cards, fn c -> c.gnosis != nil end)
 
     cards =
       (basecards ++
          graces ++
-         aspectrites ++
          Enum.reduce(sidereals, [], fn {_, rites}, acc -> acc ++ rites end) ++ aletheia)
       |> Enum.reject(fn c -> c == nil end)
 
@@ -346,33 +299,45 @@ defmodule StrangepathsWeb.DeckLive.Show do
 
     glory = Enum.reduce(deck.cards, 0, fn c, acc -> acc + c.glory_cost end)
 
-    satieties =
-      Enum.reduce(deck.manabalance, %{}, fn {color, cardinality}, acc ->
-        aspect_id = Cards.get_aspect_id(String.capitalize(color))
+    manabalance = %{
+      deck.manabalance
+      | "red" => Enum.count(deck.cards, fn c -> c.aspect_id == Cards.get_aspect_id("Red") end),
+        "green" =>
+          Enum.count(deck.cards, fn c -> c.aspect_id == Cards.get_aspect_id("Green") end),
+        "blue" => Enum.count(deck.cards, fn c -> c.aspect_id == Cards.get_aspect_id("Blue") end),
+        "white" =>
+          Enum.count(deck.cards, fn c -> c.aspect_id == Cards.get_aspect_id("White") end),
+        "black" => Enum.count(deck.cards, fn c -> c.aspect_id == Cards.get_aspect_id("Black") end)
+    }
 
-        Map.put(
-          acc,
-          color,
-          Enum.count(deck.cards, fn c -> c.aspect_id == aspect_id end) == cardinality
-        )
-      end)
+    total_sidereals =
+      Enum.reduce(
+        manabalance,
+        0,
+        fn {_, count}, acc -> acc + count end
+      )
 
-    balanced = Map.values(satieties) |> Enum.all?()
+    bonustext =
+      Enum.reduce(
+        manabalance,
+        "",
+        fn {color, count}, acc ->
+          acc <> Strangepaths.Cards.bonus_text(color, count, "full") <> "\n\n"
+        end
+      )
+
+    # save the recalculated manabalance to the deck DB entry
+    Strangepaths.Cards.update_deck_manabalance(deck, manabalance)
 
     socket
     |> assign(:basecards, basecards)
     |> assign(:graces, graces)
-    |> assign(:aspectrites, aspectrites)
     |> assign(:sidereals, sidereals)
     |> assign(:aletheia, aletheia)
     |> assign(:glory, glory)
-    |> assign(:balanced, balanced)
-    |> assign(:satieties, satieties)
-    |> assign(:deck, %{deck | glory_used: glory})
-  end
-
-  defp sidereal_satiation(cards, color, i) do
-    Enum.count(cards, fn c -> c.aspect_id == color end) >= i
+    |> assign(:total_sidereals, total_sidereals)
+    |> assign(:bonustext, bonustext)
+    |> assign(:deck, %{deck | glory_used: glory, manabalance: manabalance})
   end
 
   defp ch(type, glory, gnosis) do

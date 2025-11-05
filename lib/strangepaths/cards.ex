@@ -396,7 +396,7 @@ defmodule Strangepaths.Cards do
 
     basecards =
       [Enum.at(rites(cards, String.to_integer(attrs["aspect_id"]), 1, :Grace), 0)] ++
-        Enum.reject(rites(cards, String.to_integer(attrs["aspect_id"]), 10, :Rite), fn r ->
+        Enum.reject(rites(cards, String.to_integer(attrs["aspect_id"]), 20, :Rite), fn r ->
           r.glory_cost != 0
         end)
 
@@ -411,23 +411,32 @@ defmodule Strangepaths.Cards do
     deck
     |> Deck.cards_changeset([card | deck.cards])
     |> Repo.update()
-    |> update_glory_used
+    |> bingle_bongle
   end
 
   def remove_card_from_deck(deck, card_id) do
     deck
     |> Deck.cards_changeset(Enum.reject(deck.cards, fn c -> c.id == card_id end))
     |> Repo.update()
-    |> update_glory_used
+    |> bingle_bongle
   end
 
-  def update_glory_used({:ok, deck}) do
+  # bingles ur bongle
+  # had to give this an intentionally stupid name
+  # because it is a very stupid thing that does stupid things
+  def bingle_bongle({:ok, deck}) do
     deck
+  end
+
+  def update_deck_manabalance(deck, manabalance) do
+    deck
+    |> Deck.edit_changeset(%{manabalance: manabalance})
+    |> Repo.update()
   end
 
   def adjust_glory(deck, adjustment) do
     adjustment =
-      if deck.glory + adjustment < deck.glory_used do
+      if deck.glory + adjustment < deck.glory_used and !(deck.glory < deck.glory_used) do
         0
       else
         adjustment
@@ -476,6 +485,162 @@ defmodule Strangepaths.Cards do
       end)
       |> String.codepoints()
     end
+  end
+
+  def bonus_text(deckID) do
+    if(deckID == nil) do
+      ""
+    else
+      Enum.reduce(
+        get_deck(deckID).manabalance,
+        "",
+        fn {color, count}, acc ->
+          acc <> Strangepaths.Cards.bonus_text(color, count, "simple") <> "\n\n"
+        end
+      )
+    end
+  end
+
+  def bonus_text(color, num, complexity) do
+    if num > 0 do
+      case {color, complexity} do
+        {"red", "simple"} ->
+          "#{num} Strikes deal +1 Stress."
+
+        {"red", "full"} ->
+          "- Your first #{num} Strikes played each encounter deal +1 Stress."
+
+        {"black", "simple"} ->
+          "1 Stress to first #{num} opponents targeting you."
+
+        {"black", "full"} ->
+          "- The first #{num} time(s) as an opponent uses a Rite on you, the opponent Stresses 1."
+
+        {"blue", "simple"} ->
+          comp1 = ceil(num / 3)
+          comp2 = if num >= 2, do: ceil((num - 1) / 3), else: 0
+          comp3 = if num >= 3, do: ceil((num - 2) / 3), else: 0
+
+          base = "+#{comp1} initial Draw"
+          with_refresh = if comp2 > 0, do: " & on first #{comp2} Refresh", else: ""
+          with_draw_discard = if comp3 > 0, do: ". Draw&Discard #{comp3} at start", else: ""
+
+          base <> with_refresh <> with_draw_discard <> "."
+
+        {"blue", "full"} ->
+          comp1 = ceil(num / 3)
+          comp2 = if num >= 2, do: ceil((num - 1) / 3), else: 0
+          comp3 = if num >= 3, do: ceil((num - 2) / 3), else: 0
+
+          base = "- Gain +#{comp1} Draw into your starting hand at the beginning of a Ritual."
+
+          with_refresh =
+            if comp2 > 0 do
+              "\n\n- Your first #{comp2} refreshes draw +1 rites."
+            else
+              ""
+            end
+
+          with_draw_discard =
+            if comp3 > 0 do
+              "\n\n- At the start of your turn, Draw N and Discard N, where N is the smaller of #{comp3} and the current number of rites in your hand."
+            else
+              ""
+            end
+
+          base <> with_refresh <> with_draw_discard
+
+        {"green", "simple"} ->
+          comp1 = ceil(num / 3)
+          comp2 = if num >= 2, do: ceil((num - 1) / 3), else: 0
+          comp3 = if num >= 3, do: ceil((num - 2) / 3), else: 0
+
+          base = "+#{comp1} Tolerance"
+          with_refresh = if comp2 > 0, do: ", first #{comp2} Refresh free", else: ""
+
+          with_quick =
+            if comp3 > 0, do: ". First #{comp3} Quick rites trigger Draw 1 EOT", else: ""
+
+          base <> with_refresh <> with_quick <> "."
+
+        {"green", "full"} ->
+          comp1 = ceil(num / 3)
+          comp2 = if num >= 2, do: ceil((num - 1) / 3), else: 0
+          comp3 = if num >= 3, do: ceil((num - 2) / 3), else: 0
+
+          base = "- +#{comp1} Tolerance."
+
+          with_refresh =
+            if comp2 > 0 do
+              "\n\n- Your first #{comp2} refreshes have no Stress cost."
+            else
+              ""
+            end
+
+          with_quick =
+            if comp3 > 0 do
+              "\n\n- The first #{comp3} of Quick rites you play cause you to Draw 1 at the end of your turn when played."
+            else
+              ""
+            end
+
+          base <> with_refresh <> with_quick
+
+        {"white", "simple"} ->
+          comp1 = ceil(num / 3)
+          comp2 = if num >= 2, do: ceil((num - 1) / 3), else: 0
+          comp3 = if num >= 3, do: ceil((num - 2) / 3), else: 0
+
+          base = "First #{comp1} round(s) +1 Defense"
+
+          with_refresh =
+            if comp2 > 0, do: ", first #{comp2} Refreshes grant ally +1 Defense", else: ""
+
+          with_non_strike =
+            if comp3 > 0, do: ", first #{comp3} non-Strike Rite grant ally +1 Defense", else: ""
+
+          base <> with_refresh <> with_non_strike <> "."
+
+        {"white", "full"} ->
+          comp1 = ceil(num / 3)
+          comp2 = if num >= 2, do: ceil((num - 1) / 3), else: 0
+          comp3 = if num >= 3, do: ceil((num - 2) / 3), else: 0
+
+          base = "- For the first #{comp1} rounds, gain 1 Defense at the start of the round."
+
+          with_refresh =
+            if comp2 > 0 do
+              "\n\n- Your first #{comp2} Refreshes grant 1 ally in your lane +1 Defense."
+            else
+              ""
+            end
+
+          with_non_strike =
+            if comp3 > 0 do
+              "\n\n- Your first #{comp3} rites that do not deal damage also let you Defend 1 an ally in your lane."
+            else
+              ""
+            end
+
+          base <> with_refresh <> with_non_strike
+
+        _ ->
+          ""
+      end
+    else
+      ""
+    end
+  end
+
+  def deck_bonuses(deck) do
+    Enum.map(deck.manabalance, fn {color, num} ->
+      if num > 0 do
+        %{simple: bonus_text(color, num, "simple"), full: bonus_text(color, num, "full")}
+      else
+        nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
   def deckglory(deck_id) do
@@ -571,6 +736,7 @@ defmodule Strangepaths.Cards do
               defence: 0,
               glory: 0,
               deckmana: nil,
+              bonustext: "",
               rulestext: "",
               type: nil,
               card_id: nil,
@@ -599,6 +765,7 @@ defmodule Strangepaths.Cards do
           defence: 0,
           deckID: deckID,
           deckmana: Strangepaths.Cards.deckmana(deckID),
+          bonustext: Strangepaths.Cards.bonus_text(deckID),
           type: :Avatar,
           owner_id: owner.id
         }

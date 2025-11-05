@@ -1,6 +1,7 @@
 defmodule StrangepathsWeb.LiveHelpers do
   import Phoenix.LiveView
   import Phoenix.LiveView.Helpers
+  use Phoenix.Component
 
   alias Phoenix.LiveView.JS
 
@@ -78,28 +79,45 @@ defmodule StrangepathsWeb.LiveHelpers do
     assigns = assign_new(assigns, :return_to, fn -> nil end)
 
     ~H"""
-    <div id="modal" class="overflow-y-auto fixed inset-0 z-10 pt-6 phx-modal" phx-remove={hide_modal()}>
-      <div class="flex justify-center items-end px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-          <div class="absolute inset-0 bg-gray-900 opacity-75"></div>
-        </div>
-        <div
-          id="modal-content"
-          class="inline-block overflow-hidden px-4 pt-5 pb-4 text-left align-bottom bg-indigo-200 dark:bg-gray-700 rounded-lg shadow-xl transition-all transform phx-modal-content sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6"
-          role="dialog" aria-modal="true" aria-labelledby="modal-headline"
-          phx-click-away={JS.dispatch("click", to: "#close")}
-          phx-window-keydown={JS.dispatch("click", to: "#close")}
-          phx-key="escape">
-          <%= if @return_to do %>
-            <%= live_patch "✖",
-              to: @return_to,
-              id: "close",
-              class: "phx-modal-close",
-              phx_click: hide_modal()
-            %>
-          <% else %>
-            <a id="close" href="#" class="phx-modal-close" phx-click={hide_modal()}>✖</a>
+    <div id="modal" class="overflow-y-auto fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" phx-remove={hide_modal()}>
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
+
+      <!-- Modal Content -->
+      <div
+        id="modal-content"
+        class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transition-all transform"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-headline"
+        phx-click-away={JS.dispatch("click", to: "#close")}
+        phx-window-keydown={JS.dispatch("click", to: "#close")}
+        phx-key="escape">
+
+        <!-- Close Button -->
+        <%= if @return_to do %>
+          <%= live_patch to: @return_to,
+                id: "close",
+                class: "absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition cursor-pointer",
+                phx_click: hide_modal(),
+                title: "Close (Esc)" do %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
           <% end %>
+        <% else %>
+          <a id="close" href="#"
+             class="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition"
+             phx-click={hide_modal()}
+             title="Close (Esc)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </a>
+        <% end %>
+
+        <!-- Modal Body -->
+        <div class="p-6 sm:p-8">
           <%= render_slot(@inner_block) %>
         </div>
       </div>

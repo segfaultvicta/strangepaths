@@ -37,12 +37,12 @@
       <div class="container mx-auto px-6 h-full flex items-center justify-between">
         <!-- Desktop nav links (hidden on mobile) -->
         <div class="hidden lg:flex items-center gap-4">
-          <%= live_redirect "SCENE", to: "/scenes", class: "inactivenav" %>
+          <%= live_redirect "STILLNESS", to: "/scenes", class: "inactivenav" %>
           <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav" %>
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
           <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav" %>
-          <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav" %>
           <%= live_redirect "CODEX", to: "/content", class: "inactivenav" %>
+          <%= live_redirect "SONG", to: "/ost", class: "inactivenav" %>
         </div>
 
         <!-- Mobile: just hamburger on left -->
@@ -84,12 +84,12 @@
          class="lg:hidden fixed top-[100px] left-0 right-0 z-40 bg-indigo-100 dark:bg-gray-900 border-t border-gray-700 shadow-lg">
       <div class="container mx-auto px-6 py-4">
         <div class="flex flex-col gap-2">
-          <%= live_redirect "SCENE", to: "/scenes", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "STILLNESS", to: "/scenes", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
-          <%= live_redirect "MUSIC", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "CODEX", to: "/content", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "SONG", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :dragon do %>
             <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "inactivenav lg:hidden", "x-on:click": "mobileMenuOpen = false" %>
           <% end %>

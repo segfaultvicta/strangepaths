@@ -157,6 +157,7 @@ body {
 
 .post-ic-content-icecylee {
     @apply max-w-none;
+    word-break: break-word;
 }
 
 .post-ic-content-icecylee p:first-of-type {
@@ -222,6 +223,11 @@ body {
 
 #content-body ol {
     list-style: decimal;
+}
+
+#bonuses-text li {
+    list-style: outside;
+    text-align: start;
 }
 
 .formstyle {
