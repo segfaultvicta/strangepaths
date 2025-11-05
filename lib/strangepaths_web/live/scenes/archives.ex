@@ -4,6 +4,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
   import StrangepathsWeb.MusicBroadcast
 
   alias Strangepaths.Scenes
+  alias Strangepaths.Site
 
   @impl true
   def mount(_params, session, socket) do
@@ -34,7 +35,15 @@ defmodule StrangepathsWeb.Scenes.Archives do
        |> assign(:posts, [])
        |> assign(:viewing_elsewhere, false)
        |> assign(:editing_scene_id, nil)
-       |> assign(:editing_scene_name, ""), temporary_assigns: [posts: []]}
+       |> assign(:editing_scene_name, "")
+       |> assign(:search_query, "")
+       |> assign(:search_results, nil)
+       |> assign(:searching, false)
+       |> assign(:show_filters, false)
+       |> assign(:filter_my_scenes, false)
+       |> assign(:filter_hide_elsewhere, false)
+       |> assign(:filter_hide_system, true)
+       |> assign(:filter_author, ""), temporary_assigns: [posts: []]}
     else
       {:ok,
        socket
@@ -98,6 +107,175 @@ defmodule StrangepathsWeb.Scenes.Archives do
 
       result ->
         result
+    end
+  end
+
+  defp handle_archive_event("search", %{"search_query" => query}, socket) do
+    query = String.trim(query)
+
+    if String.length(query) < 3 do
+      {:noreply,
+       socket
+       |> assign(:search_query, query)
+       |> assign(:search_results, nil)
+       |> assign(:searching, false)}
+    else
+      socket = assign(socket, :searching, true)
+
+      # Perform search
+      user_id = socket.assigns.current_user.id
+      my_scenes_filter = socket.assigns.filter_my_scenes
+      hide_elsewhere_filter = socket.assigns.filter_hide_elsewhere
+      hide_system_filter = socket.assigns.filter_hide_system
+      author_filter = socket.assigns.filter_author
+
+      elsewhere_scene_id =
+        if socket.assigns.elsewhere_scene, do: socket.assigns.elsewhere_scene.id, else: nil
+
+      scene_results =
+        Scenes.search_archived_scenes(
+          query,
+          user_id,
+          my_scenes_filter,
+          hide_elsewhere_filter,
+          elsewhere_scene_id,
+          author_filter
+        )
+
+      post_results =
+        Scenes.search_archived_posts(
+          query,
+          user_id,
+          my_scenes_filter,
+          hide_elsewhere_filter,
+          hide_system_filter,
+          elsewhere_scene_id,
+          author_filter
+        )
+
+      codex_results = Site.search_codex_pages(query, user_id)
+
+      # Combine scene and post results, removing duplicates
+      scene_ids_from_names = MapSet.new(scene_results, fn result -> result.scene_id end)
+      scene_ids_from_posts = MapSet.new(post_results, fn result -> result.scene_id end)
+      all_scene_ids = MapSet.union(scene_ids_from_names, scene_ids_from_posts)
+
+      # Build unified results with context
+      unified_results =
+        all_scene_ids
+        |> Enum.map(fn scene_id ->
+          scene_result = Enum.find(scene_results, fn r -> r.scene_id == scene_id end)
+          post_result = Enum.find(post_results, fn r -> r.scene_id == scene_id end)
+
+          %{
+            scene_id: scene_id,
+            scene_name:
+              (scene_result && scene_result.scene_name) || (post_result && post_result.scene_name),
+            scene_slug:
+              (scene_result && scene_result.scene_slug) || (post_result && post_result.scene_slug),
+            matched_in_name: !!scene_result,
+            post_snippets: (post_result && post_result.snippets) || [],
+            is_elsewhere: (post_result && post_result.is_elsewhere) || false,
+            week_date: (post_result && post_result.week_date) || nil
+          }
+        end)
+        |> Enum.sort_by(fn r -> r.scene_name end)
+
+      {:noreply,
+       socket
+       |> assign(:search_query, query)
+       |> assign(:search_results, %{scenes: unified_results, codex: codex_results})
+       |> assign(:searching, false)}
+    end
+  end
+
+  defp handle_archive_event("toggle_filters", _params, socket) do
+    {:noreply, assign(socket, :show_filters, !socket.assigns.show_filters)}
+  end
+
+  defp handle_archive_event("toggle_my_scenes", _params, socket) do
+    new_value = !socket.assigns.filter_my_scenes
+    socket = assign(socket, :filter_my_scenes, new_value)
+
+    # Re-run search if there's an active query
+    if String.length(socket.assigns.search_query) >= 3 do
+      handle_archive_event("search", %{"search_query" => socket.assigns.search_query}, socket)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_archive_event("toggle_hide_elsewhere", _params, socket) do
+    new_value = !socket.assigns.filter_hide_elsewhere
+    socket = assign(socket, :filter_hide_elsewhere, new_value)
+
+    # Re-run search if there's an active query
+    if String.length(socket.assigns.search_query) >= 3 do
+      handle_archive_event("search", %{"search_query" => socket.assigns.search_query}, socket)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_archive_event("toggle_hide_system", _params, socket) do
+    new_value = !socket.assigns.filter_hide_system
+    socket = assign(socket, :filter_hide_system, new_value)
+
+    # Re-run search if there's an active query
+    if String.length(socket.assigns.search_query) >= 3 do
+      handle_archive_event("search", %{"search_query" => socket.assigns.search_query}, socket)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_archive_event("clear_search", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_query, "")
+     |> assign(:search_results, nil)
+     |> assign(:searching, false)}
+  end
+
+  defp handle_archive_event("update_author_filter", %{"filter_author" => author}, socket) do
+    socket = assign(socket, :filter_author, String.trim(author))
+
+    # Re-run search if there's an active query
+    if String.length(socket.assigns.search_query) >= 3 do
+      handle_archive_event("search", %{"search_query" => socket.assigns.search_query}, socket)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_archive_event("unlock_scene", %{"scene-id" => scene_id_str}, socket) do
+    # Only dragons can unlock scenes
+    if socket.assigns.current_user.role == :dragon do
+      scene_id = String.to_integer(scene_id_str)
+      scene = Scenes.get_scene(scene_id)
+
+      if scene && scene.status == :archived do
+        case Scenes.unlock_archived_scene(scene) do
+          {:ok, updated_scene} ->
+            {:noreply,
+             socket
+             |> assign(:selected_scene, updated_scene)
+             |> put_flash(:info, "Scene unlocked! It is now publicly viewable.")}
+
+          {:error, _changeset} ->
+            {:noreply,
+             socket
+             |> put_flash(:error, "Failed to unlock scene.")}
+        end
+      else
+        {:noreply,
+         socket
+         |> put_flash(:error, "Scene not found or not archived.")}
+      end
+    else
+      {:noreply,
+       socket
+       |> put_flash(:error, "You do not have permission to unlock scenes.")}
     end
   end
 

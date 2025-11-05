@@ -311,4 +311,105 @@ defmodule Strangepaths.Site do
         {:error, "Failed to copy file: #{inspect(reason)}"}
     end
   end
+
+  @doc """
+  Searches Codex pages (ContentPage) by title and body content using hybrid ILIKE + pg_trgm matching.
+  Returns list of maps with page info and snippets showing matching content.
+  Only searches published pages that the user has access to.
+  """
+  def search_codex_pages(query, user_id) do
+    alias Strangepaths.Accounts.User
+
+    search_pattern = "%#{query}%"
+    # Lower threshold = more fuzzy matches. Try 0.1-0.3 range.
+    # 0.3 = default (strict), 0.2 = medium, 0.1 = loose
+    similarity_threshold = 0.2
+
+    # Check if user is dragon
+    dragon_query = from(u in User, where: u.id == ^user_id and u.role == :dragon, select: u.id)
+    is_dragon = Repo.exists?(dragon_query)
+
+    # Build base query with hybrid search
+    base_query =
+      from(p in ContentPage,
+        where:
+          # Exact substring matching (fast path using ILIKE)
+          ilike(p.title_stripped, ^search_pattern) or
+          ilike(p.body_stripped, ^search_pattern) or
+          # Fuzzy matching for typos (uses GIN trigram indexes)
+          # similarity() is bidirectional and better for typo matching than word_similarity()
+          fragment("similarity(?, ?) > ?", p.title_stripped, ^query, ^similarity_threshold) or
+          fragment("similarity(?, ?) > ?", p.body_stripped, ^query, ^similarity_threshold),
+        select: %{
+          page_id: p.id,
+          title: p.title,
+          slug: p.slug,
+          body: p.body_stripped,
+          published: p.published
+        }
+      )
+
+    # Apply permissions: only published pages unless user is dragon
+    final_query =
+      if is_dragon do
+        base_query
+      else
+        from([p] in base_query, where: p.published == true)
+      end
+
+    # Execute query and format results
+    final_query
+    |> Repo.all()
+    |> Enum.map(fn page ->
+      # Determine if match was in title or body
+      matched_in_title = String.contains?(String.downcase(page.title), String.downcase(query))
+
+      # Extract snippet from body
+      snippet = extract_codex_snippet(page.body, query, 200)
+
+      %{
+        page_id: page.page_id,
+        title: page.title,
+        slug: page.slug,
+        matched_in_title: matched_in_title,
+        snippet: snippet
+      }
+    end)
+  end
+
+  # Helper function to extract a snippet around the search term from Codex content
+  defp extract_codex_snippet(content, query, max_length) do
+    content = content || ""
+    query_lower = String.downcase(query)
+    content_lower = String.downcase(content)
+
+    case :binary.match(content_lower, query_lower) do
+      {pos, len} ->
+        # Calculate start and end positions for snippet
+        start_pos = max(0, pos - div(max_length - len, 2))
+        end_pos = min(String.length(content), start_pos + max_length)
+
+        # Adjust start_pos if we're at the end
+        start_pos = max(0, end_pos - max_length)
+
+        snippet = String.slice(content, start_pos, max_length)
+
+        # Add ellipsis if truncated
+        snippet =
+          cond do
+            start_pos > 0 && end_pos < String.length(content) -> "..." <> snippet <> "..."
+            start_pos > 0 -> "..." <> snippet
+            end_pos < String.length(content) -> snippet <> "..."
+            true -> snippet
+          end
+
+        snippet
+
+      :nomatch ->
+        # Fallback: return first max_length characters
+        content
+        |> String.slice(0, max_length)
+        |> then(fn s -> if String.length(content) > max_length, do: s <> "...", else: s end)
+    end
+  end
 end

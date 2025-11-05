@@ -917,6 +917,14 @@ a:hover {
   right: -0.5rem;
 }
 
+.left-3 {
+  left: 0.75rem;
+}
+
+.right-3 {
+  right: 0.75rem;
+}
+
 .z-50 {
   z-index: 50;
 }
@@ -1250,6 +1258,10 @@ a:hover {
   width: 1.5rem;
 }
 
+.w-5 {
+  width: 1.25rem;
+}
+
 .min-w-0 {
   min-width: 0px;
 }
@@ -1497,6 +1509,12 @@ a:hover {
   margin-bottom: calc(1rem * var(--tw-space-y-reverse));
 }
 
+.space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+
 .space-x-2 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 0;
   margin-right: calc(0.5rem * var(--tw-space-x-reverse));
@@ -1601,6 +1619,10 @@ a:hover {
   border-left-width: 4px;
 }
 
+.border-l-2 {
+  border-left-width: 2px;
+}
+
 .border-gray-600 {
   --tw-border-opacity: 1;
   border-color: rgb(75 85 99 / var(--tw-border-opacity));
@@ -1658,6 +1680,11 @@ a:hover {
 .border-gray-900 {
   --tw-border-opacity: 1;
   border-color: rgb(17 24 39 / var(--tw-border-opacity));
+}
+
+.border-gray-300 {
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity));
 }
 
 .border-red-700 {
@@ -1835,6 +1862,11 @@ a:hover {
 .bg-blue-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(191 219 254 / var(--tw-bg-opacity));
+}
+
+.bg-yellow-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 240 138 / var(--tw-bg-opacity));
 }
 
 .bg-blue-900 {
@@ -2098,6 +2130,10 @@ a:hover {
   padding-top: 1.25rem;
 }
 
+.pl-10 {
+  padding-left: 2.5rem;
+}
+
 .pt-\[100px\] {
   padding-top: 100px;
 }
@@ -2202,6 +2238,10 @@ a:hover {
 
 .font-black {
   font-weight: 900;
+}
+
+.font-normal {
+  font-weight: 400;
 }
 
 .uppercase {
@@ -2388,6 +2428,16 @@ a:hover {
 .text-indigo-800 {
   --tw-text-opacity: 1;
   color: rgb(55 48 163 / var(--tw-text-opacity));
+}
+
+.text-gray-900 {
+  --tw-text-opacity: 1;
+  color: rgb(17 24 39 / var(--tw-text-opacity));
+}
+
+.text-blue-800 {
+  --tw-text-opacity: 1;
+  color: rgb(30 64 175 / var(--tw-text-opacity));
 }
 
 .text-blue-200 {
@@ -4083,6 +4133,16 @@ input[type=range].slider-purple::-moz-range-progress {
   background-color: rgb(199 210 254 / var(--tw-bg-opacity));
 }
 
+.hover\:bg-gray-50:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(249 250 251 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-gray-100:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+}
+
 .hover\:text-purple-200:hover {
   --tw-text-opacity: 1;
   color: rgb(233 213 255 / var(--tw-text-opacity));
@@ -4183,6 +4243,11 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(165 180 252 / var(--tw-text-opacity));
 }
 
+.hover\:underline:hover {
+  -webkit-text-decoration-line: underline;
+          text-decoration-line: underline;
+}
+
 .hover\:opacity-75:hover {
   opacity: 0.75;
 }
@@ -4215,6 +4280,11 @@ input[type=range].slider-purple::-moz-range-progress {
 .focus\:ring-indigo-500:focus {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(99 102 241 / var(--tw-ring-opacity));
+}
+
+.focus\:ring-purple-500:focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(168 85 247 / var(--tw-ring-opacity));
 }
 
 .active\:border-purple-400:active {
@@ -4260,6 +4330,11 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:border-gray-700 {
   --tw-border-opacity: 1;
   border-color: rgb(55 65 81 / var(--tw-border-opacity));
+}
+
+.dark .dark\:border-gray-600 {
+  --tw-border-opacity: 1;
+  border-color: rgb(75 85 99 / var(--tw-border-opacity));
 }
 
 .dark .dark\:bg-green-200 {
@@ -4315,6 +4390,11 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:bg-blue-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(37 99 235 / var(--tw-bg-opacity));
+}
+
+.dark .dark\:bg-blue-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(30 58 138 / var(--tw-bg-opacity));
 }
 
 .dark .dark\:text-gray-300 {
@@ -4385,6 +4465,16 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:text-red-400 {
   --tw-text-opacity: 1;
   color: rgb(248 113 113 / var(--tw-text-opacity));
+}
+
+.dark .dark\:text-purple-200 {
+  --tw-text-opacity: 1;
+  color: rgb(233 213 255 / var(--tw-text-opacity));
+}
+
+.dark .dark\:text-blue-200 {
+  --tw-text-opacity: 1;
+  color: rgb(191 219 254 / var(--tw-text-opacity));
 }
 
 .dark .dark\:text-indigo-200 {
@@ -4494,6 +4584,10 @@ input[type=range].slider-purple::-moz-range-progress {
 
   .sm\:inline {
     display: inline;
+  }
+
+  .sm\:flex-row {
+    flex-direction: row;
   }
 
   .sm\:p-6 {

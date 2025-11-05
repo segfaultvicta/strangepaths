@@ -6,6 +6,8 @@ defmodule Strangepaths.Site.ContentPage do
     field(:title, :string)
     field(:slug, :string)
     field(:body, :string)
+    field(:title_stripped, :string)
+    field(:body_stripped, :string)
     field(:published, :boolean, default: false)
 
     timestamps()

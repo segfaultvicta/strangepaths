@@ -5,6 +5,8 @@ defmodule Strangepaths.Scenes.Post do
   schema "scene_posts" do
     field(:content, :string)
     field(:ooc_content, :string)
+    field(:content_stripped, :string)
+    field(:ooc_content_stripped, :string)
     field(:post_type, Ecto.Enum, values: [:character, :narrative, :system], default: :character)
     field(:narrative_author_name, :string)
     field(:posted_at, :utc_datetime)

@@ -16,18 +16,32 @@
     </div>
 
     <div class="bg-gray-900 rounded p-6">
-      <h2 class="text-2xl font-bold mb-4">
-        <%= if @viewing_elsewhere do %>
-          Elsewhere - Week of <%= Calendar.strftime(@selected_week, "%B %d, %Y") %>
-        <% else %>
-          <%= @selected_scene.name %>
+      <div class="flex justify-between items-start mb-4">
+        <h2 class="text-2xl font-bold">
+          <%= if @viewing_elsewhere do %>
+            Elsewhere - Week of <%= Calendar.strftime(@selected_week, "%B %d, %Y") %>
+          <% else %>
+            <%= @selected_scene.name %>
+          <% end %>
+        </h2>
+
+        <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon && @selected_scene.locked_to_users != [] do %>
+          <button
+            phx-click="unlock_scene"
+            phx-value-scene-id={@selected_scene.id}
+            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-semibold transition flex items-center gap-2"
+            data-confirm="Are you sure you want to make this scene publicly viewable? This cannot be undone."
+          >
+            <i class="fa-solid fa-unlock"></i>
+            Unlock Scene
+          </button>
         <% end %>
-      </h2>
+      </div>
 
       <%= if @posts && length(@posts) > 0 do %>
         <div class="space-y-4">
           <%= for post <- @posts do %>
-            <div class={"p-4 rounded flex flex-row " <> case post.post_type do
+            <div id={"post-#{post.id}"} class={"p-4 rounded flex flex-row " <> case post.post_type do
               :narrative -> "bg-purple-100 dark:bg-purple-900 border-l-4 border-purple-500"
               :system -> "bg-blue-200 dark:bg-blue-600 border-l-4 border-blue-500"
               _ -> "bg-indigo-100 dark:bg-gray-800"
@@ -89,8 +103,196 @@
     </div>
   <% else %>
     <!-- Archive list view -->
-    Archive Search Coming Soon™ To A Bespoke TTRPG Website Near You
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Search Bar -->
+    <div class="mb-6">
+      <form phx-change="search" phx-submit="search" class="space-y-4">
+        <div class="flex flex-col sm:flex-row gap-2">
+          <div class="flex-1 relative">
+            <input
+              type="text"
+              name="search_query"
+              value={@search_query}
+              placeholder="Search scenes and posts (min 3 characters)..."
+              phx-debounce="300"
+              class="w-full p-3 pl-10 bg-gray-100 dark:bg-gray-800 border border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <i class="fa-solid fa-search absolute left-3 top-4 text-gray-500"></i>
+            <%= if @searching do %>
+              <i class="fa-solid fa-spinner fa-spin absolute right-3 top-4 text-purple-500"></i>
+            <% end %>
+          </div>
+
+          <button
+            type="button"
+            phx-click="toggle_filters"
+            class={"px-4 py-3 rounded-lg transition font-semibold " <>
+                   if @show_filters, do: "bg-purple-600 text-white", else: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"}
+          >
+            <i class="fa-solid fa-filter"></i>
+            <span class="hidden sm:inline ml-2">Filters</span>
+          </button>
+
+          <%= if String.length(@search_query) >= 3 do %>
+            <button
+              type="button"
+              phx-click="clear_search"
+              class="px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-semibold"
+            >
+              <i class="fa-solid fa-times"></i>
+              <span class="hidden sm:inline ml-2">Clear</span>
+            </button>
+          <% end %>
+        </div>
+
+        <!-- Advanced Filters Panel -->
+        <%= if @show_filters do %>
+          <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-600">
+            <h3 class="font-semibold mb-3 text-gray-900 dark:text-white">Filter Options</h3>
+            <div class="flex flex-col gap-4">
+              <div class="flex flex-col sm:flex-row gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    phx-click="toggle_my_scenes"
+                    checked={@filter_my_scenes}
+                    class="w-5 h-5 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <span class="text-gray-900 dark:text-white">My Scenes Only</span>
+                  <span class="text-sm text-gray-500">(scenes where I posted)</span>
+                </label>
+
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    phx-click="toggle_hide_elsewhere"
+                    checked={@filter_hide_elsewhere}
+                    class="w-5 h-5 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <span class="text-gray-900 dark:text-white">Hide Elsewhere</span>
+                </label>
+
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    phx-click="toggle_hide_system"
+                    checked={@filter_hide_system}
+                    class="w-5 h-5 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <span class="text-gray-900 dark:text-white">Hide System Posts</span>
+                </label>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label class="text-gray-900 dark:text-white font-semibold">
+                  Filter by Author/NPC
+                  <span class="text-sm font-normal text-gray-500">(Character or NPC name)</span>
+                </label>
+                <input
+                  type="text"
+                  name="filter_author"
+                  value={@filter_author}
+                  phx-change="update_author_filter"
+                  phx-debounce="300"
+                  placeholder="Enter name..."
+                  class="p-2 bg-white dark:bg-gray-700 border border-gray-600 rounded text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </form>
+    </div>
+
+    <%= if @search_results do %>
+      <!-- Search Results View -->
+      <div class="space-y-6">
+        <!-- Codex Results -->
+        <%= if @search_results.codex && length(@search_results.codex) > 0 do %>
+          <div class="bg-indigo-200 dark:bg-gray-900 rounded-lg p-6">
+            <h2 class="text-2xl font-bold mb-4 text-purple-700 dark:text-purple-400">
+              <i class="fa-solid fa-book"></i> Codex Pages
+              <span class="text-sm font-normal text-gray-600 dark:text-gray-400">
+                (<%= length(@search_results.codex) %> results)
+              </span>
+            </h2>
+            <div class="space-y-3">
+              <%= for page <- @search_results.codex do %>
+                <a href={"/content/#{page.slug}"} class="block p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition border-l-4 border-purple-500">
+                  <div class="font-semibold text-lg text-gray-900 dark:text-white">
+                    <%= page.title %>
+                    <%= if page.matched_in_title do %>
+                      <span class="ml-2 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">matched in title</span>
+                    <% end %>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    <%= raw String.replace(page.snippet, ~r/#{Regex.escape(@search_query)}/i, "<mark class='bg-yellow-200 dark:bg-yellow-700'>\\0</mark>") %>
+                  </div>
+                </a>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Scene Results -->
+        <%= if @search_results.scenes && length(@search_results.scenes) > 0 do %>
+          <div class="bg-indigo-200 dark:bg-gray-900 rounded-lg p-6">
+            <h2 class="text-2xl font-bold mb-4">
+              <i class="fa-solid fa-theater-masks"></i> Scenes
+              <span class="text-sm font-normal text-gray-600 dark:text-gray-400">
+                (<%= length(@search_results.scenes) %> results)
+              </span>
+            </h2>
+            <div class="space-y-3">
+              <%= for result <- @search_results.scenes do %>
+                <div class="p-4 bg-white dark:bg-gray-800 rounded-lg border-l-4 border-blue-500">
+                  <%
+                    # Build the base URL - either Elsewhere week or regular scene
+                    base_url = if result.scene_id == 1 do
+                      "/scenes/archives/elsewhere/#{Date.to_iso8601(result.week_date)}"
+                    else
+                      "/scenes/archives/#{result.scene_slug}"
+                    end
+                  %>
+
+                  <%= live_patch to: base_url, class: "block hover:underline" do %>
+                    <div class="font-semibold text-lg text-gray-900 dark:text-white">
+                      <%= result.scene_name %>
+                      <%= if result.matched_in_name do %>
+                        <span class="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">matched in name</span>
+                      <% end %>
+                    </div>
+                  <% end %>
+
+                  <%= if length(result.post_snippets) > 0 do %>
+                    <div class="mt-3 space-y-2">
+                      <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Matching Posts:</div>
+                      <%= for snippet <- result.post_snippets do %>
+                        <%= live_patch to: "#{base_url}#post-#{snippet.post_id}",
+                            class: "block text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded py-2 transition" do %>
+                          <%= raw String.replace(snippet.snippet, ~r/#{Regex.escape(@search_query)}/i, "<mark class='bg-yellow-200 dark:bg-yellow-700'>\\0</mark>") %>
+                          <div class="text-xs text-gray-500 dark:text-gray-500 mt-1 flex justify-between items-center">
+                            <span class="font-semibold"><%= snippet.author %></span>
+                            <span><%= Calendar.strftime(snippet.posted_at, "%B %d, %Y") %></span>
+                          </div>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-6 text-center">
+            <i class="fa-solid fa-search text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-600 dark:text-gray-400">No results found for "<%= @search_query %>"</p>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <!-- Default Archive List View -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Elsewhere Archives -->
       <%= if @elsewhere_scene && map_size(@elsewhere_weeks) > 0 do %>
         <div class="bg-indigo-200 dark:bg-gray-900 rounded p-6">
@@ -186,6 +388,7 @@
           <p class="text-gray-400">No archived scenes yet.</p>
         <% end %>
       </div>
-    </div>
+      </div>
+    <% end %>
   <% end %>
 </div>
