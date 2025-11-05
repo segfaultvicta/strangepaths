@@ -109,7 +109,7 @@
 
     <!-- Mana progress bar -->
     <div class="w-full max-w-7xl px-3 pb-2">
-      <div class="bg-gray-400 rounded-full h-2 overflow-hidden shadow-inner ring-1 ring-gray-500/60">
+      <div class="bg-gray-400 rounded-full h-6 overflow-hidden shadow-inner ring-1 ring-gray-500/60">
         <div class="flex h-full">
           <%= for color_atom <- ["red", "green", "blue", "white", "black"] do %>
             <%
@@ -132,15 +132,28 @@
               percentage = cards_of_color / 15 * 100
 
               bar_color = case color_atom do
-                "red" -> "bg-red-500"
-                "green" -> "bg-green-500"
-                "blue" -> "bg-blue-500"
+                "red" -> "bg-red-400"
+                "green" -> "bg-green-400"
+                "blue" -> "bg-blue-400"
                 "white" -> "bg-yellow-100"
                 "black" -> "bg-black"
                 _ -> "bg-gray-200"
               end
+
+              text_color = case color_atom do
+                "white" -> "text-gray-900"
+                "black" -> "text-white"
+                "red"   -> "text-red-800"
+                "green" -> "text-green-800"
+                "blue"  -> "text-blue-800"
+                _ -> "text-white"
+              end
             %>
-            <div class={"h-full transition-all duration-500 ease-in-out #{bar_color}"} style={"width: #{percentage}%"}></div>
+            <%= if cards_of_color > 0 do %>
+              <div class={"h-full transition-all duration-500 ease-in-out #{bar_color} flex items-center justify-center #{text_color} text-sm font-bold"} style={"width: #{percentage}%"}>
+                <%= cards_of_color %>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -176,7 +189,7 @@
 
     <!-- Mana progress bar -->
     <div class="px-3 pb-2">
-      <div class="bg-gray-400 rounded-full h-2 overflow-hidden shadow-inner ring-1 ring-gray-500/60">
+      <div class="bg-gray-400 rounded-full h-6 overflow-hidden shadow-inner ring-1 ring-gray-500/60">
         <div class="flex h-full">
           <%= for color_atom <- ["red", "green", "blue", "white", "black"] do %>
             <%
@@ -206,8 +219,18 @@
                 "black" -> "bg-black"
                 _ -> "bg-gray-200"
               end
+
+              text_color = case color_atom do
+                "white" -> "text-gray-900"
+                "black" -> "text-white"
+                _ -> "text-white"
+              end
             %>
-            <div class={"h-full transition-all duration-500 ease-in-out #{bar_color}"} style={"width: #{percentage}%"}></div>
+            <%= if cards_of_color > 0 do %>
+              <div class={"h-full transition-all duration-500 ease-in-out #{bar_color} flex items-center justify-center #{text_color} text-sm font-bold"} style={"width: #{percentage}%"}>
+                <%= cards_of_color %>
+              </div>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -237,6 +260,9 @@
 
       <div class={if @deck.glory_used > @deck.glory do "text-red-400" else "" end <> " text-center"}>
         Glory <%= @deck.glory_used %> / <%= @deck.glory %>
+      </div>
+      <div class={if @total_sidereals < 15 do "text-red-400" else "" end <> " text-center"}>
+        Sidereals <%= @total_sidereals %> / 15
       </div>
       <%= for card <- Enum.sort(@deck.cards, fn a, b -> a.id < b.id end) do %>
         <div class={cardclass(card.type, card.glorified, card.aspect_id)}>
