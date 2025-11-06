@@ -226,6 +226,23 @@ defmodule StrangepathsWeb.CardLive.Index do
     end
   end
 
+  # Card lock/unlock events (dragon only, for Alethic cards)
+  defp handle_card_event("toggle_card_lock", %{"card-id" => card_id_str}, socket) do
+    card_id = String.to_integer(card_id_str)
+    card = Cards.get_card!(card_id)
+
+    case Cards.toggle_card_lock(card) do
+      {:ok, _card} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Card lock toggled")
+         |> reload_cards()}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Error toggling card lock")}
+    end
+  end
+
   # Helper to reload cards with current filters
   defp reload_cards(socket) do
     cards =

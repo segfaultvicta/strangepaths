@@ -25,9 +25,9 @@
             <%= if (song.unlocked && @role != nil) || @role == :dragon do %>
               <%= live_redirect song.title,
                   to: "/ost/#{song.id}",
-                  class: "text-2xl text-purple-300 hover:text-purple-200 flex-1" %>
+                  class: "text-2xl lyrics-alternate-font text-purple-300 hover:text-purple-200 flex-1" %>
             <% else %>
-              <span class="text-2xl text-gray-700 dark:text-gray-400 flex-1"><%= song.title %></span>
+              <span class="text-2xl lyrics-alternate-font text-gray-700 dark:text-gray-400 flex-1"><%= song.title %></span>
             <% end %>
           <% end %>
 
@@ -142,9 +142,9 @@
             <%= if (song.unlocked && @role != nil) || @role == :dragon do %>
               <%= live_redirect song.title,
                   to: "/ost/#{song.id}",
-                  class: "text-2xl text-purple-300 hover:text-purple-200 flex-1" %>
+                  class: "text-2xl lyrics-alternate-font text-purple-300 hover:text-purple-200 flex-1" %>
             <% else %>
-              <span class="text-2xl text-gray-700 dark:text-gray-400 flex-1"><%= song.title %></span>
+              <span class="text-2xl lyrics-alternate-font text-gray-700 dark:text-gray-400 flex-1"><%= song.title %></span>
             <% end %>
           <% end %>
 

@@ -47,6 +47,25 @@
               <code class="flex-1 text-sm text-purple-300"><%= @song.link || "(not set)" %></code>
             </div>
 
+            <% # Font Style Toggle %>
+            <div class="flex items-center gap-4 border-t border-gray-700 pt-4">
+              <span class="text-sm text-gray-400">Lyrics Font Style:</span>
+              <div class="flex gap-2">
+                <button
+                  phx-click="set_font_style"
+                  phx-value-style="default"
+                  class={"px-4 py-2 rounded text-sm transition " <> if @song.font_style == "default", do: "bg-purple-600 text-white", else: "bg-gray-700 text-gray-300 hover:bg-gray-600"}>
+                  Default Font
+                </button>
+                <button
+                  phx-click="set_font_style"
+                  phx-value-style="alternate"
+                  class={"px-4 py-2 rounded text-sm transition " <> if @song.font_style == "alternate", do: "bg-purple-600 text-white", else: "bg-gray-700 text-gray-300 hover:bg-gray-600"}>
+                  Alternate Font
+                </button>
+              </div>
+            </div>
+
             <% # File upload section %>
             <div class="border-t border-gray-700 pt-4">
               <span class="text-sm text-gray-400 block mb-2">Upload MP3 File (generates secure GUID):</span>
@@ -106,7 +125,7 @@
         <% else %>
           <% # Display mode %>
           <%= if @song.text && @song.text != "" do %>
-            <div id="lyrics-display">
+            <div id="lyrics-display" class={if @song.font_style == "alternate", do: "lyrics-alternate-font", else: "lyrics-default-font"}>
               <%= raw(Earmark.as_html!(@song.text)) %>
             </div>
           <% else %>

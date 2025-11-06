@@ -225,7 +225,7 @@
 
     <!-- Cards by Aspect -->
     <%= for {_, aspect} <- @cards do %>
-      <%= if !(aspect.name == "Alethic" && (@role == :user || @role == nil)) do %>
+      <%= if true do %>
         <div id={aspect.name} class="p-2">
           <h2 class="text-center">
             <%= aspect.name %>

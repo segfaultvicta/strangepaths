@@ -159,6 +159,11 @@ body {
     word-break: break-word;
 }
 
+.post-ic-content {
+    @apply max-w-none;
+    word-break: break-word;
+}
+
 .post-ic-content-icecylee p:first-of-type {
     display: inline;
 }
@@ -501,6 +506,11 @@ body {
     font-weight: 100;
     font-style: italic;
     text-align: center;
+}
+
+.lyrics-alternate-font {
+    font-family: 'Anaktoria' !important;
+    font-size: 32px !important;
 }
 
 .lyrics-edit {

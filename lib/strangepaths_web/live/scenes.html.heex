@@ -88,8 +88,8 @@
             <div id="posts-spacing">
               <%= for post <- Enum.reverse(@posts) do %>
                 <div data-post-id={post.id} class={"post-container-icecylee " <> case post.post_type do
-                  :narrative -> "post-container-narrative"
-                  :system -> "post-container-system"
+                  :narrative -> "post-container-narrative lyrics-alternate-font"
+                  :system -> "post-container-system lyrics-alternate-font"
                   _ -> "post-container-post"
                 end}>
                   <!-- Post Header -->

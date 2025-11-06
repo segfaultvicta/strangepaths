@@ -129,6 +129,21 @@
         </div>
       <% end %>
 
+      <!-- Unlocked checkbox for existing Alethic cards (edit mode only) -->
+      <%= if @action == :edit && @card.gnosis && @card.gnosis != "" do %>
+        <div class="border-2 border-yellow-400 dark:border-yellow-600 rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-eye text-yellow-600 dark:text-yellow-400"></i>
+            <span class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Alethic Card Visibility</span>
+          </div>
+          <div class="flex items-center gap-2 p-3 bg-white dark:bg-gray-700 rounded border border-yellow-300 dark:border-yellow-600">
+            <%= checkbox f, :unlocked, class: "w-5 h-5 text-yellow-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-yellow-500" %>
+            <%= label f, :unlocked, "Unlocked (visible to players)", class: "text-sm font-semibold text-yellow-800 dark:text-yellow-300" %>
+          </div>
+          <p class="mt-2 text-xs text-yellow-700 dark:text-yellow-400">Check this box to make the Alethic card visible to players in the card index.</p>
+        </div>
+      <% end %>
+
       <!-- Submit Button -->
       <div class="flex justify-end gap-3 pt-4">
         <%= live_patch "Cancel",

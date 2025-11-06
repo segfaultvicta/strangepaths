@@ -81,6 +81,21 @@ defmodule StrangepathsWeb.SongLive do
     {:noreply, assign(socket, :editing_lyrics, false)}
   end
 
+  # Admin-only: Set font style
+  defp handle_song_event("set_font_style", %{"style" => style}, socket) do
+    if socket.assigns.current_user.role == :dragon do
+      Site.update_song_metadata(socket.assigns.song.id, %{font_style: style})
+      song = Site.get_song!(socket.assigns.song.id)
+
+      {:noreply,
+       socket
+       |> assign(:song, song)
+       |> put_flash(:info, "Font style updated!")}
+    else
+      {:noreply, socket}
+    end
+  end
+
   # Admin-only: Upload MP3 file
   defp handle_song_event("upload_mp3", _params, socket) do
     if socket.assigns.current_user.role == :dragon do

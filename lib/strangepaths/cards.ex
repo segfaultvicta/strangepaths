@@ -101,6 +101,14 @@ defmodule Strangepaths.Cards do
         query
       end
 
+    # Filter locked Alethic cards for non-dragons
+    query =
+      if user_role != :dragon do
+        from(c in query, where: c.unlocked == true)
+      else
+        query
+      end
+
     # Execute query
     cards = Repo.all(query)
 
@@ -281,6 +289,15 @@ defmodule Strangepaths.Cards do
     else
       Repo.delete(aspect)
     end
+  end
+
+  @doc """
+  Toggles the unlocked status of a card (for Alethic cards).
+  """
+  def toggle_card_lock(%Card{} = card) do
+    card
+    |> Ecto.Changeset.change(unlocked: !card.unlocked)
+    |> Repo.update()
   end
 
   @doc """
