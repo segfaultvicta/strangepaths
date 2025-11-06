@@ -4,8 +4,11 @@ defmodule Strangepaths.Cards.Card do
 
   schema "cards" do
     field(:img, :string)
+    field(:cardart, :string)
     field(:name, :string)
     field(:rules, :string)
+    field(:statusline, :string)
+    field(:flavortext, :string)
     field(:type, Ecto.Enum, values: [:Rite, :Grace, :Status])
     field(:alt, :id)
     field(:glorified, :boolean)
@@ -25,7 +28,7 @@ defmodule Strangepaths.Cards.Card do
   @doc false
   def changeset(card, attrs) do
     card
-    |> cast(attrs, [:name, :img, :rules, :type, :aspect_id, :alt, :glorified, :gnosis])
-    |> validate_required([:name, :img, :rules, :type, :aspect_id])
+    |> cast(attrs, [:name, :img, :cardart, :rules, :flavortext, :statusline, :type, :aspect_id, :alt, :glorified, :gnosis])
+    |> validate_required([:name, :type, :aspect_id])
   end
 end

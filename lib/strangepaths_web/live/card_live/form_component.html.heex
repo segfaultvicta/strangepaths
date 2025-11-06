@@ -1,87 +1,143 @@
-<div>
-  <h2><%= @title %></h2>
+<div class="p-6 bg-indigo-100 dark:bg-gray-800 rounded-lg">
+  <h2 class="text-3xl font-bold mb-6 text-indigo-900 dark:text-white"><%= @title %></h2>
 
-<%= if @id == :new do %>
+  <!-- Error Messages -->
+  <%= if @changeset.action do %>
+    <div class="mb-6 bg-red-100 dark:bg-red-900 border-l-4 border-red-500 p-4 rounded">
+      <p class="font-semibold text-red-800 dark:text-red-200 mb-2">Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
+
   <.form
     let={f}
     for={@changeset}
     id="card-form"
     phx-target={@myself}
-    phx-change="validate"
     phx-submit="save">
-  
-    <div class="formstyle">
-      <div class="p-4">
-        <%= label f, :name %>
-        <%= text_input f, :name, class: "text"%>
+
+    <div class="space-y-6">
+      <!-- Card Name -->
+      <div>
+        <%= label f, :name, class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+        <%= text_input f, :name,
+          class: "w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition",
+          placeholder: "Enter card name..." %>
         <%= error_tag f, :name %>
       </div>
-    
-      <div class="p-4">
-        <%= label f, :image %>
-        <%= live_file_input @uploads.image %>
-        <%= for entry <- @uploads.image.entries do %>
-          <p>
-            <progress value={entry.progress} max="100"> <%= entry.progress %>% </progress>
-          </p>
-          <%= for err <- upload_errors(@uploads.image, entry) do %>
-            <p class="alert alert-danger"><%= friendly_error(err) %></p>
-          <% end %>
-        <% end %>
-      </div>
 
-      <div class="p-4">
-        <%= label f, :rules %>
-        <%= textarea f, :rules, class: "text" %>
-        <%= error_tag f, :rules %>
-      </div>
-    
-      <div class="p-4 grid grid-cols-2">
+      <!-- Aspect and Type Row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Aspect Selector -->
         <div>
-          <%= label f, :type, class: "text-right mt-2" %>
-          <%= select f, :type, Ecto.Enum.values(Strangepaths.Cards.Card, :type), prompt: "Choose a value" %>
+          <%= label f, :aspect_id, "Aspect", class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+          <select name="card[aspect_id]" class="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+            <option value="">Select an Aspect...</option>
+            <%= for %{parent: parent, children: children} <- @aspects_hierarchy do %>
+              <option value={parent.id} selected={input_value(f, :aspect_id) == parent.id}><%= parent.name %></option>
+              <%= for child <- children do %>
+                <option value={child.id} selected={input_value(f, :aspect_id) == child.id}>  └─ <%= child.name %></option>
+              <% end %>
+            <% end %>
+          </select>
+          <%= error_tag f, :aspect_id %>
+        </div>
+
+        <!-- Type Selector -->
+        <div>
+          <%= label f, :type, class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+          <%= select f, :type,
+            [{"Rite", :Rite}, {"Grace", :Grace}, {"Status", :Status}],
+            prompt: "Select card type...",
+            class: "w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" %>
           <%= error_tag f, :type %>
         </div>
       </div>
 
-      <div class="p-4">
-        <%= label f, :gnosis %>
-        <%= text_input f, :gnosis, class: "text" %>
-        <%= error_tag f, :gnosis %>
-      </div>
-    
+      <!-- Card Art Upload -->
       <div>
-        <%= submit "Save", phx_disable_with: "Saving..." %>
+        <%= label f, :cardart, "Card Art", class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+        <div class="border-2 border-dashed border-indigo-300 dark:border-gray-600 rounded-lg p-6 bg-white dark:bg-gray-700">
+          <%= live_file_input @uploads.cardart, class: "block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer" %>
+
+          <%= for entry <- @uploads.cardart.entries do %>
+            <div class="mt-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-600 dark:text-gray-300"><%= entry.client_name %></span>
+                <span class="text-sm font-semibold text-indigo-600 dark:text-indigo-400"><%= entry.progress %>%</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                <div class="bg-indigo-600 h-2 rounded-full transition-all" style={"width: #{entry.progress}%"}></div>
+              </div>
+            </div>
+            <%= for err <- upload_errors(@uploads.cardart, entry) do %>
+              <p class="mt-2 text-sm text-red-600 dark:text-red-400"><%= friendly_error(err) %></p>
+            <% end %>
+          <% end %>
+
+          <%= if @action == :edit && @card.cardart do %>
+            <div class="mt-4">
+              <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Current card art:</p>
+              <img src={@card.cardart} alt="Current card art" class="max-w-xs rounded-lg border-2 border-gray-300 dark:border-gray-600" />
+            </div>
+          <% end %>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Upload PNG, JPG, or JPEG. This will be used to generate the card image.</p>
       </div>
 
-    </div>
-  </.form>
-<% else %>
-  <.form
-    let={f}
-    for={@changeset}
-    id="card-form"
-    phx-target={@myself}
-    phx-change="validate_edit"
-    phx-submit="save">
-
-    <div class="formstyle">
-      <div class="p-4">
-        <%= label f, :name %>
-        <%= text_input f, :name, class: "text"%>
-        <%= error_tag f, :name %>
-      </div>
-
-      <div class="p-4">
-        <%= label f, :rules %>
-        <%= textarea f, :rules, class: "text" %>
+      <!-- Rules Text -->
+      <div>
+        <%= label f, :rules, "Rules Text", class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+        <%= textarea f, :rules,
+          rows: 6,
+          class: "w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition font-mono text-sm",
+          placeholder: "Enter the card's rules text..." %>
         <%= error_tag f, :rules %>
       </div>
 
+      <!-- Flavor Text -->
       <div>
-        <%= submit "Save", phx_disable_with: "Saving..." %>
+        <%= label f, :flavortext, "Flavor Text", class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+        <%= textarea f, :flavortext,
+          rows: 3,
+          class: "w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition italic text-sm",
+          placeholder: "Enter flavor text (optional)..." %>
+        <%= error_tag f, :flavortext %>
+      </div>
+
+      <!-- Status Line -->
+      <div>
+        <%= label f, :statusline, "Status Line", class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>
+        <%= text_input f, :statusline,
+          class: "w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-sm",
+          placeholder: "e.g., '2 Glory' or 'Status Effect' (optional)..." %>
+        <%= error_tag f, :statusline %>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">This appears at the bottom of the card (glory cost, duration, etc.)</p>
+      </div>
+
+      <!-- Gnosis (Secret Card Password) - Only for new cards -->
+      <%= if @action == :new do %>
+        <div class="border-2 border-yellow-400 dark:border-yellow-600 rounded-lg p-4 bg-yellow-50 dark:bg-yellow-900/20">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-lock text-yellow-600 dark:text-yellow-400"></i>
+            <%= label f, :gnosis, "Gnosis (Secret Card)", class: "text-sm font-semibold text-yellow-800 dark:text-yellow-300" %>
+          </div>
+          <%= text_input f, :gnosis,
+            class: "w-full px-4 py-2 bg-white dark:bg-gray-700 border-2 border-yellow-300 dark:border-yellow-600 rounded-lg text-indigo-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition text-sm",
+            placeholder: "Leave blank for normal card..." %>
+          <%= error_tag f, :gnosis %>
+          <p class="mt-2 text-xs text-yellow-700 dark:text-yellow-400">Enter a password to make this an Alethic (secret) card that requires unlocking.</p>
+        </div>
+      <% end %>
+
+      <!-- Submit Button -->
+      <div class="flex justify-end gap-3 pt-4">
+        <%= live_patch "Cancel",
+          to: @return_to,
+          class: "px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold transition" %>
+        <%= submit (@action == :new && "Create Card") || "Update Card",
+          phx_disable_with: "Saving...",
+          class: "px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition cursor-pointer" %>
       </div>
     </div>
   </.form>
-<% end %>
 </div>

@@ -10,7 +10,10 @@ defmodule StrangepathsWeb.DeckLive.Show do
     # Subscribe to music broadcasts
     subscribe_to_music(socket)
 
-    {:ok, assign_defaults(session, socket)}
+    {:ok,
+     assign_defaults(session, socket)
+     |> assign(:show_all_cards, true)
+     |> assign(:deck_drawer_open, false)}
   end
 
   @impl true
@@ -63,6 +66,18 @@ defmodule StrangepathsWeb.DeckLive.Show do
     {:ok, deck} = Cards.adjust_blockcap(socket.assigns.deck, String.to_integer(adjustment))
 
     {:noreply, recalc(socket, deck)}
+  end
+
+  defp handle_deck_event("toggle_show_all_cards", _, socket) do
+    {:noreply, assign(socket, :show_all_cards, !socket.assigns.show_all_cards)}
+  end
+
+  defp handle_deck_event("toggle_deck_drawer", _, socket) do
+    {:noreply, assign(socket, :deck_drawer_open, !socket.assigns.deck_drawer_open)}
+  end
+
+  defp handle_deck_event("close_deck_drawer", _, socket) do
+    {:noreply, assign(socket, :deck_drawer_open, false)}
   end
 
   defp handle_deck_event("open_avatar_picker", _, socket) do

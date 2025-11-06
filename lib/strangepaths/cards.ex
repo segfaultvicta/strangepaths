@@ -7,6 +7,7 @@ defmodule Strangepaths.Cards do
   alias Strangepaths.Repo
 
   alias Strangepaths.Cards.Card
+  alias Strangepaths.Cards.Aspect
 
   @doc """
   Returns the list of cards.
@@ -58,6 +59,76 @@ defmodule Strangepaths.Cards do
     end)
   end
 
+  @doc """
+  Searches and filters cards based on query and filters.
+  Returns cards grouped by aspect.
+
+  Parameters:
+  - search_query: String to search in card name and rules (nil or empty = no search)
+  - aspect_id: Filter by specific aspect (nil = all unlocked aspects)
+  - show_glorified: Include glorified cards (boolean)
+  - user_role: :dragon to see locked aspects, anything else hides them
+  """
+  def search_and_filter_cards(search_query, aspect_id, show_glorified, user_role) do
+    # Build base query
+    query = from(c in Card, order_by: [asc: c.id])
+
+    # Apply search if present
+    query =
+      if search_query && String.trim(search_query) != "" do
+        search_pattern = "%#{search_query}%"
+
+        from(c in query,
+          where: ilike(c.name, ^search_pattern) or ilike(c.rules, ^search_pattern)
+        )
+      else
+        query
+      end
+
+    # Filter by aspect if specified
+    query =
+      if aspect_id do
+        from(c in query, where: c.aspect_id == ^aspect_id)
+      else
+        query
+      end
+
+    # Filter glorified cards
+    query =
+      if !show_glorified do
+        from(c in query, where: c.glorified == false)
+      else
+        query
+      end
+
+    # Execute query
+    cards = Repo.all(query)
+
+    # Get aspects to group by (only unlocked unless dragon)
+    aspects =
+      if user_role == :dragon do
+        Repo.all(Aspect)
+      else
+        list_unlocked_aspects()
+      end
+
+    # Group cards by aspect
+    Enum.reduce(aspects, %{}, fn aspect, acc ->
+      aspect_cards = Enum.filter(cards, fn c -> c.aspect_id == aspect.id end)
+
+      if length(aspect_cards) > 0 do
+        Map.put(acc, aspect.id, %{
+          name: aspect.name,
+          cards: aspect_cards,
+          parent_aspect_id: aspect.parent_aspect_id,
+          unlocked: aspect.unlocked
+        })
+      else
+        acc
+      end
+    end)
+  end
+
   def list_aspects do
     Repo.all(Strangepaths.Cards.Aspect)
   end
@@ -74,6 +145,142 @@ defmodule Strangepaths.Cards do
 
   def get_aspect_id(name) do
     Repo.get_by!(Strangepaths.Cards.Aspect, name: name).id
+  end
+
+  @doc """
+  Gets all unlocked aspects.
+  """
+  def list_unlocked_aspects do
+    from(a in Aspect, where: a.unlocked == true)
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets aspects organized by parent/child hierarchy.
+  Returns a list of %{parent: aspect, children: [child_aspects]}
+  """
+  def list_aspects_with_hierarchy do
+    aspects = Repo.all(from(a in Aspect, order_by: [asc: a.id]))
+
+    # Group by parent
+    base_aspects = Enum.filter(aspects, fn a -> is_nil(a.parent_aspect_id) end)
+
+    Enum.map(base_aspects, fn parent ->
+      children = Enum.filter(aspects, fn a -> a.parent_aspect_id == parent.id end)
+      %{parent: parent, children: children}
+    end)
+  end
+
+  @doc """
+  Gets aspects that can be selected for deck creation based on user role.
+  - Regular users: Only base aspects (Fang, Claw, Scale, Breath)
+  - Dragons: Base aspects + all unlocked sub-aspects
+  """
+  def list_aspects_for_deck_creation(:dragon) do
+    # Get all base aspects and their unlocked children
+    from(a in Aspect,
+      where: a.id in [1, 2, 3, 4] or (a.unlocked == true and not is_nil(a.parent_aspect_id)),
+      order_by: [asc: a.parent_aspect_id, asc: a.id],
+      preload: [:parent_aspect]
+    )
+    |> Repo.all()
+  end
+
+  def list_aspects_for_deck_creation(_user_role) do
+    # Regular users only see base aspects
+    from(a in Aspect, where: a.id in [1, 2, 3, 4])
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets an aspect with its parent preloaded.
+  """
+  def get_aspect_with_parent(id) do
+    Repo.get(Aspect, id)
+    |> Repo.preload(:parent_aspect)
+  end
+
+  @doc """
+  Returns a display name for an aspect including parent if it's a sub-aspect.
+  Examples: "Fang", "Venom (Fang)"
+  """
+  def get_aspect_display_name(aspect_id) when is_integer(aspect_id) do
+    aspect = get_aspect_with_parent(aspect_id)
+    get_aspect_display_name(aspect)
+  end
+
+  def get_aspect_display_name(%Aspect{parent_aspect: nil} = aspect) do
+    aspect.name
+  end
+
+  def get_aspect_display_name(%Aspect{parent_aspect: parent} = aspect) when not is_nil(parent) do
+    "#{aspect.name} (#{parent.name})"
+  end
+
+  def get_aspect_display_name(%Aspect{parent_aspect_id: nil} = aspect) do
+    aspect.name
+  end
+
+  def get_aspect_display_name(%Aspect{parent_aspect_id: parent_id} = aspect)
+      when not is_nil(parent_id) do
+    parent = Repo.get(Aspect, parent_id)
+    "#{aspect.name} (#{parent.name})"
+  end
+
+  @doc """
+  Creates a new aspect.
+  """
+  def create_aspect(attrs) do
+    %Aspect{}
+    |> Aspect.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates an aspect (name, description).
+  """
+  def update_aspect(%Aspect{} = aspect, attrs) do
+    aspect
+    |> Aspect.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Toggles the locked status of an aspect.
+  Cannot unlock aspect if parent is locked.
+  """
+  def toggle_aspect_lock(%Aspect{} = aspect) do
+    aspect = Repo.preload(aspect, :parent_aspect)
+
+    # If unlocking a child aspect, check parent is unlocked
+    if !aspect.unlocked && aspect.parent_aspect && !aspect.parent_aspect.unlocked do
+      {:error, "Cannot unlock aspect while parent aspect is locked"}
+    else
+      aspect
+      |> Ecto.Changeset.change(unlocked: !aspect.unlocked)
+      |> Repo.update()
+    end
+  end
+
+  @doc """
+  Deletes an aspect.
+  Prevents deletion if aspect has cards or is a base aspect.
+  """
+  def delete_aspect(%Aspect{id: id}) when id in [1, 2, 3, 4] do
+    {:error, "Cannot delete base aspects (Fang, Claw, Scale, Breath)"}
+  end
+
+  def delete_aspect(%Aspect{} = aspect) do
+    # Check if aspect has any cards
+    card_count =
+      from(c in Card, where: c.aspect_id == ^aspect.id, select: count(c.id))
+      |> Repo.one()
+
+    if card_count > 0 do
+      {:error, "Cannot delete aspect with #{card_count} associated card(s)"}
+    else
+      Repo.delete(aspect)
+    end
   end
 
   @doc """
@@ -194,6 +401,10 @@ defmodule Strangepaths.Cards do
     })
     |> Repo.insert()
   end
+
+  # TODO need to make a webform created card that
+  # works for non-base-aspect, non-alethic cards in
+  # order to fix the crash I am experiencing right now
 
   # for cards created via the webform (alethic rites)
   def create_card(%{
@@ -391,14 +602,24 @@ defmodule Strangepaths.Cards do
 
   """
   def create_deck(attrs \\ %{}) do
-    # preload the deck with the basic Grace and base 5 Rites for that deck's aspect
-    cards = list_cards_for_codex()
+    aspect_id = String.to_integer(attrs["aspect_id"])
+    aspect = Repo.get!(Aspect, aspect_id)
 
+    # Only preload base cards for base aspects (Fang, Claw, Scale, Breath)
+    # Sub-aspects (with parent_aspect_id) start with empty deck
     basecards =
-      [Enum.at(rites(cards, String.to_integer(attrs["aspect_id"]), 1, :Grace), 0)] ++
-        Enum.reject(rites(cards, String.to_integer(attrs["aspect_id"]), 20, :Rite), fn r ->
-          r.glory_cost != 0
-        end)
+      if aspect.parent_aspect_id do
+        # Sub-aspect: no base cards
+        []
+      else
+        # Base aspect: preload the basic Grace and base 5 Rites
+        cards = list_cards_for_codex()
+
+        [Enum.at(rites(cards, aspect_id, 1, :Grace), 0)] ++
+          Enum.reject(rites(cards, aspect_id, 20, :Rite), fn r ->
+            r.glory_cost != 0
+          end)
+      end
 
     %Deck{glory: 0, cards: basecards}
     |> Deck.new_changeset(attrs)
