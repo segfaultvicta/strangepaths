@@ -90,7 +90,6 @@ COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/strangepaths 
 COPY priv/static/fonts/*.ttf /usr/share/fonts/truetype/
 RUN fc-cache -f -v
 
-
 USER nobody
 
 CMD ["/app/bin/server"]

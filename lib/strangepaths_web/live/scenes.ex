@@ -398,6 +398,15 @@ defmodule StrangepathsWeb.Scenes do
             content
           end
 
+        IO.inspect(content)
+
+        content =
+          content
+          |> String.replace("[...]\”", "\” ⁂")
+          |> String.replace("[...]", "⁂")
+          |> String.replace("[X]\”", "\” 🙧")
+          |> String.replace("[X]", "🙧")
+
         post_attrs = %{
           scene_id: scene.id,
           user_id: user.id,
@@ -436,12 +445,23 @@ defmodule StrangepathsWeb.Scenes do
     if String.trim(content) == "" do
       {:noreply, socket}
     else
+      content =
+        String.trim(content)
+        |> String.replace("[...]\”", "\” ⁂")
+        |> String.replace("[...]", "⁂")
+        |> String.replace("[X]\"", "\" 🙧")
+        |> String.replace("[X]", "🙧")
+
+      # this will let me insert random sigils into the middle of a post!
+      # this could be useful information to have e.g. I could set up transforms for
+      # the emoji codes for the colors of mana or something if I wanted to
+
       if scene && user.role == :dragon do
         post_attrs = %{
           scene_id: scene.id,
           user_id: user.id,
           avatar_id: nil,
-          content: "ꙮ " <> String.trim(content),
+          content: "ꙮ " <> content,
           ooc_content: nil,
           narrative_author_name: nil
         }
@@ -1429,7 +1449,9 @@ defmodule StrangepathsWeb.Scenes do
       # Otherwise, increment unread count for this scene
       unread_counts = Map.update(socket.assigns.unread_counts, scene_id, 1, &(&1 + 1))
       unread_count = calculate_total_unread(unread_counts)
-      {:noreply, socket |> assign(:unread_counts, unread_counts) |> assign(:unread_count, unread_count)}
+
+      {:noreply,
+       socket |> assign(:unread_counts, unread_counts) |> assign(:unread_count, unread_count)}
     end
   end
 

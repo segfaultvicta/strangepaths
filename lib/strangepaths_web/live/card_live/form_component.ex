@@ -19,16 +19,27 @@ defmodule StrangepathsWeb.CardLive.FormComponent do
   end
 
   @impl true
+  def handle_event("validate", _params, socket) do
+    # Just return noreply - validation happens automatically for uploads
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("save", %{"card" => card_params}, socket) do
     save_card(socket, socket.assigns.action, card_params)
   end
 
   defp save_card(socket, :edit, card_params) do
     # Handle cardart upload if present
+
+    IO.inspect(card_params)
     card_params = handle_cardart_upload(socket, card_params)
 
     case Cards.update_card(socket.assigns.card, card_params) do
       {:ok, _card} ->
+        IO.puts("beep")
+        IO.puts(socket.assigns.return_to)
+
         {:noreply,
          socket
          |> put_flash(:info, "Card updated successfully")
@@ -56,20 +67,23 @@ defmodule StrangepathsWeb.CardLive.FormComponent do
   end
 
   defp handle_cardart_upload(socket, card_params) do
-    cardart_paths = consume_uploaded_entries(socket, :cardart, fn %{path: path}, entry ->
-      # Generate unique filename based on card name and timestamp
-      filename = "#{card_params["name"]}_#{System.system_time(:second)}#{Path.extname(entry.client_name)}"
+    cardart_paths =
+      consume_uploaded_entries(socket, :cardart, fn %{path: path}, entry ->
+        # Generate unique filename based on card name and timestamp
+        filename =
+          "#{card_params["name"]}_#{System.system_time(:second)}#{Path.extname(entry.client_name)}"
 
-      dest = Path.join([
-        :code.priv_dir(:strangepaths),
-        "static",
-        "uploads",
-        filename
-      ])
+        dest =
+          Path.join([
+            :code.priv_dir(:strangepaths),
+            "static",
+            "uploads",
+            filename
+          ])
 
-      File.cp!(path, dest)
-      {:ok, Routes.static_path(socket, "/uploads/#{filename}")}
-    end)
+        File.cp!(path, dest)
+        {:ok, Routes.static_path(socket, "/uploads/#{filename}")}
+      end)
 
     if length(cardart_paths) > 0 do
       Map.put(card_params, "cardart", List.first(cardart_paths))

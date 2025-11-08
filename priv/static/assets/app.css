@@ -1804,11 +1804,6 @@ a:hover {
   background-color: rgb(254 226 226 / var(--tw-bg-opacity));
 }
 
-.bg-indigo-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(79 70 229 / var(--tw-bg-opacity));
-}
-
 .bg-yellow-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 252 232 / var(--tw-bg-opacity));
@@ -1817,6 +1812,11 @@ a:hover {
 .bg-gray-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(107 114 128 / var(--tw-bg-opacity));
+}
+
+.bg-indigo-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(79 70 229 / var(--tw-bg-opacity));
 }
 
 .bg-yellow-500 {
@@ -2426,11 +2426,6 @@ a:hover {
   color: rgb(153 27 27 / var(--tw-text-opacity));
 }
 
-.text-indigo-600 {
-  --tw-text-opacity: 1;
-  color: rgb(79 70 229 / var(--tw-text-opacity));
-}
-
 .text-yellow-600 {
   --tw-text-opacity: 1;
   color: rgb(202 138 4 / var(--tw-text-opacity));
@@ -2879,6 +2874,7 @@ body {
 .post-container-narrative {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+  border-radius: 0.25rem;
   border-left-width: 8px;
   --tw-border-opacity: 1;
   border-color: rgb(168 85 247 / var(--tw-border-opacity));
@@ -2893,15 +2889,10 @@ body {
   background-color: rgb(88 28 135 / var(--tw-bg-opacity));
 }
 
-@media (min-width: 1024px) {
-  .post-container-narrative {
-    border-radius: 9999px;
-  }
-}
-
 .post-container-system {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
+  border-radius: 0.25rem;
   border-left-width: 8px;
   --tw-border-opacity: 1;
   border-color: rgb(59 130 246 / var(--tw-border-opacity));
@@ -4343,6 +4334,11 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(165 180 252 / var(--tw-text-opacity));
 }
 
+.hover\:text-purple-500:hover {
+  --tw-text-opacity: 1;
+  color: rgb(168 85 247 / var(--tw-text-opacity));
+}
+
 .hover\:underline:hover {
   -webkit-text-decoration-line: underline;
           text-decoration-line: underline;
@@ -4559,11 +4555,6 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:text-red-200 {
   --tw-text-opacity: 1;
   color: rgb(254 202 202 / var(--tw-text-opacity));
-}
-
-.dark .dark\:text-indigo-400 {
-  --tw-text-opacity: 1;
-  color: rgb(129 140 248 / var(--tw-text-opacity));
 }
 
 .dark .dark\:text-red-400 {

@@ -316,18 +316,111 @@ defmodule Strangepaths.Cards do
   """
   def get_card!(id), do: Repo.get!(Card, id)
 
-  @doc """
-  Gets a card and, if it exists, its glorified alternate; will return nil for second element if no glorified alternate exists.
-  """
   def get_card_and_alt(id) do
     card = get_card!(id)
 
-    {card,
-     if card.alt != nil do
-       Repo.get(Card, card.alt)
-     else
-       nil
-     end}
+    alt =
+      if card.alt != nil do
+        Repo.get(Card, card.alt)
+      else
+        nil
+      end
+
+    if alt == nil do
+      card = auto_populate_cardart(card)
+      {card, nil, card}
+    else
+      {base, glory, gloryfirst} =
+        if card.glorified do
+          {alt, card, true}
+        else
+          {card, alt, false}
+        end
+
+      base = auto_populate_cardart(base)
+      glory = auto_populate_cardart(glory) |> auto_populate_glory_fields()
+
+      IO.puts("base id is #{base.id}")
+      IO.puts("glory id is #{glory.id}")
+      IO.puts("gloryfirst is #{gloryfirst}")
+
+      if gloryfirst do
+        {base, glory, glory}
+      else
+        {base, glory, base}
+      end
+    end
+  end
+
+  defp auto_populate_cardart(card) do
+    if is_nil(card.cardart) || card.cardart == "" do
+      # strip question marks from card name if relevant
+      card_name =
+        if String.contains?(card.name, "?") do
+          String.replace(card.name, "?", "")
+        else
+          card.name
+        end
+
+      # Construct expected path: /images/cardart/[Card Name].png
+      expected_path = "/images/cardart/#{card_name}.png"
+      full_path = "priv/static#{expected_path}"
+
+      if File.exists?(full_path) do
+        # Update the card struct with the new cardart path
+
+        # Update the database with the new cardart path
+        card
+        |> Card.changeset(%{cardart: expected_path})
+        |> Repo.update()
+
+        # return the updated card
+        %{card | cardart: expected_path}
+      else
+        card
+      end
+    else
+      card
+    end
+  end
+
+  defp auto_populate_glory_fields(card) do
+    if card.type == :Rite && card.glorified == true do
+      try do
+        base_card = get_card!(card.id - 1)
+
+        card =
+          if card.flavortext == "" or (card.flavortext == nil and base_card.flavortext != "") do
+            card |> Card.changeset(%{flavortext: base_card.flavortext}) |> Repo.update()
+
+            %{card | flavortext: base_card.flavortext}
+          else
+            card
+          end
+
+        card =
+          if card.rules == "" or (card.rules == nil and base_card.rules != "") do
+            card |> Card.changeset(%{rules: base_card.rules}) |> Repo.update()
+
+            %{card | rules: base_card.rules}
+          else
+            card
+          end
+
+        if card.statusline == "" or (card.statusline == nil and base_card.statusline != "") do
+          card |> Card.changeset(%{statusline: base_card.statusline}) |> Repo.update()
+
+          %{card | statusline: base_card.statusline}
+        else
+          card
+        end
+      catch
+        _, _ ->
+          card
+      end
+    else
+      card
+    end
   end
 
   def get_card_by_gnosis(gnosis) do
@@ -422,6 +515,52 @@ defmodule Strangepaths.Cards do
   # TODO need to make a webform created card that
   # works for non-base-aspect, non-alethic cards in
   # order to fix the crash I am experiencing right now
+
+  def create_card(%{
+        "name" => name,
+        "cardart" => cardart,
+        "flavortext" => flavortext,
+        "rules" => rules,
+        "statusline" => statusline,
+        "type" => type,
+        "aspect_id" => aspect_id,
+        "gnosis" => gnosis_plaintext
+      }) do
+    if gnosis_plaintext != "" do
+      # drop everything babe it's an alethic rite or grace
+      %Card{}
+      |> Card.changeset(%{
+        name: name,
+        cardart: cardart,
+        img: "/images/" <> Slug.slugify(name) <> ".png",
+        flavortext: flavortext,
+        statusline: statusline,
+        type: type,
+        aspect_id: Strangepaths.Cards.get_aspect_id("Alethic"),
+        rules: rules,
+        alt: nil,
+        glorified: false,
+        gnosis: :crypto.hash(:md5, gnosis_plaintext) |> Base.encode16() |> String.downcase()
+      })
+      |> Repo.insert()
+    else
+      # it's a veiled tellurian rite or grace
+      %Card{}
+      |> Card.changeset(%{
+        name: name,
+        cardart: cardart,
+        img: "/images/" <> Slug.slugify(name) <> ".png",
+        flavortext: flavortext,
+        statusline: statusline,
+        type: type,
+        aspect_id: aspect_id,
+        rules: rules,
+        alt: nil,
+        glorified: false
+      })
+      |> Repo.insert()
+    end
+  end
 
   # for cards created via the webform (alethic rites)
   def create_card(%{
