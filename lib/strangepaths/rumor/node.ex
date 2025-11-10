@@ -11,6 +11,7 @@ defmodule Strangepaths.Rumor.Node do
     field(:content, :string)
     field(:color_category, :string)
     field(:is_anchor, :boolean, default: false)
+    field(:avatar_only, :boolean, default: false)
 
     field(:avatar_id, :id)
     belongs_to(:created_by, Strangepaths.Accounts.User)
@@ -33,6 +34,7 @@ defmodule Strangepaths.Rumor.Node do
       :content,
       :color_category,
       :is_anchor,
+      :avatar_only,
       :avatar_id,
       :created_by_id
     ])

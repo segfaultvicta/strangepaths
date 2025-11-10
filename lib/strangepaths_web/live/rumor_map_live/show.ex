@@ -30,6 +30,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
 
     nodes = Rumor.list_nodes()
+    IO.inspect(nodes)
     connections = Rumor.list_connections()
 
     socket =
@@ -69,14 +70,13 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
   end
 
-  @impl true
   defp handle_rumormap_event(
          "zoom",
          %{"delta" => delta, "mouseX" => mouse_x, "mouseY" => mouse_y},
          socket
        ) do
     old_zoom = socket.assigns.zoom
-    new_zoom = max(0.1, min(5.0, old_zoom * delta))
+    new_zoom = max(0.01, min(5.0, old_zoom * delta))
 
     # Calculate the world point under the mouse before zoom
     # Convert mouse position to world coordinates at old zoom
@@ -111,7 +111,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   end
 
   defp handle_rumormap_event("zoom_out", _params, socket) do
-    new_zoom = max(0.1, socket.assigns.zoom / 1.2)
+    new_zoom = max(0.01, socket.assigns.zoom / 1.2)
     {:noreply, assign(socket, :zoom, new_zoom)}
   end
 
@@ -268,15 +268,28 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
       node = Enum.find(socket.assigns.nodes, &(&1.id == node_id))
 
+      {avatar_id, avatar_filepath} =
+        if node.avatar_id != nil do
+          avatar = Accounts.get_avatar!(node.avatar_id)
+          {avatar.id, avatar.filepath}
+        else
+          {nil, nil}
+        end
+
       {:noreply,
        socket
        |> assign(:editing_node_id, node_id)
+       |> assign(:selected_avatar_id, avatar_id)
+       |> assign(:selected_avatar_filepath, avatar_filepath)
        |> assign(:selected_node, node)}
     end
   end
 
   defp handle_rumormap_event("save_node", %{"node" => node_params}, socket) do
     node = Rumor.get_node!(socket.assigns.editing_node_id)
+
+    node_params = Map.put(node_params, "avatar_id", socket.assigns.selected_avatar_id)
+    IO.inspect(node_params)
 
     case Rumor.update_node(node, node_params) do
       {:ok, updated_node} ->
@@ -300,6 +313,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
          |> assign(:nodes, updated_nodes)
          |> assign(:editing_node_id, nil)
          |> assign(:selected_node, nil)
+         |> assign(:selected_avatar_id, nil)
+         |> assign(:selected_avatar_filepath, nil)
          |> put_flash(:info, "Node updated")}
 
       {:error, changeset} ->
@@ -494,7 +509,6 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
   end
 
-  @impl true
   defp handle_rumormap_info(%{event: "node_created", payload: %{node: node}}, socket) do
     {:noreply, assign(socket, :nodes, [node | socket.assigns.nodes])}
   end
