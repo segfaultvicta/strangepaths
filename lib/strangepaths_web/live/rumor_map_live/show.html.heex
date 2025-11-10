@@ -1,0 +1,230 @@
+<div class="w-full h-screen flex flex-col">
+  <!-- Header -->
+  <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Rumor Map</h1>
+
+    <div class="flex gap-4 items-center">
+      <%= if @state == :connecting do %>
+        <span class="text-yellow-400">Connecting... Click a target node</span>
+        <button phx-click="cancel_connecting" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+          Cancel
+        </button>
+      <% end %>
+
+      <%= if @current_user && @current_user.role == :dragon do %>
+        <button phx-click="create_default_nodes"
+                phx-click-confirm="Create the 5 default anchor nodes? This should only be done once."
+                class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm">
+          Create Default Nodes
+        </button>
+      <% end %>
+
+      <div class="text-sm text-gray-400">
+        Zoom: <%= Float.round(@zoom, 2) %>x | Shift+Click to create node
+      </div>
+
+      <div class="absolute top-20 right-4 bg-black text-white p-2 text-xs">
+        Debug: selected_node = <%= if @selected_node, do: @selected_node.id, else: "nil" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main viewport -->
+  <div id="rumor-map-viewport"
+       class="relative flex-1 overflow-hidden bg-gray-500"
+       phx-hook="RumorMapViewport">
+
+    <!-- Connection manager (invisible, just for hook) -->
+    <div id="rumor-map-connections" phx-hook="RumorMap" phx-update="ignore"></div>
+
+    <!-- The pannable/zoomable world container -->
+    <div id="rumor-map-world"
+         class="absolute inset-0"
+         style={"transform: translate(#{@pan_x}px, #{@pan_y}px) scale(#{@zoom}); transform-origin: 0 0;"}>
+
+      <!-- Nodes container -->
+      <div id="nodes-container">
+        <%= for node <- @nodes do %>
+        <div id={"node-#{node.id}"}
+             data-node-id={node.id}
+             data-is-anchor={if node.is_anchor do "true" else "false" end}
+             phx-hook="RumorMapNode"
+             class="absolute transition-transform hover:scale-105"
+             style={"left: #{node.x}px; top: #{node.y}px; z-index: #{node.z_index}; transform: scale(#{node.scale}) translate(-50%, -50%);"}>
+
+          <!-- Node visual -->
+          <div class={"node-drag-handle cursor-move p-3 rounded-lg shadow-xl border-4 border-#{get_border_class(node.color_category)} #{get_bg_class(node.color_category)} min-w-[120px]"}
+               phx-click="node_clicked"
+               phx-value-node-id={node.id}>
+
+            <%= if node.avatar_id do %>
+              <img src={get_avatar_path(node.avatar_id)}
+                   class="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
+                   alt={node.title} />
+            <% end %>
+
+            <div class="text-white text-sm font-bold text-center mb-1">
+              <%= node.title %>
+            </div>
+
+            <%= if node.is_anchor do %>
+              <div class="text-yellow-400 text-xs text-center">⚓ Anchor</div>
+            <% end %>
+          </div>
+
+          <!-- Node action buttons (shown on hover or selection) -->
+          <%= if @selected_node && @selected_node.id == node.id do %>
+            <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 bg-gray-700 p-2 rounded shadow-lg">
+              <button phx-click="start_editing_node"
+                      phx-value-node-id={node.id}
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs">
+                Edit
+              </button>
+              <button phx-click="start_connecting"
+                      phx-value-node-id={node.id}
+                      class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs">
+                Connect
+              </button>
+              <%= unless node.is_anchor do %>
+                <button phx-click="delete_node"
+                        phx-value-node-id={node.id}
+                        phx-click-confirm="Are you sure?"
+                        class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs">
+                  Delete
+                </button>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+      </div>
+    </div>
+
+    <!-- UI Controls -->
+    <div class="absolute top-4 right-4 flex flex-col gap-2">
+      <button phx-click="zoom_in"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded shadow-lg text-xl font-bold">
+        +
+      </button>
+      <button phx-click="zoom_out"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded shadow-lg text-xl font-bold">
+        −
+      </button>
+      <button phx-click="reset_view"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded shadow-lg text-sm">
+        ⌂
+      </button>
+    </div>
+
+    <!-- Selected Connection Popup -->
+    <%= if @selected_connection do %>
+      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 p-3 rounded shadow-xl z-50">
+        <div class="text-white text-sm mb-2">
+          Connection: <%= @selected_connection.from_node.title %> → <%= @selected_connection.to_node.title %>
+        </div>
+        <div class="flex gap-2">
+          <button phx-click="delete_connection"
+                  phx-value-connection-id={@selected_connection.id}
+                  phx-click-confirm="Delete this connection?"
+                  class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
+            Delete
+          </button>
+          <button phx-click="clear_connection_selection"
+                  class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">
+            Close
+          </button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Edit Node Modal -->
+  <%= if @editing_node_id do %>
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         id="modal-backdrop"
+         phx-click="cancel_editing">
+      <div class="dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-xl max-w-lg w-full"
+           phx-click="modal_content_clicked">
+        <h2 class="text-xl font-bold mb-4">Edit Node</h2>
+
+        <div class="text-sm text-gray-400 mb-4">
+          Node <%= @selected_node.id %> at X: <%= Float.round(@selected_node.x, 1) %> Y: <%= Float.round(@selected_node.y, 1) %>
+        </div>
+
+        <.form for={:node} phx-submit="save_node">
+          <div class="mb-4">
+            <label class="block text-sm font-bold mb-2">Title</label>
+            <input type="text"
+                   name="node[title]"
+                   value={@selected_node.title}
+                   class="w-full px-3 py-2 bg-gray-700 rounded" />
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-bold mb-2">Content</label>
+            <textarea name="node[content]"
+                      rows="6"
+                      class="w-full px-3 py-2 bg-gray-700 rounded"><%= @selected_node.content %></textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-bold mb-2">Color Category</label>
+            <select name="node[color_category]" class="w-full px-3 py-2 bg-gray-700 rounded">
+              <%= for color <- ["red", "blue", "green", "white", "black", "secret"] do %>
+                <option value={color} selected={@selected_node.color_category == color}>
+                  <%= String.capitalize(color) %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-bold mb-2">Scale</label>
+              <input type="number"
+                     name="node[scale]"
+                     step="0.1"
+                     min="0.5"
+                     max="10.0"
+                     value={@selected_node.scale}
+                     class="w-full px-3 py-2 bg-gray-700 rounded" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-bold mb-2">Z-Index</label>
+              <input type="number"
+                     name="node[z_index]"
+                     step="1"
+                     value={@selected_node.z_index}
+                     class="w-full px-3 py-2 bg-gray-700 rounded" />
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="flex items-center gap-2">
+              <input type="hidden" name="node[is_anchor]" value="false" />
+              <input type="checkbox"
+                     name="node[is_anchor]"
+                     value="true"
+                     checked={@selected_node.is_anchor}
+                     class="rounded" />
+              <span class="text-sm font-bold">Anchor (immovable)</span>
+            </label>
+          </div>
+
+          <div class="flex gap-2 justify-end">
+            <button type="button"
+                    phx-click="cancel_editing"
+                    class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">
+              Cancel
+            </button>
+            <button type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+              Save
+            </button>
+          </div>
+        </.form>
+      </div>
+    </div>
+  <% end %>
+</div>

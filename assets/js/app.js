@@ -465,8 +465,6 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("loadAmountSubmenu", e => {
-            console.log("in loadAmountSubmenu");
-            console.log(e);
             var template = document.getElementById('amountSubmenuTemplate');
             var submenu = template.cloneNode(true);
             submenu.id = "amountSubmenu";
@@ -481,7 +479,6 @@ Hooks.Temenos = {
             var baseColor;
             var variance;
             var angle;
-            console.log(e.type);
             switch (e.type) {
                 case "Defend":
                     baseColor = "#CCCCCC"
@@ -595,6 +592,393 @@ Hooks.Temenos = {
         ctx.moveTo(100, 0);
         ctx.lineTo(100, 200);
         ctx.stroke();
+    }
+}
+
+// Rumor Map Hooks
+Hooks.RumorMapViewport = {
+    mounted() {
+        let isPanning = false;
+        let hasDragged = false;
+        let startX, startY;
+        let mouseDownX, mouseDownY;
+        const world = document.getElementById('rumor-map-world');
+
+        // Zoom with mouse wheel - follow cursor
+        this.el.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const rect = this.el.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+
+            this.pushEvent('zoom', {
+                delta: delta,
+                mouseX: mouseX,
+                mouseY: mouseY
+            });
+        });
+
+        // Pan with click-drag on background
+        this.el.addEventListener('mousedown', (e) => {
+            // Only pan if clicking the viewport or world div (not nodes)
+            if (e.target === this.el || e.target.id === 'rumor-map-world') {
+                isPanning = true;
+                hasDragged = false;
+                startX = e.clientX;
+                startY = e.clientY;
+                mouseDownX = e.clientX;
+                mouseDownY = e.clientY;
+                this.el.style.cursor = 'grabbing';
+            }
+        });
+
+        this.el.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                // If we've moved more than 3 pixels, consider it a drag
+                if (Math.abs(e.clientX - mouseDownX) > 3 || Math.abs(e.clientY - mouseDownY) > 3) {
+                    hasDragged = true;
+                }
+
+                startX = e.clientX;
+                startY = e.clientY;
+                this.pushEvent('pan', { dx: dx, dy: dy });
+            }
+        });
+
+        const endPan = () => {
+            isPanning = false;
+            this.el.style.cursor = 'default';
+
+            // Reset drag flag after a short delay to prevent click event
+            setTimeout(() => {
+                hasDragged = false;
+            }, 50);
+        };
+
+        this.el.addEventListener('mouseup', endPan);
+        this.el.addEventListener('mouseleave', endPan);
+
+        // Click empty space - either create node (Shift+Click) or deselect (plain click)
+        this.el.addEventListener('click', (e) => {
+            // Only handle clicks on viewport or world (not nodes or buttons) AND we didn't just drag
+            if ((e.target === this.el || e.target.id === 'rumor-map-world') && !hasDragged) {
+                if (e.shiftKey) {
+                    // Shift+Click to create node
+                    const rect = this.el.getBoundingClientRect();
+                    const transform = window.getComputedStyle(world).transform;
+
+                    // Parse transform matrix
+                    const matrix = new DOMMatrix(transform);
+
+                    // Convert screen to world coordinates (in pixels)
+                    const screenX = e.clientX - rect.left;
+                    const screenY = e.clientY - rect.top;
+
+                    const worldX = (screenX - matrix.e) / matrix.a;
+                    const worldY = (screenY - matrix.f) / matrix.d;
+
+                    // Send pixel coordinates (infinite canvas - no bounds checking)
+                    this.pushEvent('create_node', { x: worldX, y: worldY });
+                } else {
+                    // Plain click to deselect
+                    this.pushEvent('deselect_node', {});
+                }
+            }
+        });
+    },
+
+    updated() {
+        // Whenever LiveView updates the viewport (pan/zoom changes), update line positions
+        window.dispatchEvent(new CustomEvent('viewport-transformed'));
+    }
+}
+
+Hooks.RumorMapNode = {
+    mounted() {
+        let isDragging = false;
+        let startX, startY;
+        let initialNodeX, initialNodeY;
+
+        const dragHandle = this.el.querySelector('.node-drag-handle');
+        const isAnchor = this.el.dataset.isAnchor === 'true';
+
+        // Change cursor for anchors
+        if (isAnchor) {
+            dragHandle.style.cursor = 'default';
+        }
+
+        dragHandle.addEventListener('mousedown', (e) => {
+            // Don't allow dragging anchor nodes
+            if (isAnchor) {
+                return;
+            }
+
+            // Only start drag if clicking directly on the handle (not buttons)
+            if (e.target === dragHandle || e.target.closest('.node-drag-handle') === dragHandle) {
+                isDragging = true;
+                e.stopPropagation(); // Prevent map panning
+
+                startX = e.clientX;
+                startY = e.clientY;
+
+                // Get current position
+                initialNodeX = parseFloat(this.el.style.left) || 0;
+                initialNodeY = parseFloat(this.el.style.top) || 0;
+
+                this.el.classList.add('dragging');
+                dragHandle.style.cursor = 'grabbing';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+
+                // Calculate delta in screen space
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                // Get world transform to account for zoom
+                const world = document.getElementById('rumor-map-world');
+                const transform = window.getComputedStyle(world).transform;
+                const matrix = new DOMMatrix(transform);
+                const zoom = matrix.a;
+
+                // Delta in pixels (accounting for zoom)
+                const deltaXPixels = dx / zoom;
+                const deltaYPixels = dy / zoom;
+
+                // New position in pixels (no constraints - infinite canvas)
+                const newX = initialNodeX + deltaXPixels;
+                const newY = initialNodeY + deltaYPixels;
+
+                // Update position immediately for smooth dragging
+                this.el.style.left = `${newX}px`;
+                this.el.style.top = `${newY}px`;
+
+                // Update initialNodeX/Y for next move event
+                initialNodeX = newX;
+                initialNodeY = newY;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                // Update LeaderLines
+                window.dispatchEvent(new CustomEvent('node-moved', {
+                    detail: { nodeId: this.el.dataset.nodeId }
+                }));
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                this.el.classList.remove('dragging');
+                dragHandle.style.cursor = 'move';
+
+                // Send final position to server
+                const nodeId = this.el.dataset.nodeId;
+                const finalX = parseFloat(this.el.style.left);
+                const finalY = parseFloat(this.el.style.top);
+
+                this.pushEvent('update_node_position', {
+                    node_id: nodeId,
+                    x: finalX,
+                    y: finalY
+                });
+            }
+        });
+
+        // Listen for position updates from other users
+        this.handleEvent('node_position_updated', ({ node_id }) => {
+            if (this.el.dataset.nodeId === node_id.toString()) {
+                window.dispatchEvent(new CustomEvent('node-moved', {
+                    detail: { nodeId: node_id.toString() }
+                }));
+            }
+        });
+    }
+}
+
+Hooks.RumorMap = {
+    mounted() {
+        this.lines = {}; // Track LeaderLine instances by connection ID
+
+        // Method to update all line positions
+        this.updateAllLines = () => {
+            Object.entries(this.lines).forEach(([connId, lineData]) => {
+                if (lineData.svg) {
+                    clickablePath = lineData.svg.childNodes[2];
+                    clickablePath.remove();
+                    this.createClickableOverlay(lineData.instance, lineData.conn, lineData.svg);
+                }
+                lineData.instance.position();
+            });
+        };
+
+        // Listen for node movement to update lines
+        window.addEventListener('node-moved', (e) => {
+            const nodeId = e.detail.nodeId;
+
+            // Update all lines connected to this node
+            Object.entries(this.lines).forEach(([connId, lineData]) => {
+                if (lineData.startNodeId == nodeId || lineData.endNodeId == nodeId) {
+                    // remove lineData.svg's 2nd child (clickable path)
+                    clickablePath = lineData.svg.childNodes[2];
+                    clickablePath.remove();
+
+                    this.createClickableOverlay(lineData.instance, lineData.conn, lineData.svg);
+                    lineData.instance.position();
+                }
+            });
+        });
+
+        // Listen for viewport transformations (pan/zoom) to update all lines
+        window.addEventListener('viewport-transformed', () => {
+            this.updateAllLines();
+        });
+
+        // Draw a new connection
+        this.handleEvent('draw_connection', (conn) => {
+            const startEl = document.getElementById(`node-${conn.from_id}`);
+            const endEl = document.getElementById(`node-${conn.to_id}`);
+
+            if (!startEl || !endEl) {
+                console.error('Could not find nodes for connection', conn);
+                return;
+            }
+
+            const color = this.getColorForCategory(conn.category);
+
+            const lineOpts = {
+                color: color,
+                size: 3,
+                path: 'straight',
+                startPlug: 'disc',
+                endPlug: 'arrow2',
+                ...conn.line_style
+            };
+
+            const line = new LeaderLine(startEl, endEl, lineOpts);
+
+            // Store initial SVG count to find the newly created one
+            const svgCountBefore = document.querySelectorAll('svg.leader-line').length;
+
+            this.lines[conn.id] = {
+                instance: line,
+                startNodeId: conn.from_id.toString(),
+                endNodeId: conn.to_id.toString(),
+                conn: conn  // Store connection data for recreating overlay if needed
+            };
+
+            // this is a sin against G-d
+
+            const allSvgs = document.querySelectorAll('svg.leader-line');
+            // If a new SVG was created, find the one without our marker
+            if (allSvgs.length >= svgCountBefore) {
+                let svg = null;
+                for (let i = 0; i < allSvgs.length; i++) {
+                    if (!allSvgs[i].dataset.connectionId) {
+                        svg = allSvgs[i];
+                        break;
+                    }
+                }
+                if (svg) {
+                    svg.dataset.connectionId = conn.id;
+                    this.lines[conn.id].svg = svg;
+                    this.createClickableOverlay(line, conn, svg);
+                    return;
+                }
+            }
+
+            // Small delay to let LeaderLine create the SVG
+            createOverlay();
+        });
+
+        // Remove a connection
+        this.handleEvent('remove_connection', ({ connection_id }) => {
+            if (this.lines[connection_id]) {
+                this.lines[connection_id].instance.remove();
+                delete this.lines[connection_id];
+            }
+        });
+
+        // Remove all connections to/from a deleted node
+        this.handleEvent('remove_deleted_node_connections', ({ node_id }) => {
+            Object.entries(this.lines).forEach(([connId, lineData]) => {
+                if (lineData.startNodeId == node_id.toString() || lineData.endNodeId == node_id.toString()) {
+                    lineData.instance.remove();
+                    delete this.lines[connId];
+                }
+            });
+        });
+
+        // Remove a node from DOM
+        this.handleEvent('remove_node_element', ({ node_id }) => {
+            const nodeEl = document.getElementById(`node-${node_id}`);
+            if (nodeEl) {
+                nodeEl.remove();
+            }
+        });
+    },
+
+    getColorForCategory(category) {
+        const colors = {
+            'red': '#ef4444',
+            'blue': '#3b82f6',
+            'green': '#22c55e',
+            'white': '#f3f4f6',
+            'black': '#1f2937',
+            'secret': '#a855f7'
+        };
+        return colors[category] || '#9ca3af';
+    },
+
+    createClickableOverlay(line, conn, svg) {
+        if (!svg) {
+            console.error('SVG not ready for connection', conn.id);
+            return;
+        }
+
+        const path = svg.querySelector('path');
+
+        if (path) {
+            // Clone path for click detection
+            const clickPath = path.cloneNode(true);
+            clickPath.setAttribute('stroke-width', '20');
+            // Very subtle white overlay - barely visible but clickable
+            clickPath.setAttribute('stroke', 'rgba(255, 255, 255, 0.01)');
+            clickPath.setAttribute('fill', 'none');
+            clickPath.style.cursor = 'pointer';
+            clickPath.setAttribute('data-connection-id', conn.id);
+            clickPath.style.pointerEvents = 'auto'; // Ensure it receives pointer events
+
+            svg.appendChild(clickPath);
+
+            // Add tooltip if there's a label
+            if (conn.label && window.tippy) {
+                tippy(clickPath, {
+                    content: conn.label,
+                    theme: 'translucent',
+                    placement: 'top'
+                });
+            }
+
+            // Click handler
+            clickPath.addEventListener('click', (e) => {
+                console.log('Connection clicked:', conn.id);
+                e.stopPropagation();
+                this.pushEvent('connection_clicked', { 'connection-id': conn.id.toString() });
+            });
+
+            // Also ensure the SVG itself allows pointer events
+            svg.style.pointerEvents = 'auto';
+        }
     }
 }
 
