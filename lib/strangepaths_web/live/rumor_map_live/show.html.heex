@@ -182,7 +182,7 @@
 
     <!-- Selected Connection Popup -->
     <%= if @selected_connection do %>
-      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-700 p-3 rounded shadow-xl z-50">
+      <div class="absolute bottom-36 left-1/2 transform -translate-x-1/2 bg-gray-700 p-3 rounded shadow-xl z-50">
         <div class="text-white text-sm mb-2">
           Connection: <%= @selected_connection.from_node.title %> → <%= @selected_connection.to_node.title %>
         </div>
@@ -197,6 +197,118 @@
                   class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">
             Close
           </button>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Node Detail Side Panel -->
+    <%= if @viewing_node_id && @selected_node do %>
+      <div id="rumor-detail-panel"
+           phx-hook="RumorDetailPanel"
+           class="fixed top-0 right-0 h-full w-96 pb-24 bg-gray-800 shadow-2xl z-40 transform transition-transform duration-300 ease-in-out flex flex-col border-l-4 border-purple-500"
+           phx-window-keydown="close_detail_panel" phx-key="escape">
+
+        <!-- Panel Header -->
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 class="text-xl font-bold text-white">Node Details</h2>
+          <button phx-click="close_detail_panel"
+                  class="text-gray-400 hover:text-white transition">
+            <i class="fa-solid fa-times text-2xl"></i>
+          </button>
+        </div>
+
+        <!-- Panel Content -->
+        <div class="flex-1 overflow-y-auto p-4">
+          <!-- Title -->
+          <h3 class="text-2xl font-bold text-white text-center mb-2">
+            <%= @selected_node.title %>
+          </h3>
+
+          <!-- Metadata -->
+          <div class="text-sm text-gray-400 text-center mb-4 space-y-1">
+            <div class="inline-block px-3 py-1 rounded-full bg-#{get_bg_class(@selected_node.color_category)} border border-#{get_border_class(@selected_node.color_category)}">
+              <%= String.capitalize(@selected_node.color_category) %>
+            </div>
+            <%= if @selected_node.is_anchor do %>
+              <div class="text-yellow-400">⚓ Anchor Node</div>
+            <% end %>
+          </div>
+
+          <!-- Art Image -->
+          <%= if @selected_node.image_url && @selected_node.image_url != "" do %>
+            <a href={@selected_node.image_url} target="_blank">
+              <img src={@selected_node.image_url} class="w-full mb-4" />
+            </a>
+          <% end %>
+
+          <!-- Content -->
+          <%= if @selected_node.content && @selected_node.content != "" do %>
+            <div class="bg-gray-700 rounded-lg p-4 mb-4">
+              <h4 class="text-sm font-bold text-gray-300 mb-2">Content</h4>
+              <div class="text-white whitespace-pre-wrap">
+                <%= @selected_node.content %>
+              </div>
+            </div>
+          <% else %>
+            <div class="bg-gray-700 rounded-lg p-4 mb-4 text-gray-400 italic text-center">
+              No content yet
+            </div>
+          <% end %>
+
+          <!-- Connections -->
+          <div class="mb-4">
+            <h4 class="text-sm font-bold text-gray-300 mb-2">Connections</h4>
+
+            <!-- Outgoing connections -->
+            <%= if Enum.any?(@connections, fn c -> c.from_node_id == @selected_node.id end) do %>
+              <div class="mb-2">
+                <div class="text-xs text-gray-400 mb-1">→ Outgoing</div>
+                <%= for conn <- Enum.filter(@connections, fn c -> c.from_node_id == @selected_node.id end) do %>
+                  <div class="bg-gray-700 rounded px-3 py-2 mb-1 text-sm text-white">
+                    → <%= conn.to_node.title %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <!-- Incoming connections -->
+            <%= if Enum.any?(@connections, fn c -> c.to_node_id == @selected_node.id end) do %>
+              <div>
+                <div class="text-xs text-gray-400 mb-1">← Incoming</div>
+                <%= for conn <- Enum.filter(@connections, fn c -> c.to_node_id == @selected_node.id end) do %>
+                  <div class="bg-gray-700 rounded px-3 py-2 mb-1 text-sm text-white">
+                    ← <%= conn.from_node.title %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <%= if !Enum.any?(@connections, fn c -> c.from_node_id == @selected_node.id || c.to_node_id == @selected_node.id end) do %>
+              <div class="text-gray-400 italic text-sm">No connections</div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Panel Actions -->
+        <div class="p-4 border-t border-gray-700 flex gap-2">
+          <button phx-click="start_editing_node"
+                  phx-value-node-id={@selected_node.id}
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
+            <i class="fa-solid fa-edit mr-2"></i>Edit
+          </button>
+          <button phx-click="start_connecting"
+                  phx-value-node-id={@selected_node.id}
+                  class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition">
+            <i class="fa-solid fa-link mr-2"></i>Connect
+          </button>
+          <%= unless @selected_node.is_anchor do %>
+            <button phx-click="delete_node"
+                    phx-value-node-id={@selected_node.id}
+                    phx-click-confirm="Are you sure?"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          <% end %>
         </div>
       </div>
     <% end %>
@@ -242,6 +354,14 @@
             <textarea name="node[content]"
                       rows="6"
                       class="w-full px-3 py-2 bg-gray-700 rounded"><%= @selected_node.content %></textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-bold mb-2">Art URL</label>
+            <input type="text"
+                   name="node[image_url]"
+                   value={@selected_node.image_url}
+                   class="w-full px-3 py-2 bg-indigo-50 dark:bg-gray-700 rounded" />
           </div>
 
           <div class="mb-4">

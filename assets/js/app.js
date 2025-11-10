@@ -1028,6 +1028,14 @@ function randomCloseColor(inputColor, variance = 10) {
     return `#${toHex(newR)}${toHex(newG)}${toHex(newB)}`;
 }
 
+Hooks.RumorDetailPanel = {
+    mounted() {
+        // Prevent wheel events from bubbling up to viewport zoom handler
+        this.el.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+    }
+};
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {

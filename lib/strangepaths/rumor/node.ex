@@ -9,6 +9,7 @@ defmodule Strangepaths.Rumor.Node do
     field(:scale, :float, default: 1.0)
     field(:title, :string)
     field(:content, :string)
+    field(:image_url, :string)
     field(:color_category, :string)
     field(:is_anchor, :boolean, default: false)
     field(:avatar_only, :boolean, default: false)
@@ -32,6 +33,7 @@ defmodule Strangepaths.Rumor.Node do
       :scale,
       :title,
       :content,
+      :image_url,
       :color_category,
       :is_anchor,
       :avatar_only,
@@ -40,6 +42,6 @@ defmodule Strangepaths.Rumor.Node do
     ])
     |> validate_required([:x, :y, :title, :color_category])
     |> validate_inclusion(:color_category, ["red", "blue", "green", "white", "black", "secret"])
-    |> validate_number(:scale, greater_than: 0, less_than_or_equal_to: 10)
+    |> validate_number(:scale, greater_than: 0, less_than_or_equal_to: 15)
   end
 end

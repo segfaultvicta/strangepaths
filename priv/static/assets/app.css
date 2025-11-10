@@ -917,10 +917,6 @@ a:hover {
   bottom: 5rem;
 }
 
-.top-20 {
-  top: 5rem;
-}
-
 .-bottom-12 {
   bottom: -3rem;
 }
@@ -933,8 +929,16 @@ a:hover {
   bottom: 1rem;
 }
 
+.top-0 {
+  top: 0px;
+}
+
 .right-3 {
   right: 0.75rem;
+}
+
+.bottom-36 {
+  bottom: 9rem;
 }
 
 .z-50 {
@@ -1274,6 +1278,10 @@ a:hover {
   width: 8rem;
 }
 
+.w-96 {
+  width: 24rem;
+}
+
 .w-6 {
   width: 1.5rem;
 }
@@ -1592,6 +1600,10 @@ a:hover {
 
 .whitespace-nowrap {
   white-space: nowrap;
+}
+
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
 }
 
 .break-words {
@@ -2250,6 +2262,10 @@ a:hover {
 
 .pb-24 {
   padding-bottom: 6rem;
+}
+
+.pb-36 {
+  padding-bottom: 9rem;
 }
 
 .text-left {

@@ -20,7 +20,7 @@ defmodule StrangepathsWeb.Endpoint do
     at: "/",
     from: :strangepaths,
     gzip: true,
-    only: ~w(audio assets fonts images uploads favicon.ico robots.txt)
+    only: ~w(art audio assets fonts images uploads favicon.ico robots.txt)
   )
 
   # Code reloading can be explicitly enabled under the

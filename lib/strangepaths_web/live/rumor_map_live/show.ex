@@ -44,6 +44,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:editing_node_id, nil)
       |> assign(:connecting_from_node_id, nil)
       |> assign(:selected_node, nil)
+      |> assign(:viewing_node_id, nil)
       |> assign(:selected_connection, nil)
 
     # Draw existing connections on mount (for connected clients only)
@@ -76,7 +77,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
          socket
        ) do
     old_zoom = socket.assigns.zoom
-    new_zoom = max(0.01, min(5.0, old_zoom * delta))
+    new_zoom = max(0.05, min(5.0, old_zoom * delta))
 
     # Calculate the world point under the mouse before zoom
     # Convert mouse position to world coordinates at old zoom
@@ -111,7 +112,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   end
 
   defp handle_rumormap_event("zoom_out", _params, socket) do
-    new_zoom = max(0.01, socket.assigns.zoom / 1.2)
+    new_zoom = max(0.05, socket.assigns.zoom / 1.2)
     {:noreply, assign(socket, :zoom, new_zoom)}
   end
 
@@ -226,8 +227,11 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         end
 
       true ->
-        # Just select the node
-        {:noreply, assign(socket, :selected_node, node)}
+        # Open detail panel for the node
+        {:noreply,
+         socket
+         |> assign(:viewing_node_id, node_id)
+         |> assign(:selected_node, node)}
     end
   end
 
@@ -336,6 +340,22 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     {:noreply,
      socket
      |> assign(:editing_node_id, nil)
+     |> assign(:selected_node, nil)}
+  end
+
+  defp handle_rumormap_event("close_detail_panel", _params, socket)
+       when socket.assigns.editing_node_id != nil do
+    {:noreply,
+     socket
+     |> assign(:editing_node_id, nil)
+     |> assign(:viewing_node_id, nil)
+     |> assign(:selected_node, nil)}
+  end
+
+  defp handle_rumormap_event("close_detail_panel", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:viewing_node_id, nil)
      |> assign(:selected_node, nil)}
   end
 
