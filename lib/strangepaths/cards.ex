@@ -340,10 +340,6 @@ defmodule Strangepaths.Cards do
       base = auto_populate_cardart(base)
       glory = auto_populate_cardart(glory) |> auto_populate_glory_fields()
 
-      IO.puts("base id is #{base.id}")
-      IO.puts("glory id is #{glory.id}")
-      IO.puts("gloryfirst is #{gloryfirst}")
-
       if gloryfirst do
         {base, glory, glory}
       else
@@ -353,6 +349,8 @@ defmodule Strangepaths.Cards do
   end
 
   defp auto_populate_cardart(card) do
+    IO.puts(card.cardart)
+
     if is_nil(card.cardart) || card.cardart == "" do
       # strip question marks from card name if relevant
       card_name =
@@ -364,12 +362,17 @@ defmodule Strangepaths.Cards do
 
       # Construct expected path: /images/cardart/[Card Name].png
       expected_path = "/images/cardart/#{card_name}.png"
-      full_path = "priv/static#{expected_path}"
+      base_path = Application.get_env(:strangepaths, :base_image_store_path)
+      full_path = "#{base_path}#{expected_path}"
+
+      IO.puts("in auto_populate_cardart, card.name is #{card.name}")
+      IO.puts("expected path is #{expected_path}")
+      IO.puts("full path is #{full_path}")
 
       if File.exists?(full_path) do
         # Update the card struct with the new cardart path
+        IO.puts("cardart was found, that's not the problem here")
 
-        # Update the database with the new cardart path
         card
         |> Card.changeset(%{cardart: expected_path})
         |> Repo.update()

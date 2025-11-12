@@ -1,5 +1,8 @@
 import Config
 
+config :strangepaths,
+  base_image_store_path: "priv/static"
+
 # Configure your database
 config :strangepaths, Strangepaths.Repo,
   username: "postgres",

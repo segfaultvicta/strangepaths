@@ -175,7 +175,8 @@ defmodule StrangepathsWeb.CardLive.Show do
   end
 
   defp composite_card(card) do
-    art_path = "priv/static" <> card.cardart
+    base_path = Application.get_env(:strangepaths, :base_image_store_path)
+    art_path = base_path <> card.cardart
     art_x = 105
     art_y = 147
     art_size = 790
@@ -268,48 +269,61 @@ defmodule StrangepathsWeb.CardLive.Show do
       # Load the frame template
       frame_path =
         case {aspect.name, aspect.parent_aspect_id} do
-          {"Fang", nil} -> "priv/static/images/baseframes/Tellurian.png"
-          {_, 1} -> "priv/static/images/baseframes/Tellurian.png"
-          {"Claw", nil} -> "priv/static/images/baseframes/Tellurian.png"
-          {_, 2} -> "priv/static/images/baseframes/Tellurian.png"
-          {"Scale", nil} -> "priv/static/images/baseframes/Tellurian.png"
-          {_, 3} -> "priv/static/images/baseframes/Tellurian.png"
-          {"Breath", nil} -> "priv/static/images/baseframes/Tellurian.png"
-          {_, 4} -> "priv/static/images/baseframes/Tellurian.png"
-          {"Red", nil} -> "priv/static/images/baseframes/Burning.png"
-          {"Green", nil} -> "priv/static/images/baseframes/Flourishing.png"
-          {"Blue", nil} -> "priv/static/images/baseframes/Pellucid.png"
-          {"White", nil} -> "priv/static/images/baseframes/Radiant.png"
-          {"Black", nil} -> "priv/static/images/baseframes/Tenebrous.png"
-          {"Status", nil} -> "priv/static/images/baseframes/Tellurian.png"
-          {"Alethic", nil} -> "priv/static/images/baseframes/Alethic.png"
-          _ -> "priv/static/images/baseframes/Alethic.png"
+          {"Fang", nil} -> "/images/baseframes/Tellurian.png"
+          {_, 1} -> "/images/baseframes/Tellurian.png"
+          {"Claw", nil} -> "/images/baseframes/Tellurian.png"
+          {_, 2} -> "/images/baseframes/Tellurian.png"
+          {"Scale", nil} -> "images/baseframes/Tellurian.png"
+          {_, 3} -> "/images/baseframes/Tellurian.png"
+          {"Breath", nil} -> "/images/baseframes/Tellurian.png"
+          {_, 4} -> "/images/baseframes/Tellurian.png"
+          {"Red", nil} -> "/images/baseframes/Burning.png"
+          {"Green", nil} -> "/images/baseframes/Flourishing.png"
+          {"Blue", nil} -> "/images/baseframes/Pellucid.png"
+          {"White", nil} -> "/images/baseframes/Radiant.png"
+          {"Black", nil} -> "/images/baseframes/Tenebrous.png"
+          {"Status", nil} -> "/images/baseframes/Tellurian.png"
+          {"Alethic", nil} -> "/images/baseframes/Alethic.png"
+          _ -> "/images/baseframes/Alethic.png"
         end
 
+      frame_path = base_path <> frame_path
+
+      IO.puts("frame path is #{frame_path}")
       {:ok, frame} = Image.open(frame_path)
+      IO.puts("got past frame load")
 
       icon_path =
         case {aspect.name, aspect.parent_aspect_id} do
-          {"Fang", nil} -> "priv/static/images/counters/fang.png"
-          {_, 1} -> "priv/static/images/counters/fang.png"
-          {"Claw", nil} -> "priv/static/images/counters/claw.png"
-          {_, 2} -> "priv/static/images/counters/claw.png"
-          {"Scale", nil} -> "priv/static/images/counters/scale.png"
-          {_, 3} -> "priv/static/images/counters/scale.png"
-          {"Breath", nil} -> "priv/static/images/counters/breath.png"
-          {_, 4} -> "priv/static/images/counters/breath.png"
-          {"Red", nil} -> "priv/static/images/counters/red.png"
-          {"Green", nil} -> "priv/static/images/counters/green.png"
-          {"Blue", nil} -> "priv/static/images/counters/blue.png"
-          {"White", nil} -> "priv/static/images/counters/white.png"
-          {"Black", nil} -> "priv/static/images/counters/black.png"
-          {"Status", nil} -> "priv/static/images/counters/status.png"
+          {"Fang", nil} -> "/images/counters/fang.png"
+          {_, 1} -> "/images/counters/fang.png"
+          {"Claw", nil} -> "/images/counters/claw.png"
+          {_, 2} -> "/images/counters/claw.png"
+          {"Scale", nil} -> "/images/counters/scale.png"
+          {_, 3} -> "/images/counters/scale.png"
+          {"Breath", nil} -> "/images/counters/breath.png"
+          {_, 4} -> "/images/counters/breath.png"
+          {"Red", nil} -> "/images/counters/red.png"
+          {"Green", nil} -> "/images/counters/green.png"
+          {"Blue", nil} -> "/images/counters/blue.png"
+          {"White", nil} -> "/images/counters/white.png"
+          {"Black", nil} -> "/images/counters/black.png"
+          {"Status", nil} -> "/images/counters/status.png"
           {"Alethic", nil} -> nil
-          _ -> "priv/static/images/counters/alethic.png"
+          _ -> "/images/counters/alethic.png"
         end
 
+      icon_path =
+        if icon_path == nil do
+          nil
+        else
+          base_path <> icon_path
+        end
+
+      IO.puts("art path is #{art_path}")
       # Load and resize the art to exact square dimensions
       {:ok, art} = Image.open(art_path)
+      IO.puts("got past art load")
 
       {:ok, art_resized} = Image.thumbnail(art, art_size, height: art_size, crop: :center)
 
@@ -393,6 +407,8 @@ defmodule StrangepathsWeb.CardLive.Show do
           img
         end
 
+      IO.puts("got past icon load")
+
       # Do preprocessing on rules text
       rules_text = String.replace(card.rules, "[One]", "✱")
       rules_text = String.replace(rules_text, "[Multi]", "⁂")
@@ -438,6 +454,8 @@ defmodule StrangepathsWeb.CardLive.Show do
           Image.compose(img, flavor_img, x: rules_x, y: rules_y + 220)
         end
 
+      IO.puts("got past rendering of text blocks")
+
       {:ok, final_img} = Image.thumbnail(img, 900, height: 900)
 
       # Overwrite @card.img with the final image
@@ -448,6 +466,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           "priv/static/images/#{Slug.slugify(card.name)}.png"
         end
 
+      IO.puts("in guts of render, about to write final img")
       IO.puts(output_path)
       foo = Image.write(final_img, output_path)
       IO.inspect(foo)

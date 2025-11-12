@@ -71,7 +71,7 @@
             <% end %>
           <% end %>
 
-          <%= if @action == :edit && @card.cardart do %>
+          <%= if @action == :edit && @card.cardart && @card.cardart != ""do %>
             <div class="mt-4">
               <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Current card art:</p>
               <img src={@card.cardart} alt="Current card art" class="max-w-xs rounded-lg border-2 border-gray-300 dark:border-gray-600" />
