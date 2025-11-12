@@ -461,9 +461,9 @@ defmodule StrangepathsWeb.CardLive.Show do
       # Overwrite @card.img with the final image
       output_path =
         if card.img != nil do
-          "priv/static" <> card.img
+          base_path <> card.img
         else
-          "priv/static/images/#{Slug.slugify(card.name)}.png"
+          base_path <> "/images/#{Slug.slugify(card.name)}.png"
         end
 
       IO.puts("in guts of render, about to write final img")
