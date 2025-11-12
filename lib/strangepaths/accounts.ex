@@ -780,6 +780,12 @@ defmodule Strangepaths.Accounts do
   """
   def get_avatar!(id), do: Repo.get!(Avatar, id)
 
+  def get_avatar_by_display_name(name) do
+    ret = Repo.get_by(Avatar, display_name: name)
+    IO.inspect(ret)
+    ret
+  end
+
   @doc """
   Creates a avatar.
 

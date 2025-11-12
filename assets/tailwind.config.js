@@ -22,6 +22,7 @@ module.exports = {
     'border-blue-500',
     'border-emerald-500',
     'border-green-500',
+    'border-yellow-500',
     'border-white',
     'border-gray-500',
     'border-purple-500'

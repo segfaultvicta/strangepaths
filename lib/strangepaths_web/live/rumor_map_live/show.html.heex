@@ -63,9 +63,9 @@
   </div>
 <% end %>
 
-<div class="w-full h-screen flex flex-col">
+<div class="w-full flex flex-col" style="height: 86vh;">
   <!-- Header -->
-  <%= if @current_user && @current_user.role == :dragon do %>
+  <%= if false && @current_user && @current_user.role == :dragon do %>
     <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
       <div class="flex gap-4 items-center">
           <button phx-click="create_default_nodes"
@@ -82,7 +82,7 @@
 
   <!-- Main viewport -->
   <div id="rumor-map-viewport"
-       class="relative flex-1 overflow-hidden bg-gray-500"
+       class="relative flex-1 overflow-hidden bg-black"
        phx-hook="RumorMapViewport">
 
     <!-- Connection manager (invisible, just for hook) -->
@@ -90,7 +90,7 @@
 
     <!-- The pannable/zoomable world container -->
     <div id="rumor-map-world"
-         class="absolute inset-0"
+         class="absolute inset-0 transition-transform duration-300 ease-out"
          style={"transform: translate(#{@pan_x}px, #{@pan_y}px) scale(#{@zoom}); transform-origin: 0 0;"}>
 
       <!-- Nodes container -->
@@ -100,63 +100,35 @@
              data-node-id={node.id}
              data-is-anchor={if node.is_anchor do "true" else "false" end}
              phx-hook="RumorMapNode"
-             class="absolute transition-transform hover:scale-105"
-             style={"left: #{node.x}px; top: #{node.y}px; z-index: #{node.z_index}; transform: scale(#{node.scale}) translate(-50%, -50%);"}>
+             class={"absolute transition-transform hover:scale-105"}
+             style={"font-family: #{get_font_family(node.color_category)}; left: #{node.x}px; top: #{node.y}px; z-index: #{node.z_index}; transform: scale(#{node.scale}) translate(-50%, -50%);"}>
 
           <!-- Node visual -->
-          <%= if node.avatar_only && node.avatar_id do %>
-            <!-- Avatar-only mode: just the image, no card chrome -->
+          <%= if node.avatar_id do %>
+            <!-- Avatar mode: just the image, no card chrome -->
             <div class="node-drag-handle"
                  phx-click="node_clicked"
+                 x-data x-tooltip={"{
+                     content: '#{node.title}',
+                     placement: 'top',
+                     theme: '#{node.color_category}'
+                   }"}
                  phx-value-node-id={node.id}>
               <img src={get_avatar_path(node.avatar_id)}
-                   class="w-32 h-32 rounded-full"
+                   
+                   class="w-32 h-32 rounded-full pointer-events-none"
                    style="min-width: fit-content;"
                    alt={node.title} />
             </div>
           <% else %>
-            <!-- Normal mode: card with border, background, title -->
+            <!-- No avatar mode: card with border, background, title -->
             <div class={"node-drag-handle cursor-move p-3 rounded-lg shadow-xl border-4 border-#{get_border_class(node.color_category)} #{get_bg_class(node.color_category)} min-w-[180px]"}
                  phx-click="node_clicked"
                  phx-value-node-id={node.id}>
 
-              <%= if node.avatar_id do %>
-                <img src={get_avatar_path(node.avatar_id)}
-                     class="w-24 h-24 rounded-full mx-auto mb-2"
-                     alt={node.title} />
-              <% end %>
-
-              <div class="text-white text-sm font-bold text-center mb-1">
+              <div class={"text-4xl font-bold text-center mb-1 " <> get_text_class(node.color_category)}>
                 <%= node.title %>
               </div>
-
-              <%= if node.is_anchor do %>
-                <div class="text-yellow-400 text-xs text-center">⚓ Anchor</div>
-              <% end %>
-            </div>
-          <% end %>
-
-          <!-- Node action buttons (shown on hover or selection) -->
-          <%= if @selected_node && @selected_node.id == node.id do %>
-            <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2 flex gap-2 bg-gray-700 p-2 rounded shadow-lg">
-              <button phx-click="start_editing_node"
-                      phx-value-node-id={node.id}
-                      class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs">
-                Edit
-              </button>
-              <button phx-click="start_connecting"
-                      phx-value-node-id={node.id}
-                      class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs">
-                Connect
-              </button>
-              <%= unless node.is_anchor do %>
-                <button phx-click="delete_node"
-                        phx-value-node-id={node.id}
-                        phx-click-confirm="Are you sure?"
-                        class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs">
-                  Delete
-                </button>
-              <% end %>
             </div>
           <% end %>
         </div>
@@ -180,57 +152,24 @@
       </button>
     </div>
 
-    <!-- Selected Connection Popup -->
-    <%= if @selected_connection do %>
-      <div class="absolute bottom-36 left-1/2 transform -translate-x-1/2 bg-gray-700 p-3 rounded shadow-xl z-50">
-        <div class="text-white text-sm mb-2">
-          Connection: <%= @selected_connection.from_node.title %> → <%= @selected_connection.to_node.title %>
-        </div>
-        <div class="flex gap-2">
-          <button phx-click="delete_connection"
-                  phx-value-connection-id={@selected_connection.id}
-                  phx-click-confirm="Delete this connection?"
-                  class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
-            Delete
-          </button>
-          <button phx-click="clear_connection_selection"
-                  class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-xs">
-            Close
-          </button>
-        </div>
-      </div>
-    <% end %>
-
     <!-- Node Detail Side Panel -->
     <%= if @viewing_node_id && @selected_node do %>
       <div id="rumor-detail-panel"
            phx-hook="RumorDetailPanel"
-           class="fixed top-0 right-0 h-full w-96 pb-24 bg-gray-800 shadow-2xl z-40 transform transition-transform duration-300 ease-in-out flex flex-col border-l-4 border-purple-500"
+           class="fixed top-0 right-0 h-full w-96 pb-24 pt-20 bg-black shadow-2xl z-40 transform transition-transform duration-300 ease-in-out flex flex-col border-l-4 border-purple-500"
            phx-window-keydown="close_detail_panel" phx-key="escape">
 
-        <!-- Panel Header -->
-        <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-          <h2 class="text-xl font-bold text-white">Node Details</h2>
-          <button phx-click="close_detail_panel"
-                  class="text-gray-400 hover:text-white transition">
-            <i class="fa-solid fa-times text-2xl"></i>
-          </button>
-        </div>
-
         <!-- Panel Content -->
-        <div class="flex-1 overflow-y-auto p-4">
+        <div class={"flex-1 overflow-y-auto p-4 node-panel-" <> @selected_node.color_category}>
           <!-- Title -->
-          <h3 class="text-2xl font-bold text-white text-center mb-2">
-            <%= @selected_node.title %>
-          </h3>
+          <div class="text-2xl font-bold text-center mb-2">
+            <span class={if @selected_node.color_category == "black", do: "text-white", else: ""}><%= @selected_node.title %></span>
+          </div>
 
           <!-- Metadata -->
-          <div class="text-sm text-gray-400 text-center mb-4 space-y-1">
-            <div class="inline-block px-3 py-1 rounded-full bg-#{get_bg_class(@selected_node.color_category)} border border-#{get_border_class(@selected_node.color_category)}">
-              <%= String.capitalize(@selected_node.color_category) %>
-            </div>
+          <div class="text-sm text-center mb-4 space-y-1">
             <%= if @selected_node.is_anchor do %>
-              <div class="text-yellow-400">⚓ Anchor Node</div>
+              <div>⚓</div>
             <% end %>
           </div>
 
@@ -243,11 +182,8 @@
 
           <!-- Content -->
           <%= if @selected_node.content && @selected_node.content != "" do %>
-            <div class="bg-gray-700 rounded-lg p-4 mb-4">
-              <h4 class="text-sm font-bold text-gray-300 mb-2">Content</h4>
-              <div class="text-white whitespace-pre-wrap">
-                <%= @selected_node.content %>
-              </div>
+            <div class={"rounded-lg p-4 mb-4 " <> get_bg_class(@selected_node.color_category)}>
+              <div class={"whitespace-pre-wrap " <> if @selected_node.color_category == "green" do "text-2xl" else "" end}><%= @selected_node.content %></div>
             </div>
           <% else %>
             <div class="bg-gray-700 rounded-lg p-4 mb-4 text-gray-400 italic text-center">
@@ -257,15 +193,19 @@
 
           <!-- Connections -->
           <div class="mb-4">
-            <h4 class="text-sm font-bold text-gray-300 mb-2">Connections</h4>
-
             <!-- Outgoing connections -->
             <%= if Enum.any?(@connections, fn c -> c.from_node_id == @selected_node.id end) do %>
               <div class="mb-2">
-                <div class="text-xs text-gray-400 mb-1">→ Outgoing</div>
+                <div class="text-lg text-gray-100 mb-1">← Outgoing →</div>
                 <%= for conn <- Enum.filter(@connections, fn c -> c.from_node_id == @selected_node.id end) do %>
-                  <div class="bg-gray-700 rounded px-3 py-2 mb-1 text-sm text-white">
-                    → <%= conn.to_node.title %>
+                  <div style={"color: #{conn.line_style["color"]}"}
+                       class={"bg-black rounded px-3 py-2 mb-1 text-lg #{if @state == :viewing, do: "clickable-connection", else: ""}"}
+                       phx-click={if @state == :viewing, do: "view_connected_node", else: nil}
+                       phx-value-node-id={conn.to_node_id}>
+                    <%= conn.to_node.title %>
+                    <%= if conn.label != nil and conn.label != "" do %>
+                      <span>(<%= conn.label %>)</span>
+                    <% end %>
                   </div>
                 <% end %>
               </div>
@@ -274,10 +214,17 @@
             <!-- Incoming connections -->
             <%= if Enum.any?(@connections, fn c -> c.to_node_id == @selected_node.id end) do %>
               <div>
-                <div class="text-xs text-gray-400 mb-1">← Incoming</div>
+                <div class="text-lg text-gray-100 mb-1">→ Incoming ←</div>
                 <%= for conn <- Enum.filter(@connections, fn c -> c.to_node_id == @selected_node.id end) do %>
-                  <div class="bg-gray-700 rounded px-3 py-2 mb-1 text-sm text-white">
-                    ← <%= conn.from_node.title %>
+                  <% from_node = Strangepaths.Rumor.get_node!(conn.from_node_id) %>
+                  <div style={"font-family: #{get_font_family(from_node.color_category)}; color: #{conn.line_style["color"]}"}
+                       class={"bg-black rounded px-3 py-2 mb-1 text-lg #{if @state == :viewing, do: "clickable-connection", else: ""}"}
+                       phx-click={if @state == :viewing, do: "view_connected_node", else: nil}
+                       phx-value-node-id={conn.from_node_id}>
+                   <%= conn.from_node.title %>
+                   <%= if conn.label != nil and conn.label != "" do %>
+                      <span>(<%= conn.label %>)</span>
+                    <% end %>
                   </div>
                 <% end %>
               </div>
@@ -316,125 +263,283 @@
 
   <!-- Edit Node Modal -->
   <%= if @editing_node_id do %>
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
          id="modal-backdrop"
-         phx-click="cancel_editing">
-      <div class="dark:bg-gray-800 dark:text-white p-6 rounded-lg shadow-xl max-w-lg w-full"
+         phx-click="cancel_editing"
+         phx-window-keydown="cancel_editing"
+         phx-key="escape">
+      <div id="edit-node-modal"
+           phx-hook="EditNodeModal"
+           class="dark:bg-gray-800 dark:text-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col"
            phx-click="modal_content_clicked">
-        <h2 class="text-xl font-bold mb-4">Edit Node</h2>
-
-        <div class="text-sm text-gray-400 mb-4">
-          Node <%= @selected_node.id %> at X: <%= Float.round(@selected_node.x, 1) %> Y: <%= Float.round(@selected_node.y, 1) %>
+        <div class="p-6 border-b border-gray-700">
+          <h2 class="text-xl font-bold">Edit Node</h2>
         </div>
 
-        <.form for={:node} phx-submit="save_node">
-          <div class="mb-4">
-            <label class="block text-sm font-bold mb-2">Title</label>
-            <input type="text"
-                   name="node[title]"
-                   value={@selected_node.title}
-                   class="w-full px-3 py-2 bg-gray-700 rounded" />
-          </div>
-
-          <button type="button" phx-click="open_avatar_picker" class="group relative inline-block">
-            <%= if @selected_avatar_id != nil do %>
-              <img src={@selected_avatar_filepath} alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
-            <% else %>
-              <div class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 bg-gray-800 flex items-center justify-center transition">
-                <i class="fa-solid fa-user text-4xl text-gray-500"></i>
-              </div>
-            <% end %>
-            <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
-              <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+        <div class="flex-1 overflow-y-auto p-6">
+          <.form for={:node} phx-submit="save_node" id="edit-node-form">
+            <div class="mb-4">
+              <label class="block text-sm font-bold mb-2">Title</label>
+              <input type="text"
+                    name="node[title]"
+                    value={@selected_node.title}
+                    class="w-full px-3 py-2 bg-gray-700 rounded" />
             </div>
-          </button>
 
-          <div class="mb-4">
-            <label class="block text-sm font-bold mb-2">Content</label>
-            <textarea name="node[content]"
-                      rows="6"
-                      class="w-full px-3 py-2 bg-gray-700 rounded"><%= @selected_node.content %></textarea>
-          </div>
+            <div class="mb-4 flex items-center gap-3">
+              <button type="button" phx-click="open_avatar_picker" class="group relative inline-block">
+                <%= if @selected_avatar_id != nil do %>
+                  <img src={@selected_avatar_filepath} alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
+                <% else %>
+                  <div class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 bg-gray-800 flex items-center justify-center transition">
+                    <i class="fa-solid fa-user text-4xl text-gray-500"></i>
+                  </div>
+                <% end %>
+                <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
+                  <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+                </div>
+              </button>
 
-          <div class="mb-4">
-            <label class="block text-sm font-bold mb-2">Art URL</label>
-            <input type="text"
-                   name="node[image_url]"
-                   value={@selected_node.image_url}
-                   class="w-full px-3 py-2 bg-indigo-50 dark:bg-gray-700 rounded" />
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-bold mb-2">Color Category</label>
-            <select name="node[color_category]" class="w-full px-3 py-2 bg-gray-700 rounded">
-              <%= for color <- ["red", "blue", "green", "white", "black", "secret"] do %>
-                <option value={color} selected={@selected_node.color_category == color}>
-                  <%= String.capitalize(color) %>
-                </option>
+              <%= if @selected_avatar_id != nil do %>
+                <button type="button"
+                        phx-click="unset_avatar"
+                        class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition">
+                  <i class="fa-solid fa-times mr-1"></i>Remove Avatar
+                </button>
               <% end %>
-            </select>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-bold mb-2">Scale</label>
-              <input type="number"
-                     name="node[scale]"
-                     step="0.1"
-                     min="0.5"
-                     max="10.0"
-                     value={@selected_node.scale}
-                     class="w-full px-3 py-2 bg-gray-700 rounded" />
             </div>
 
-            <div>
-              <label class="block text-sm font-bold mb-2">Z-Index</label>
-              <input type="number"
-                     name="node[z_index]"
-                     step="1"
-                     value={@selected_node.z_index}
-                     class="w-full px-3 py-2 bg-gray-700 rounded" />
+            <div class="mb-4">
+              <label class="block text-sm font-bold mb-2">Content</label>
+              <textarea name="node[content]"
+                        rows="6"
+                        class="w-full px-3 py-2 bg-gray-700 rounded"><%= @selected_node.content %></textarea>
             </div>
-          </div>
 
-          <div class="mb-4">
-            <label class="flex items-center gap-2">
-              <input type="hidden" name="node[is_anchor]" value="false" />
-              <input type="checkbox"
-                     name="node[is_anchor]"
-                     value="true"
-                     checked={@selected_node.is_anchor}
-                     class="rounded" />
-              <span class="text-sm font-bold">Anchor (immovable)</span>
-            </label>
-          </div>
+            <div class="mb-4">
+              <label class="block text-sm font-bold mb-2">Art URL</label>
+              <input type="text"
+                    name="node[image_url]"
+                    value={@selected_node.image_url}
+                    class="w-full px-3 py-2 bg-indigo-50 dark:bg-gray-700 rounded" />
+            </div>
 
-          <%= if @selected_node.is_anchor do %>
+            <div class="mb-4">
+              <label class="block text-sm font-bold mb-2">Color Category</label>
+              <select name="node[color_category]" class="w-full px-3 py-2 bg-gray-700 rounded">
+                <%= for color <- ["red", "blue", "green", "white", "black", "redacted"] do %>
+                  <option value={color} selected={@selected_node.color_category == color}>
+                    <%= String.capitalize(color) %>
+                  </option>
+                <% end %>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-bold mb-2">Scale</label>
+                <input type="number"
+                      name="node[scale]"
+                      step="0.1"
+                      min="0.5"
+                      max="10.0"
+                      value={@selected_node.scale}
+                      class="w-full px-3 py-2 bg-gray-700 rounded" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-bold mb-2">Z-Index</label>
+                <input type="number"
+                      name="node[z_index]"
+                      step="1"
+                      value={@selected_node.z_index}
+                      class="w-full px-3 py-2 bg-gray-700 rounded" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-bold mb-2">X</label>
+                <input type="number"
+                      name="node[x]"
+                      value={@selected_node.x}
+                      class="w-full px-3 py-2 bg-gray-700 rounded" />
+              </div>
+
+              <div>
+                <label class="block text-sm font-bold mb-2">Y</label>
+                <input type="number"
+                      name="node[y]"
+                      value={@selected_node.y}
+                      class="w-full px-3 py-2 bg-gray-700 rounded" />
+              </div>
+            </div>
+
             <div class="mb-4">
               <label class="flex items-center gap-2">
-                <input type="hidden" name="node[avatar_only]" value="false" />
+                <input type="hidden" name="node[is_anchor]" value="false" />
                 <input type="checkbox"
-                       name="node[avatar_only]"
-                       value="true"
-                       checked={@selected_node.avatar_only}
-                       class="rounded" />
-                <span class="text-sm font-bold">Avatar Only (hide card, show only image)</span>
+                      name="node[is_anchor]"
+                      value="true"
+                      checked={@selected_node.is_anchor}
+                      class="rounded" />
+                <span class="text-sm font-bold">Anchor (immovable)</span>
               </label>
             </div>
-          <% end %>
 
-          <div class="flex gap-2 justify-end">
-            <button type="button"
-                    phx-click="cancel_editing"
-                    class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">
-              Cancel
-            </button>
-            <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
-              Save
-            </button>
+            <div class="p-6 border-t border-gray-700">
+              <div class="flex gap-2 justify-end">
+                <button type="button"
+                        phx-click="cancel_editing"
+                        class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">
+                  Cancel
+                </button>
+                <button type="submit"
+                        form="edit-node-form"
+                        class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                  Save
+                </button>
+              </div>
+            </div>
+          </.form>
+
+          <!-- Connections Management Section -->
+          <div class="mb-4 border-t border-gray-600 pt-4">
+            <h3 class="text-lg font-bold mb-3">Connections</h3>
+
+            <!-- Outgoing Connections List -->
+            <%= if Enum.any?(@connections, fn c -> c.from_node_id == @selected_node.id end) do %>
+              <div class="mb-3">
+                <div class="text-sm font-semibold text-gray-300 mb-2">Outgoing Connections:</div>
+                <%= for conn <- Enum.filter(@connections, fn c -> c.from_node_id == @selected_node.id end) do %>
+                  <div class="bg-gray-700 rounded-lg p-3 mb-2">
+                    <!-- Connection Header -->
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex-1">
+                        <div class="font-semibold text-white">→ <%= conn.to_node.title %></div>
+                        <%= if conn.label && conn.label != "" do %>
+                          <div class="text-xs text-gray-400 italic">"<%= conn.label %>"</div>
+                        <% end %>
+                      </div>
+                      <div class="flex gap-1">
+                        <button type="button"
+                                phx-click="start_editing_connection"
+                                phx-value-connection-id={conn.id}
+                                class="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs">
+                          <i class="fa-solid fa-edit"></i>
+                        </button>
+                        <button type="button"
+                                phx-click="delete_connection"
+                                phx-value-connection-id={conn.id}
+                                phx-click-confirm="Delete this connection?"
+                                class="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Connection Style Editor (shown when editing this connection) -->
+                    <%= if @editing_connection_id == conn.id do %>
+                      <div id="editing_connection_data">
+                      <form phx-submit="update_connection_style">
+                        <input type="hidden" name="connection_id" value={conn.id} />
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label class="block text-xs font-bold mb-1">Color</label>
+                            <input type="color"
+                                   name="color"
+                                   value={@connection_under_edit.line_style["color"] || "#ffffff"}
+                                   class="w-full h-8 rounded cursor-pointer" />
+                          </div>
+
+                          <div>
+                            <label class="block text-xs font-bold mb-1">Thiccness:</label>
+                            <input type="range"
+                                   name="size"
+                                   min="1"
+                                   max="8"
+                                   value={@connection_under_edit.line_style["size"]|| 2}
+                                   class="w-full" />
+                          </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label class="block text-xs font-bold mb-1">Line Style</label>
+                            <select name="dash" class="w-full px-2 py-1 bg-gray-600 rounded text-sm">
+                              <option value="solid" selected={@connection_under_edit.line_style["dash"] == "solid"}>Solid</option>
+                              <option value="dashed" selected={@connection_under_edit.line_style["dash"] == "dashed"}>Dashed</option>
+                              <option value="dotted" selected={@connection_under_edit.line_style["dash"] == "dotted"}>Dotted</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block text-xs font-bold mb-1">Label Position</label>
+                            <select name="label_position" class="w-full px-2 py-1 bg-gray-600 rounded text-sm">
+                              <option value="start" selected={@connection_under_edit.line_style["label_position"] == "start"}>Start</option>
+                              <option value="middle" selected={@connection_under_edit.line_style["label_position"] == "middle"}>Middle</option>
+                              <option value="end" selected={@connection_under_edit.line_style["label_position"] == "end"}>End</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label class="block text-xs font-bold mb-1">Label Text</label>
+                          <input type="text"
+                                 name="label"
+                                 value={conn.label}
+                                 placeholder="Optional label text"
+                                 class="w-full px-2 py-1 bg-gray-600 rounded text-sm" />
+                        </div>
+
+                        <div class="flex gap-2 justify-end">
+                          <button type="button"
+                                  phx-click="cancel_editing_connection"
+                                  class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm">
+                            Cancel
+                          </button>
+                          <button type="submit"
+                                  class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">
+                            Save Style
+                          </button>
+                        </div>
+                      </form>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="text-sm text-gray-400 italic mb-3">No outgoing connections</div>
+            <% end %>
+
+            <!-- Create New Connection -->
+            <div class="bg-gray-700 rounded-lg p-3">
+              <div class="text-sm font-semibold text-gray-300 mb-2">Create New Connection:</div>
+              <% available_targets = get_available_connection_targets(@selected_node, @nodes, @connections) %>
+              <%= if Enum.any?(available_targets) do %>
+                <div class="flex gap-2">
+                  <input type="hidden" id="connection-from-node-id" value={@selected_node.id} />
+                  <select id="connection-to-node-id" class="flex-1 px-2 py-1 bg-gray-600 rounded text-sm">
+                    <%= for node <- available_targets do %>
+                      <option value={node.id}><%= node.title %></option>
+                    <% end %>
+                  </select>
+                  <button type="button"
+                          phx-value-from-node-id={@selected_node.id}
+                          phx-hook="CreateConnectionButton"
+                          id="create-connection-button"
+                          class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm whitespace-nowrap">
+                    <i class="fa-solid fa-plus mr-1"></i>Create
+                  </button>
+                </div>
+              <% else %>
+                <div class="text-sm text-gray-400 italic">All nodes are already connected</div>
+              <% end %>
+            </div>
           </div>
-        </.form>
+        </div>
       </div>
     </div>
   <% end %>

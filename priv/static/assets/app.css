@@ -840,6 +840,10 @@ a:hover {
   }
 }
 
+.pointer-events-none {
+  pointer-events: none;
+}
+
 .visible {
   visibility: visible;
 }
@@ -917,28 +921,12 @@ a:hover {
   bottom: 5rem;
 }
 
-.-bottom-12 {
-  bottom: -3rem;
-}
-
-.left-1\/2 {
-  left: 50%;
-}
-
-.bottom-4 {
-  bottom: 1rem;
-}
-
 .top-0 {
   top: 0px;
 }
 
 .right-3 {
   right: 0.75rem;
-}
-
-.bottom-36 {
-  bottom: 9rem;
 }
 
 .z-50 {
@@ -1102,6 +1090,10 @@ a:hover {
   margin-top: 190px;
 }
 
+.mr-1 {
+  margin-right: 0.25rem;
+}
+
 .mr-3 {
   margin-right: 0.75rem;
 }
@@ -1212,10 +1204,6 @@ a:hover {
 
 .h-64 {
   height: 16rem;
-}
-
-.h-screen {
-  height: 100vh;
 }
 
 .h-\[100px\] {
@@ -1361,11 +1349,6 @@ a:hover {
 
 .translate-y-full {
   --tw-translate-y: 100%;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-
-.-translate-x-1\/2 {
-  --tw-translate-x: -50%;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
@@ -1750,6 +1733,11 @@ a:hover {
   border-color: rgb(34 197 94 / var(--tw-border-opacity));
 }
 
+.border-yellow-500 {
+  --tw-border-opacity: 1;
+  border-color: rgb(234 179 8 / var(--tw-border-opacity));
+}
+
 .border-white {
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
@@ -1957,19 +1945,14 @@ a:hover {
   background-color: rgb(30 64 175 / var(--tw-bg-opacity));
 }
 
-.bg-red-200 {
+.bg-blue-900 {
   --tw-bg-opacity: 1;
-  background-color: rgb(254 202 202 / var(--tw-bg-opacity));
+  background-color: rgb(30 58 138 / var(--tw-bg-opacity));
 }
 
-.bg-blue-200 {
+.bg-emerald-900 {
   --tw-bg-opacity: 1;
-  background-color: rgb(191 219 254 / var(--tw-bg-opacity));
-}
-
-.bg-emerald-200 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(167 243 208 / var(--tw-bg-opacity));
+  background-color: rgb(6 78 59 / var(--tw-bg-opacity));
 }
 
 .bg-purple-200 {
@@ -1977,14 +1960,29 @@ a:hover {
   background-color: rgb(233 213 255 / var(--tw-bg-opacity));
 }
 
+.bg-purple-900 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(88 28 135 / var(--tw-bg-opacity));
+}
+
+.bg-blue-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(191 219 254 / var(--tw-bg-opacity));
+}
+
 .bg-yellow-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 240 138 / var(--tw-bg-opacity));
 }
 
-.bg-blue-900 {
+.bg-red-200 {
   --tw-bg-opacity: 1;
-  background-color: rgb(30 58 138 / var(--tw-bg-opacity));
+  background-color: rgb(254 202 202 / var(--tw-bg-opacity));
+}
+
+.bg-emerald-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(167 243 208 / var(--tw-bg-opacity));
 }
 
 .bg-green-200 {
@@ -2176,6 +2174,10 @@ a:hover {
   padding-right: 3rem;
 }
 
+.pb-36 {
+  padding-bottom: 9rem;
+}
+
 .pb-0 {
   padding-bottom: 0px;
 }
@@ -2256,16 +2258,12 @@ a:hover {
   padding-top: 1.25rem;
 }
 
-.pt-\[100px\] {
-  padding-top: 100px;
-}
-
 .pb-24 {
   padding-bottom: 6rem;
 }
 
-.pb-36 {
-  padding-bottom: 9rem;
+.pt-\[100px\] {
+  padding-top: 100px;
 }
 
 .text-left {
@@ -2577,6 +2575,16 @@ a:hover {
   color: rgb(238 242 255 / var(--tw-text-opacity));
 }
 
+.text-blue-400 {
+  --tw-text-opacity: 1;
+  color: rgb(96 165 250 / var(--tw-text-opacity));
+}
+
+.text-emerald-400 {
+  --tw-text-opacity: 1;
+  color: rgb(52 211 153 / var(--tw-text-opacity));
+}
+
 .text-blue-200 {
   --tw-text-opacity: 1;
   color: rgb(191 219 254 / var(--tw-text-opacity));
@@ -2772,6 +2780,10 @@ a:hover {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.ease-out {
+  transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
 @font-face {
   font-family: "EB Garamond";
 
@@ -2792,11 +2804,67 @@ a:hover {
 
   font-weight: normal;
 
-  /* Adjust as needed */
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Burning Gnosis";
+
+  src: url("/fonts/Oxanium-VariableFont_wght.ttf") format("truetype");
+
+  font-weight: normal;
 
   font-style: normal;
+}
 
-  /* Adjust as needed */
+@font-face {
+  font-family: "Flourishing Gnosis";
+
+  src: url("/fonts/Aladin-Regular.ttf") format("truetype");
+
+  font-weight: normal;
+
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Pellucid Gnosis";
+
+  src: url("/fonts/NotoSans-Italic-VariableFont_wdth,wght.ttf") format("truetype");
+
+  font-weight: normal;
+
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "Radiant Gnosis";
+
+  src: url("/fonts/Quintessential-Regular.ttf") format("truetype");
+
+  font-weight: normal;
+
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Tenebrous Gnosis";
+
+  src: url("/fonts/Bellefair-Regular.ttf") format("truetype");
+
+  font-weight: normal;
+
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Redacted Gnosis";
+
+  src: url("/fonts/CormorantGaramond-Italic-VariableFont_wght.ttf") format("truetype");
+
+  font-weight: normal;
+
+  font-style: italic;
 }
 
 /* This file is for your main application CSS */
@@ -3536,11 +3604,174 @@ body {
   filter: saturate(0);
 }
 
-.tippy-content {
+.tippy-box:not([data-theme]) {
   background-color: #330033;
-  color: #fff;
   border: 2px solid #ff00ff;
+}
+
+.tippy-box:not([data-theme]) .tippy-content {
+  color: #fff;
   font-size: 24pt;
+}
+
+.tippy-box[data-theme~=redacted] {
+  background-color: #330033;
+  border: 2px solid #ff00ff;
+}
+
+.tippy-box[data-theme~=redacted] .tippy-content {
+  color: #fff;
+  font-size: 24pt;
+}
+
+.text-redacted {
+  color: #ceb900;
+}
+
+.node-panel-redacted {
+  font-family: "Redacted Gnosis";
+  color: #ceb900;
+  font-size: 20pt;
+}
+
+.tippy-box[data-theme~=red] {
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: rgb(127 29 29 / var(--tw-bg-opacity));
+}
+
+.tippy-box[data-theme~=red] .tippy-content {
+  --tw-text-opacity: 1;
+  color: rgb(248 113 113 / var(--tw-text-opacity));
+  font-size: 24pt;
+  font-family: "Burning Gnosis";
+}
+
+.node-red {
+  font-family: "Burning Gnosis";
+}
+
+.node-panel-red {
+  font-family: "Burning Gnosis";
+  --tw-text-opacity: 1;
+  color: rgb(248 113 113 / var(--tw-text-opacity));
+}
+
+.clickable-connection {
+  text-decoration: underline;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.clickable-connection:hover {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+  transform: translateX(4px);
+}
+
+.clickable-connection:active {
+  transform: translateX(2px);
+}
+
+.tippy-box[data-theme~=green] {
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(16 185 129 / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: rgb(6 78 59 / var(--tw-bg-opacity));
+}
+
+.tippy-box[data-theme~=green] .tippy-content {
+  --tw-text-opacity: 1;
+  color: rgb(52 211 153 / var(--tw-text-opacity));
+  font-size: 24pt;
+  font-family: "Flourishing Gnosis";
+}
+
+.node-green {
+  font-family: "Flourishing Gnosis";
+}
+
+.node-panel-green {
+  font-family: "Flourishing Gnosis";
+  --tw-text-opacity: 1;
+  color: rgb(52 211 153 / var(--tw-text-opacity));
+}
+
+.tippy-box[data-theme~=blue] {
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(59 130 246 / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: rgb(30 58 138 / var(--tw-bg-opacity));
+}
+
+.tippy-box[data-theme~=blue] .tippy-content {
+  --tw-text-opacity: 1;
+  color: rgb(96 165 250 / var(--tw-text-opacity));
+  font-size: 24pt;
+  font-family: "Pellucid Gnosis";
+}
+
+.node-blue {
+  font-family: "Pellucid Gnosis";
+}
+
+.node-panel-blue {
+  font-family: "Pellucid Gnosis";
+  --tw-text-opacity: 1;
+  color: rgb(96 165 250 / var(--tw-text-opacity));
+}
+
+.tippy-box[data-theme~=white] {
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(255 255 255 / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+}
+
+.tippy-box[data-theme~=white] .tippy-content {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
+  font-size: 24pt;
+  font-family: "Radiant Gnosis";
+}
+
+.node-white {
+  font-family: "Radiant Gnosis";
+}
+
+.node-panel-white {
+  font-family: "Radiant Gnosis";
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+
+.tippy-box[data-theme~=black] {
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(255 255 255 / var(--tw-border-opacity));
+  --tw-bg-opacity: 1;
+  background-color: rgb(233 213 255 / var(--tw-bg-opacity));
+}
+
+.tippy-box[data-theme~=black] .tippy-content {
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity));
+  font-size: 24pt;
+  font-family: "Tenebrous Gnosis";
+}
+
+.node-black {
+  font-family: "Tenebrous Gnosis";
+}
+
+.node-panel-black {
+  font-family: "Tenebrous Gnosis";
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity));
 }
 
 .ascension-control {
@@ -4607,26 +4838,6 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:bg-blue-300 {
   --tw-bg-opacity: 1;
   background-color: rgb(147 197 253 / var(--tw-bg-opacity));
-}
-
-.dark .dark\:bg-red-800 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(153 27 27 / var(--tw-bg-opacity));
-}
-
-.dark .dark\:bg-blue-800 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(30 64 175 / var(--tw-bg-opacity));
-}
-
-.dark .dark\:bg-emerald-800 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(6 95 70 / var(--tw-bg-opacity));
-}
-
-.dark .dark\:bg-purple-800 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(107 33 168 / var(--tw-bg-opacity));
 }
 
 .dark .dark\:bg-purple-900 {

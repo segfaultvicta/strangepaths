@@ -14,6 +14,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:selected_avatar_id, nil)
       |> assign(:selected_avatar_filepath, nil)
       |> assign(:open_categories, [])
+      |> assign(:editing_connection_id, nil)
 
     subscribe_to_music(socket)
 
@@ -30,22 +31,44 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
 
     nodes = Rumor.list_nodes()
-    IO.inspect(nodes)
     connections = Rumor.list_connections()
+
+    Enum.each(connections, fn conn ->
+      IO.puts("conn: #{conn.id} with label #{conn.label}")
+    end)
+
+    # Initial zoom level
+    initial_zoom = 0.09
+
+    # Center coordinates in world space (node position)
+    center_world_x = 2029
+    center_world_y = 358
+
+    # Viewport center (approximate - based on typical screen ~1920x1080, 86vh)
+    # Half of typical width
+    viewport_center_x = 960
+    # Half of 86% of 1080px
+    viewport_center_y = 464
+
+    # Calculate pan to center the world coordinates in viewport
+    # Formula: pan = viewport_center - world_position * zoom
+    initial_pan_x = viewport_center_x - center_world_x * initial_zoom
+    initial_pan_y = viewport_center_y - center_world_y * initial_zoom
 
     socket =
       socket
       |> assign(:nodes, nodes)
       |> assign(:connections, connections)
-      |> assign(:pan_x, 950)
-      |> assign(:pan_y, 500)
-      |> assign(:zoom, 0.1)
+      |> assign(:pan_x, initial_pan_x)
+      |> assign(:pan_y, initial_pan_y)
+      |> assign(:zoom, initial_zoom)
       |> assign(:state, :viewing)
       |> assign(:editing_node_id, nil)
       |> assign(:connecting_from_node_id, nil)
       |> assign(:selected_node, nil)
       |> assign(:viewing_node_id, nil)
-      |> assign(:selected_connection, nil)
+      |> assign(:viewport_width, nil)
+      |> assign(:viewport_height, nil)
 
     # Draw existing connections on mount (for connected clients only)
     socket =
@@ -117,23 +140,67 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   end
 
   defp handle_rumormap_event("reset_view", _params, socket) do
+    # Reset to centered view on world coordinates (2029, 968)
+    initial_zoom = 0.1
+    center_world_x = 2029
+    center_world_y = 968
+
+    # Use actual viewport dimensions if available, otherwise use defaults
+    viewport_center_x = if socket.assigns.viewport_width, do: socket.assigns.viewport_width / 2, else: 960
+    viewport_center_y = if socket.assigns.viewport_height, do: socket.assigns.viewport_height / 2, else: 464
+
+    initial_pan_x = viewport_center_x - center_world_x * initial_zoom
+    initial_pan_y = viewport_center_y - center_world_y * initial_zoom
+
     {:noreply,
      socket
-     |> assign(:pan_x, 950)
-     |> assign(:pan_y, 500)
-     |> assign(:zoom, 0.1)}
+     |> assign(:pan_x, initial_pan_x)
+     |> assign(:pan_y, initial_pan_y)
+     |> assign(:zoom, initial_zoom)}
+  end
+
+  defp handle_rumormap_event("set_viewport_dimensions", %{"width" => width, "height" => height}, socket) do
+    # Store viewport dimensions
+    socket = socket
+      |> assign(:viewport_width, width)
+      |> assign(:viewport_height, height)
+
+    # Recalculate pan to properly center on world coordinates
+    center_world_x = 2029
+    center_world_y = 968
+    viewport_center_x = width / 2
+    viewport_center_y = height / 2
+
+    new_pan_x = viewport_center_x - center_world_x * socket.assigns.zoom
+    new_pan_y = viewport_center_y - center_world_y * socket.assigns.zoom
+
+    {:noreply,
+     socket
+     |> assign(:pan_x, new_pan_x)
+     |> assign(:pan_y, new_pan_y)}
   end
 
   defp handle_rumormap_event("create_node", %{"x" => x, "y" => y}, socket) do
     if socket.assigns.state == :viewing do
+      default_avatar = Strangepaths.Accounts.get_avatar_by_display_name("Question")
+
       attrs = %{
-        x: x,
-        y: y,
+        x: trunc(x),
+        y: trunc(y),
         title: "New Node",
         content: "",
-        color_category: "red",
+        avatar_id:
+          if default_avatar != nil do
+            default_avatar.id
+          else
+            nil
+          end,
+        scale: 4.5,
+        color_category: "redacted",
         created_by_id: socket.assigns.current_user.id
       }
+
+      IO.inspect(attrs)
 
       case Rumor.create_node(attrs) do
         {:ok, node} ->
@@ -159,6 +226,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
        ) do
     node_id = String.to_integer(node_id_str)
 
+    x = trunc(x)
+    y = trunc(y)
     # Node might have been deleted while we were dragging it
     node = Enum.find(socket.assigns.nodes, &(&1.id == node_id))
 
@@ -198,12 +267,24 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         # Create connection from connecting_from_node_id to this node
         from_id = socket.assigns.connecting_from_node_id
 
+        from_node = Enum.find(socket.assigns.nodes, &(&1.id == from_id))
+        default_color = color_category_to_hex(from_node.color_category)
+
         if from_id != node_id do
-          case Rumor.create_connection(%{
-                 from_node_id: from_id,
-                 to_node_id: node_id,
-                 created_by_id: socket.assigns.current_user.id
-               }) do
+          attrs = %{
+            from_node_id: from_id,
+            to_node_id: node_id,
+            created_by_id: socket.assigns.current_user.id,
+            label: "",
+            line_style: %{
+              "color" => default_color,
+              "size" => 2,
+              "dash" => "solid",
+              "label_position" => "middle"
+            }
+          }
+
+          case Rumor.create_connection(attrs) do
             {:ok, connection} ->
               connection = Strangepaths.Repo.preload(connection, [:from_node, :to_node])
 
@@ -214,10 +295,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
               {:noreply,
                socket
                |> assign(:state, :viewing)
-               |> assign(:connecting_from_node_id, nil)
-               |> assign(:connections, [connection | socket.assigns.connections])
-               |> push_event("draw_connection", connection_to_event(connection))
-               |> put_flash(:info, "Connection created")}
+               |> assign(:connecting_from_node_id, nil)}
 
             {:error, _changeset} ->
               {:noreply, put_flash(socket, :error, "Failed to create connection")}
@@ -241,8 +319,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     {:noreply,
      socket
      |> assign(:state, :connecting)
-     |> assign(:connecting_from_node_id, node_id)
-     |> put_flash(:info, "Click another node to create a connection")}
+     |> assign(:connecting_from_node_id, node_id)}
   end
 
   defp handle_rumormap_event("cancel_connecting", _params, socket) do
@@ -293,7 +370,6 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     node = Rumor.get_node!(socket.assigns.editing_node_id)
 
     node_params = Map.put(node_params, "avatar_id", socket.assigns.selected_avatar_id)
-    IO.inspect(node_params)
 
     case Rumor.update_node(node, node_params) do
       {:ok, updated_node} ->
@@ -318,8 +394,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
          |> assign(:editing_node_id, nil)
          |> assign(:selected_node, nil)
          |> assign(:selected_avatar_id, nil)
-         |> assign(:selected_avatar_filepath, nil)
-         |> put_flash(:info, "Node updated")}
+         |> assign(:selected_avatar_filepath, nil)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, :changeset, changeset)}
@@ -345,11 +420,16 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
   defp handle_rumormap_event("close_detail_panel", _params, socket)
        when socket.assigns.editing_node_id != nil do
+    # Release edit lock before clearing editing_node_id
+    topic = "rumor_map:node:#{socket.assigns.editing_node_id}"
+    Strangepaths.Presence.untrack(self(), topic, socket.assigns.current_user.id)
+
     {:noreply,
      socket
      |> assign(:editing_node_id, nil)
      |> assign(:viewing_node_id, nil)
-     |> assign(:selected_node, nil)}
+     |> assign(:selected_node, nil)
+     |> assign(:editing_connection_id, nil)}
   end
 
   defp handle_rumormap_event("close_detail_panel", _params, socket) do
@@ -370,8 +450,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
       {:noreply,
        socket
-       |> assign(:nodes, Rumor.list_nodes())
-       |> put_flash(:info, "Created #{length(nodes)} default anchor nodes")}
+       |> assign(:nodes, Rumor.list_nodes())}
     else
       {:noreply, put_flash(socket, :error, "Unauthorized")}
     end
@@ -380,23 +459,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   defp handle_rumormap_event("deselect_node", _params, socket) do
     {:noreply,
      socket
-     |> assign(:selected_node, nil)
-     |> assign(:selected_connection, nil)}
-  end
-
-  defp handle_rumormap_event(
-         "connection_clicked",
-         %{"connection-id" => connection_id_str},
-         socket
-       ) do
-    connection_id = String.to_integer(connection_id_str)
-    connection = Enum.find(socket.assigns.connections, &(&1.id == connection_id))
-
-    {:noreply, assign(socket, :selected_connection, connection)}
-  end
-
-  defp handle_rumormap_event("clear_connection_selection", _params, socket) do
-    {:noreply, assign(socket, :selected_connection, nil)}
+     |> assign(:selected_node, nil)}
   end
 
   defp handle_rumormap_event("delete_connection", %{"connection-id" => connection_id_str}, socket) do
@@ -416,15 +479,13 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
              :connections,
              Enum.reject(socket.assigns.connections, &(&1.id == connection_id))
            )
-           |> assign(:selected_connection, nil)
-           |> push_event("remove_connection", %{connection_id: connection_id})
-           |> put_flash(:info, "Connection deleted")}
+           |> push_event("remove_connection", %{connection_id: connection_id})}
 
         {:error, _changeset} ->
           {:noreply, put_flash(socket, :error, "Failed to delete connection")}
       end
     else
-      {:noreply, assign(socket, :selected_connection, nil)}
+      {:noreply, socket}
     end
   end
 
@@ -467,8 +528,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       # Node already deleted
       {:noreply,
        socket
-       |> assign(:selected_node, nil)
-       |> put_flash(:info, "Node already deleted")}
+       |> assign(:selected_node, nil)}
     end
   end
 
@@ -510,6 +570,142 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
      |> assign(:avatar_picker_open, false)
      |> assign(:selected_avatar_filepath, avatar.filepath)
      |> assign(:selected_avatar_id, avatar_id)}
+  end
+
+  defp handle_rumormap_event("unset_avatar", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:selected_avatar_id, nil)
+     |> assign(:selected_avatar_filepath, nil)}
+  end
+
+  defp handle_rumormap_event("view_connected_node", %{"node-id" => node_id_str}, socket) do
+    node_id = String.to_integer(node_id_str)
+    node = Enum.find(socket.assigns.nodes, &(&1.id == node_id))
+
+    if node do
+      # Use actual viewport dimensions if available, otherwise use defaults
+      viewport_center_x = if socket.assigns.viewport_width, do: socket.assigns.viewport_width / 2, else: 960
+      viewport_center_y = if socket.assigns.viewport_height, do: socket.assigns.viewport_height / 2, else: 464
+
+      # Calculate pan to center the node in viewport
+      # Formula: pan = viewport_center - (node_position * zoom)
+      new_pan_x = viewport_center_x - node.x * socket.assigns.zoom
+      new_pan_y = viewport_center_y - node.y * socket.assigns.zoom
+
+      {:noreply,
+       socket
+       |> assign(:viewing_node_id, node_id)
+       |> assign(:selected_node, node)
+       |> assign(:pan_x, new_pan_x)
+       |> assign(:pan_y, new_pan_y)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_rumormap_event(
+         "start_editing_connection",
+         %{"connection-id" => conn_id_str},
+         socket
+       ) do
+    conn_id = String.to_integer(conn_id_str)
+    connection_under_edit = Enum.find(socket.assigns.connections, &(&1.id == conn_id))
+
+    {:noreply,
+     assign(socket, :editing_connection_id, conn_id)
+     |> assign(:connection_under_edit, connection_under_edit)}
+  end
+
+  defp handle_rumormap_event("cancel_editing_connection", _params, socket) do
+    {:noreply, assign(socket, :editing_connection_id, nil)}
+  end
+
+  defp handle_rumormap_event("update_connection_style", params, socket) do
+    conn_id = String.to_integer(params["connection_id"])
+    connection = Rumor.get_connection!(conn_id)
+
+    # Build line_style map from form params
+    line_style = %{
+      "color" => params["color"],
+      "size" => String.to_integer(params["size"]),
+      "dash" => params["dash"],
+      "label_position" => params["label_position"]
+    }
+
+    attrs = %{
+      label: params["label"],
+      line_style: line_style
+    }
+
+    case Rumor.update_connection(connection, attrs) do
+      {:ok, updated_connection} ->
+        # Broadcast the update
+
+        StrangepathsWeb.Endpoint.broadcast("rumor_map", "connection_updated", %{
+          connection: updated_connection
+        })
+
+        # Update local state
+        updated_connections =
+          Enum.map(socket.assigns.connections, fn conn ->
+            if conn.id == conn_id, do: updated_connection, else: conn
+          end)
+
+        {:noreply,
+         socket
+         |> assign(:connections, updated_connections)
+         |> assign(:editing_connection_id, nil)
+         |> push_event("update_connection", connection_to_event(updated_connection))}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update connection")}
+    end
+  end
+
+  defp handle_rumormap_event("create_connection_from_modal", params, socket) do
+    from_node_id = String.to_integer(params["from-node-id"])
+    to_node_id = String.to_integer(params["to-node-id"])
+
+    # Get the from_node to determine default color
+    from_node = Enum.find(socket.assigns.nodes, &(&1.id == from_node_id))
+    default_color = color_category_to_hex(from_node.color_category)
+
+    attrs = %{
+      from_node_id: from_node_id,
+      to_node_id: to_node_id,
+      created_by_id: socket.assigns.current_user.id,
+      label: "",
+      line_style: %{
+        "color" => default_color,
+        "size" => 2,
+        "dash" => "solid",
+        "label_position" => "middle"
+      }
+    }
+
+    case Rumor.create_connection(attrs) do
+      {:ok, connection} ->
+        connection = Rumor.get_connection!(connection.id)
+
+        StrangepathsWeb.Endpoint.broadcast("rumor_map", "connection_created", %{
+          connection: connection
+        })
+
+        {:noreply, socket}
+
+      {:error, changeset} ->
+        error_msg =
+          case changeset.errors do
+            [{:to_node_id, {"cannot connect a node to itself", _}} | _] ->
+              "Cannot connect a node to itself"
+
+            _ ->
+              "Failed to create connection"
+          end
+
+        {:noreply, put_flash(socket, :error, error_msg)}
+    end
   end
 
   defp handle_rumormap_event(event, params, socket) do
@@ -601,8 +797,22 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     {:noreply,
      socket
      |> assign(:connections, Enum.reject(socket.assigns.connections, &(&1.id == connection_id)))
-     |> assign(:selected_connection, nil)
      |> push_event("remove_connection", %{connection_id: connection_id})}
+  end
+
+  defp handle_rumormap_info(
+         %{event: "connection_updated", payload: %{connection: updated_connection}},
+         socket
+       ) do
+    updated_connections =
+      Enum.map(socket.assigns.connections, fn conn ->
+        if conn.id == updated_connection.id, do: updated_connection, else: conn
+      end)
+
+    {:noreply,
+     socket
+     |> assign(:connections, updated_connections)
+     |> push_event("update_connection", connection_to_event(updated_connection))}
   end
 
   defp handle_rumormap_info(msg, socket) do
@@ -623,28 +833,64 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     }
   end
 
+  defp get_font_family(color_category) do
+    case color_category do
+      "red" -> "Burning Gnosis"
+      "blue" -> "Pellucid Gnosis"
+      "green" -> "Flourishing Gnosis"
+      "white" -> "Radiant Gnosis"
+      "black" -> "Tenebrous Gnosis"
+      "redacted" -> "Redacted Gnosis"
+      _ -> "Redacted Gnosis"
+    end
+  end
+
+  defp get_text_class(color_category) do
+    case color_category do
+      "red" -> "text-red-400"
+      "blue" -> "text-blue-400"
+      "green" -> "text-emerald-400"
+      "white" -> "text-white"
+      "black" -> "text-black"
+      "redacted" -> "text-redacted"
+      _ -> "text-white"
+    end
+  end
+
   defp get_border_class(color_category) do
     case color_category do
       "red" -> "red-500"
       "blue" -> "blue-500"
       "green" -> "emerald-500"
       "white" -> "white"
-      # black-500 doesn't exist in Tailwind
       "black" -> "black"
-      "secret" -> "yellow-500"
+      "redacted" -> "black"
       _ -> "gray-500"
     end
   end
 
   defp get_bg_class(color_category) do
     case color_category do
-      "red" -> "bg-red-200 dark:bg-red-800"
-      "blue" -> "bg-blue-200 dark:bg-blue-800"
-      "green" -> "bg-emerald-200 dark:bg-emerald-800"
-      "white" -> "bg-gray-200 dark:bg-gray-800"
-      "black" -> "bg-gray-200 dark:bg-gray-800"
-      "secret" -> "bg-purple-200 dark:bg-purple-800"
+      "red" -> "bg-red-900"
+      "blue" -> "bg-blue-900"
+      "green" -> "bg-emerald-900"
+      "white" -> "bg-black"
+      "black" -> "bg-purple-200"
+      "redacted" -> "bg-purple-900"
       _ -> "bg-gray-500"
+    end
+  end
+
+  # Convert color category to hex color for connection defaults
+  defp color_category_to_hex(color_category) do
+    case color_category do
+      "red" -> "#ef4444"
+      "blue" -> "#3b82f6"
+      "green" -> "#22c55e"
+      "white" -> "#ceb900"
+      "black" -> "#ffffff"
+      "redacted" -> "#a855f7"
+      _ -> "#9ca3af"
     end
   end
 
@@ -653,5 +899,28 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   defp get_avatar_path(avatar_id) do
     avatar = Accounts.get_avatar!(avatar_id)
     avatar.filepath
+  end
+
+  # Get available nodes for creating a connection from the given node
+  # Filters out self and already-connected nodes, sorted by proximity
+  defp get_available_connection_targets(from_node, all_nodes, connections) do
+    # Get IDs of nodes already connected to
+    connected_node_ids =
+      connections
+      |> Enum.filter(&(&1.from_node_id == from_node.id))
+      |> Enum.map(& &1.to_node_id)
+      |> MapSet.new()
+
+    # Filter and sort by distance
+    all_nodes
+    |> Enum.reject(fn node ->
+      node.id == from_node.id || MapSet.member?(connected_node_ids, node.id)
+    end)
+    |> Enum.sort_by(fn node ->
+      # Calculate Euclidean distance
+      dx = node.x - from_node.x
+      dy = node.y - from_node.y
+      :math.sqrt(dx * dx + dy * dy)
+    end)
   end
 end

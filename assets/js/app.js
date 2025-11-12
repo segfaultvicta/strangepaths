@@ -27,7 +27,6 @@ import topbar from "../vendor/topbar"
 
 let Hooks = {}
 
-
 Hooks.SceneFocusManager = {
     mounted() {
         this.handleEvent("focus_post_input", () => {
@@ -604,6 +603,13 @@ Hooks.RumorMapViewport = {
         let mouseDownX, mouseDownY;
         const world = document.getElementById('rumor-map-world');
 
+        // Send viewport dimensions to server for proper centering
+        const rect = this.el.getBoundingClientRect();
+        this.pushEvent('set_viewport_dimensions', {
+            width: rect.width,
+            height: rect.height
+        });
+
         // Zoom with mouse wheel - follow cursor
         this.el.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -689,6 +695,38 @@ Hooks.RumorMapViewport = {
                     // Plain click to deselect
                     this.pushEvent('deselect_node', {});
                 }
+            }
+        });
+
+        // Handle CSS transitions - update LeaderLines during animation
+        let animationFrameId = null;
+
+        const updateLinesDuringTransition = () => {
+            // Dispatch event to update all line positions
+            window.dispatchEvent(new CustomEvent('viewport-transformed'));
+
+            // Continue updating while transition is active
+            animationFrameId = requestAnimationFrame(updateLinesDuringTransition);
+        };
+
+        // Listen for transition start
+        world.addEventListener('transitionstart', (e) => {
+            if (e.propertyName === 'transform') {
+                // Start animation loop
+                updateLinesDuringTransition();
+            }
+        });
+
+        // Listen for transition end
+        world.addEventListener('transitionend', (e) => {
+            if (e.propertyName === 'transform') {
+                // Stop animation loop
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                // Final update
+                window.dispatchEvent(new CustomEvent('viewport-transformed'));
             }
         });
     },
@@ -812,11 +850,6 @@ Hooks.RumorMap = {
         // Method to update all line positions
         this.updateAllLines = () => {
             Object.entries(this.lines).forEach(([connId, lineData]) => {
-                if (lineData.svg) {
-                    clickablePath = lineData.svg.childNodes[2];
-                    clickablePath.remove();
-                    this.createClickableOverlay(lineData.instance, lineData.conn, lineData.svg);
-                }
                 lineData.instance.position();
             });
         };
@@ -828,11 +861,6 @@ Hooks.RumorMap = {
             // Update all lines connected to this node
             Object.entries(this.lines).forEach(([connId, lineData]) => {
                 if (lineData.startNodeId == nodeId || lineData.endNodeId == nodeId) {
-                    // remove lineData.svg's 2nd child (clickable path)
-                    clickablePath = lineData.svg.childNodes[2];
-                    clickablePath.remove();
-
-                    this.createClickableOverlay(lineData.instance, lineData.conn, lineData.svg);
                     lineData.instance.position();
                 }
             });
@@ -853,51 +881,87 @@ Hooks.RumorMap = {
                 return;
             }
 
-            const color = this.getColorForCategory(conn.category);
+            // Get line style from connection data
+            const lineStyle = conn.line_style || {};
 
+            // Determine color: use line_style color if present, otherwise default from category
+            const color = lineStyle.color || this.getColorForCategory(conn.category);
+
+            // Build line options
             const lineOpts = {
                 color: color,
-                size: 3,
-                path: 'straight',
-                startPlug: 'disc',
-                endPlug: 'arrow2',
-                ...conn.line_style
+                size: lineStyle.size || 2,
+                path: 'fluid',
+                startPlug: 'inside',
+                endPlug: 'arrow2'
             };
 
-            const line = new LeaderLine(startEl, endEl, lineOpts);
+            // Add dash style if specified
+            if (lineStyle.dash === 'dashed') {
+                lineOpts.dash = { animation: true };
+            } else if (lineStyle.dash === 'dotted') {
+                lineOpts.dash = true;
+            }
 
-            // Store initial SVG count to find the newly created one
-            const svgCountBefore = document.querySelectorAll('svg.leader-line').length;
+            console.log("LINEOPTS:");
+            console.log(lineOpts);
+            const line = new LeaderLine(startEl, endEl, lineOpts);
 
             this.lines[conn.id] = {
                 instance: line,
                 startNodeId: conn.from_id.toString(),
                 endNodeId: conn.to_id.toString(),
-                conn: conn  // Store connection data for recreating overlay if needed
+                conn: conn  // Store connection data for updates
             };
+        });
 
-            // this is a sin against G-d
-
-            const allSvgs = document.querySelectorAll('svg.leader-line');
-            // If a new SVG was created, find the one without our marker
-            if (allSvgs.length >= svgCountBefore) {
-                let svg = null;
-                for (let i = 0; i < allSvgs.length; i++) {
-                    if (!allSvgs[i].dataset.connectionId) {
-                        svg = allSvgs[i];
-                        break;
-                    }
-                }
-                if (svg) {
-                    svg.dataset.connectionId = conn.id;
-                    this.lines[conn.id].svg = svg;
-                    this.createClickableOverlay(line, conn, svg);
-                    return;
-                }
+        // Update a connection (remove and redraw with new style)
+        this.handleEvent('update_connection', (conn) => {
+            // Remove old line if it exists
+            if (this.lines[conn.id]) {
+                this.lines[conn.id].instance.remove();
+                delete this.lines[conn.id];
             }
 
-            // Small delay to let LeaderLine create the SVG
-            createOverlay();
+            // Redraw with new style (reuse draw_connection logic)
+            const startEl = document.getElementById(`node-${conn.from_id}`);
+            const endEl = document.getElementById(`node-${conn.to_id}`);
+
+            if (!startEl || !endEl) {
+                console.error('Could not find nodes for connection update', conn);
+                return;
+            }
+
+            // Get line style from connection data
+            const lineStyle = conn.line_style || {};
+
+            // Determine color: use line_style color if present, otherwise default from category
+            const color = lineStyle.color || this.getColorForCategory(conn.category);
+
+            // Build line options
+            const lineOpts = {
+                color: color,
+                size: lineStyle.size || 2,
+                path: 'fluid',
+                startPlug: 'disc',
+                endPlug: 'arrow2'
+            };
+
+            // Add dash style if specified
+            if (lineStyle.dash === 'dashed') {
+                lineOpts.dash = { animation: true };
+            } else if (lineStyle.dash === 'dotted') {
+                lineOpts.dash = true;
+            }
+
+            const line = new LeaderLine(startEl, endEl, lineOpts);
+
+            this.lines[conn.id] = {
+                instance: line,
+                startNodeId: conn.from_id.toString(),
+                endNodeId: conn.to_id.toString(),
+                conn: conn
+            };
         });
 
         // Remove a connection
@@ -932,54 +996,12 @@ Hooks.RumorMap = {
             'red': '#ef4444',
             'blue': '#3b82f6',
             'green': '#22c55e',
-            'white': '#f3f4f6',
-            'black': '#1f2937',
+            'white': '#ceb900ff',
+            'black': '#ffffff',
             'secret': '#a855f7'
         };
         return colors[category] || '#9ca3af';
     },
-
-    createClickableOverlay(line, conn, svg) {
-        if (!svg) {
-            console.error('SVG not ready for connection', conn.id);
-            return;
-        }
-
-        const path = svg.querySelector('path');
-
-        if (path) {
-            // Clone path for click detection
-            const clickPath = path.cloneNode(true);
-            clickPath.setAttribute('stroke-width', '20');
-            // Very subtle white overlay - barely visible but clickable
-            clickPath.setAttribute('stroke', 'rgba(255, 255, 255, 0.01)');
-            clickPath.setAttribute('fill', 'none');
-            clickPath.style.cursor = 'pointer';
-            clickPath.setAttribute('data-connection-id', conn.id);
-            clickPath.style.pointerEvents = 'auto'; // Ensure it receives pointer events
-
-            svg.appendChild(clickPath);
-
-            // Add tooltip if there's a label
-            if (conn.label && window.tippy) {
-                tippy(clickPath, {
-                    content: conn.label,
-                    theme: 'translucent',
-                    placement: 'top'
-                });
-            }
-
-            // Click handler
-            clickPath.addEventListener('click', (e) => {
-                console.log('Connection clicked:', conn.id);
-                e.stopPropagation();
-                this.pushEvent('connection_clicked', { 'connection-id': conn.id.toString() });
-            });
-
-            // Also ensure the SVG itself allows pointer events
-            svg.style.pointerEvents = 'auto';
-        }
-    }
 }
 
 function getMousePosition(canvas, e) {
@@ -1034,6 +1056,37 @@ Hooks.RumorDetailPanel = {
         this.el.addEventListener('wheel', (e) => {
             e.stopPropagation();
         }, { passive: true });
+    }
+};
+
+Hooks.EditNodeModal = {
+    mounted() {
+        // Prevent wheel events from bubbling up to viewport zoom handler
+        this.el.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+    }
+};
+
+Hooks.CreateConnectionButton = {
+    mounted() {
+        this.el.addEventListener('click', (e) => {
+            // Get the selected to_node_id from the dropdown
+            const toNodeSelect = document.getElementById('connection-to-node-id');
+            if (toNodeSelect) {
+                const toNodeId = toNodeSelect.value;
+                const fromNodeId = this.el.getAttribute('phx-value-from-node-id');
+
+                // Push event with both node IDs
+                this.pushEvent('create_connection_from_modal', {
+                    'from-node-id': fromNodeId,
+                    'to-node-id': toNodeId
+                });
+            }
+
+            // Prevent default phx-click from firing
+            e.stopPropagation();
+        });
     }
 };
 

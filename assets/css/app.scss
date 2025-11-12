@@ -326,11 +326,150 @@ body {
     filter: saturate(0);
 }
 
-.tippy-content {
+// Fallback for tooltips without explicit theme - applies default styling
+.tippy-box:not([data-theme]) {
     background-color: #330033;
-    color: #fff;
     border: 2px solid #ff00ff;
-    font-size: 24pt;
+
+    .tippy-content {
+        color: #fff;
+        font-size: 24pt;
+    }
+}
+
+// Default Tippy theme
+.tippy-box[data-theme~='redacted'] {
+    background-color: #330033;
+    border: 2px solid #ff00ff;
+
+    .tippy-content {
+        color: #fff;
+        font-size: 24pt;
+    }
+}
+
+.text-redacted {
+    color: #ceb900;
+}
+
+.node-panel-redacted {
+    font-family: 'Redacted Gnosis';
+    color: #ceb900;
+    font-size: 20pt;
+}
+
+// Custom 'butts' theme
+.tippy-box[data-theme~='red'] {
+    @apply bg-red-900 border border-red-500;
+
+    .tippy-content {
+        @apply text-red-400;
+        font-size: 24pt;
+        font-family: "Burning Gnosis";
+    }
+}
+
+.node-red {
+    font-family: 'Burning Gnosis';
+}
+
+.node-panel-red {
+    font-family: 'Burning Gnosis';
+    @apply text-red-400;
+}
+
+// Clickable connections in side panel
+.clickable-connection {
+    text-decoration: underline;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+
+    &:hover {
+        background-color: rgba(139, 92, 246, 0.2) !important;
+        transform: translateX(4px);
+    }
+
+    &:active {
+        transform: translateX(2px);
+    }
+}
+
+.tippy-box[data-theme~='green'] {
+    @apply bg-emerald-900 border border-emerald-500;
+
+    .tippy-content {
+        @apply text-emerald-400;
+        font-size: 24pt;
+        font-family: "Flourishing Gnosis";
+    }
+}
+
+.node-green {
+    font-family: 'Flourishing Gnosis';
+}
+
+.node-panel-green {
+    font-family: 'Flourishing Gnosis';
+    @apply text-emerald-400;
+}
+
+
+.tippy-box[data-theme~='blue'] {
+    @apply bg-blue-900 border border-blue-500;
+
+    .tippy-content {
+        @apply text-blue-400;
+        font-size: 24pt;
+        font-family: "Pellucid Gnosis";
+    }
+}
+
+.node-blue {
+    font-family: 'Pellucid Gnosis';
+}
+
+.node-panel-blue {
+    font-family: 'Pellucid Gnosis';
+    @apply text-blue-400;
+}
+
+
+.tippy-box[data-theme~='white'] {
+    @apply bg-black border border-white;
+
+    .tippy-content {
+        @apply text-white;
+        font-size: 24pt;
+        font-family: "Radiant Gnosis";
+    }
+}
+
+.node-white {
+    font-family: 'Radiant Gnosis';
+}
+
+.node-panel-white {
+    font-family: 'Radiant Gnosis';
+    @apply text-white;
+}
+
+.tippy-box[data-theme~='black'] {
+    @apply bg-purple-200 border border-white;
+
+    .tippy-content {
+        @apply text-black;
+        font-size: 24pt;
+        font-family: "Tenebrous Gnosis";
+    }
+}
+
+.node-black {
+    font-family: 'Tenebrous Gnosis';
+}
+
+.node-panel-black {
+    font-family: 'Tenebrous Gnosis';
+    @apply text-black;
 }
 
 .ascension-control {

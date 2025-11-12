@@ -12,7 +12,47 @@
     font-family: "Anaktoria";
     src: url('/fonts/Anaktoria.otf') format('opentype');
     font-weight: normal;
-    /* Adjust as needed */
     font-style: normal;
-    /* Adjust as needed */
+}
+
+@font-face {
+    font-family: "Burning Gnosis";
+    src: url('/fonts/Oxanium-VariableFont_wght.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Flourishing Gnosis";
+    src: url('/fonts/Aladin-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Pellucid Gnosis";
+    src: url('/fonts/NotoSans-Italic-VariableFont_wdth,wght.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "Radiant Gnosis";
+    src: url('/fonts/Quintessential-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Tenebrous Gnosis";
+    src: url('/fonts/Bellefair-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Redacted Gnosis";
+    src: url('/fonts/CormorantGaramond-Italic-VariableFont_wght.ttf') format('truetype');
+    font-weight: normal;
+    font-style: italic;
 }

@@ -3,10 +3,10 @@ defmodule Strangepaths.Rumor.Node do
   import Ecto.Changeset
 
   schema "rumor_nodes" do
-    field(:x, :float)
-    field(:y, :float)
+    field(:x, :integer)
+    field(:y, :integer)
     field(:z_index, :integer, default: 0)
-    field(:scale, :float, default: 1.0)
+    field(:scale, :float, default: 4.5)
     field(:title, :string)
     field(:content, :string)
     field(:image_url, :string)
@@ -41,7 +41,7 @@ defmodule Strangepaths.Rumor.Node do
       :created_by_id
     ])
     |> validate_required([:x, :y, :title, :color_category])
-    |> validate_inclusion(:color_category, ["red", "blue", "green", "white", "black", "secret"])
-    |> validate_number(:scale, greater_than: 0, less_than_or_equal_to: 15)
+    |> validate_inclusion(:color_category, ["red", "blue", "green", "white", "black", "redacted"])
+    |> validate_number(:scale, greater_than: 0, less_than_or_equal_to: 20)
   end
 end

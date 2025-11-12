@@ -14,6 +14,17 @@
     <script defer src="https://unpkg.com/@popperjs/core@2"></script>
     <script defer src="https://unpkg.com/tippy.js@6"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@ryangjchandler/alpine-tooltip@1.x.x/dist/cdn.min.js"></script>
+    <script>
+      // Configure Tippy default theme before Alpine loads
+      window.addEventListener('alpine:init', () => {
+        if (window.Alpine && window.Alpine.magic) {
+          // Set default props for all Tippy instances
+          if (window.tippy) {
+            window.tippy.setDefaultProps({ theme: 'redacted' });
+          }
+        }
+      });
+    </script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://kit.fontawesome.com/dc730994d1.js" crossorigin="anonymous"></script>
     <script>
@@ -21,7 +32,7 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/wheelnav@1.7.1/js/dist/raphael.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/wheelnav@1.7.1/js/dist/wheelnav.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leader-line/1.0.3/leader-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leader-line/1.0.8/leader-line.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <script defer phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>
     <script type="text/javascript">
