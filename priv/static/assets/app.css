@@ -2262,6 +2262,10 @@ a:hover {
   padding-top: 100px;
 }
 
+.pt-24 {
+  padding-top: 6rem;
+}
+
 .text-left {
   text-align: left;
 }
@@ -2374,6 +2378,10 @@ a:hover {
 
 .leading-tight {
   line-height: 1.25;
+}
+
+.leading-none {
+  line-height: 1;
 }
 
 .text-gray-300 {
@@ -5087,6 +5095,18 @@ input[type=range].slider-purple::-moz-range-progress {
     position: relative;
   }
 
+  .lg\:right-0 {
+    right: 0px;
+  }
+
+  .lg\:left-auto {
+    left: auto;
+  }
+
+  .lg\:top-0 {
+    top: 0px;
+  }
+
   .lg\:mx-4 {
     margin-left: 1rem;
     margin-right: 1rem;
@@ -5132,6 +5152,14 @@ input[type=range].slider-purple::-moz-range-progress {
 
   .lg\:w-1\/6 {
     width: 16.666667%;
+  }
+
+  .lg\:w-\[46rem\] {
+    width: 46rem;
+  }
+
+  .lg\:w-full {
+    width: 100%;
   }
 
   .lg\:translate-y-0 {
@@ -5181,6 +5209,14 @@ input[type=range].slider-purple::-moz-range-progress {
 
   .lg\:pl-64 {
     padding-left: 16rem;
+  }
+
+  .lg\:pt-20 {
+    padding-top: 5rem;
+  }
+
+  .lg\:pt-0 {
+    padding-top: 0px;
   }
 }
 
