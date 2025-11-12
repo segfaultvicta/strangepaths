@@ -273,7 +273,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           {_, 1} -> "/images/baseframes/Tellurian.png"
           {"Claw", nil} -> "/images/baseframes/Tellurian.png"
           {_, 2} -> "/images/baseframes/Tellurian.png"
-          {"Scale", nil} -> "images/baseframes/Tellurian.png"
+          {"Scale", nil} -> "/images/baseframes/Tellurian.png"
           {_, 3} -> "/images/baseframes/Tellurian.png"
           {"Breath", nil} -> "/images/baseframes/Tellurian.png"
           {_, 4} -> "/images/baseframes/Tellurian.png"
