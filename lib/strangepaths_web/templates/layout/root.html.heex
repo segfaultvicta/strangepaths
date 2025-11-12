@@ -53,6 +53,7 @@
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
           <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav" %>
           <%= live_redirect "CODEX", to: "/content", class: "inactivenav" %>
+          <%= live_redirect "MAP", to: "/rumor", class: "inactivenav" %>
           <%= live_redirect "SONG", to: "/ost", class: "inactivenav" %>
         </div>
 
@@ -100,6 +101,7 @@
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "CODEX", to: "/content", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "MAP", to: "/rumor", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "SONG", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :dragon do %>
             <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "inactivenav lg:hidden", "x-on:click": "mobileMenuOpen = false" %>

@@ -457,9 +457,20 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   end
 
   defp handle_rumormap_event("deselect_node", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:selected_node, nil)}
+    # Clicking background deselects node and also cancels connecting state
+    socket = socket
+      |> assign(:selected_node, nil)
+
+    socket = if socket.assigns.state == :connecting do
+      socket
+      |> assign(:state, :viewing)
+      |> assign(:connecting_from_node_id, nil)
+      |> clear_flash()
+    else
+      socket
+    end
+
+    {:noreply, socket}
   end
 
   defp handle_rumormap_event("delete_connection", %{"connection-id" => connection_id_str}, socket) do

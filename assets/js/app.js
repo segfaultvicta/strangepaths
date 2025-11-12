@@ -603,6 +603,12 @@ Hooks.RumorMapViewport = {
         let mouseDownX, mouseDownY;
         const world = document.getElementById('rumor-map-world');
 
+        // Store current zoom value (parsed from inline style, avoiding getComputedStyle)
+        this.getCurrentZoom = () => {
+            const transformMatch = world.style.transform.match(/scale\(([\d.]+)\)/);
+            return transformMatch ? parseFloat(transformMatch[1]) : 1;
+        };
+
         // Send viewport dimensions to server for proper centering
         const rect = this.el.getBoundingClientRect();
         this.pushEvent('set_viewport_dimensions', {
@@ -677,17 +683,21 @@ Hooks.RumorMapViewport = {
                 if (e.shiftKey) {
                     // Shift+Click to create node
                     const rect = this.el.getBoundingClientRect();
-                    const transform = window.getComputedStyle(world).transform;
 
-                    // Parse transform matrix
-                    const matrix = new DOMMatrix(transform);
+                    // Parse pan/zoom from inline style (more reliable than getComputedStyle in Chrome)
+                    const transformMatch = world.style.transform.match(/translate3d\(([^,]+)px,\s*([^,]+)px,\s*[^)]+\)\s*scale\(([\d.]+)\)/);
+                    if (!transformMatch) return;
+
+                    const panX = parseFloat(transformMatch[1]);
+                    const panY = parseFloat(transformMatch[2]);
+                    const zoom = parseFloat(transformMatch[3]);
 
                     // Convert screen to world coordinates (in pixels)
                     const screenX = e.clientX - rect.left;
                     const screenY = e.clientY - rect.top;
 
-                    const worldX = (screenX - matrix.e) / matrix.a;
-                    const worldY = (screenY - matrix.f) / matrix.d;
+                    const worldX = (screenX - panX) / zoom;
+                    const worldY = (screenY - panY) / zoom;
 
                     // Send pixel coordinates (infinite canvas - no bounds checking)
                     this.pushEvent('create_node', { x: worldX, y: worldY });
@@ -784,9 +794,9 @@ Hooks.RumorMapNode = {
 
                 // Get world transform to account for zoom
                 const world = document.getElementById('rumor-map-world');
-                const transform = window.getComputedStyle(world).transform;
-                const matrix = new DOMMatrix(transform);
-                const zoom = matrix.a;
+                // Parse zoom from inline style (more reliable than getComputedStyle in Chrome)
+                const transformMatch = world.style.transform.match(/scale\(([\d.]+)\)/);
+                const zoom = transformMatch ? parseFloat(transformMatch[1]) : 1;
 
                 // Delta in pixels (accounting for zoom)
                 const deltaXPixels = dx / zoom;
@@ -1002,6 +1012,16 @@ Hooks.RumorMap = {
         };
         return colors[category] || '#9ca3af';
     },
+
+    destroyed() {
+        // Clean up all LeaderLine instances when the hook is destroyed
+        Object.values(this.lines).forEach(lineData => {
+            if (lineData.instance && lineData.instance.remove) {
+                lineData.instance.remove();
+            }
+        });
+        this.lines = {};
+    }
 }
 
 function getMousePosition(canvas, e) {
