@@ -603,6 +603,23 @@ Hooks.RumorMapViewport = {
         let mouseDownX, mouseDownY;
         const world = document.getElementById('rumor-map-world');
 
+        // Touch state tracking
+        let touchState = {
+            isPanning: false,
+            isPinching: false,
+            startDistance: null,
+            startZoom: 1,
+            lastTouch: null
+        };
+
+        // Helper function to calculate distance between two touch points
+        const getTouchDistance = (touch1, touch2) => {
+            return Math.hypot(
+                touch1.clientX - touch2.clientX,
+                touch1.clientY - touch2.clientY
+            );
+        };
+
         // Store current zoom value (parsed from inline style, avoiding getComputedStyle)
         this.getCurrentZoom = () => {
             const transformMatch = world.style.transform.match(/scale\(([\d.]+)\)/);
@@ -706,6 +723,89 @@ Hooks.RumorMapViewport = {
                     this.pushEvent('deselect_node', {});
                 }
             }
+        });
+
+        // Touch event handlers for mobile support
+        this.el.addEventListener('touchstart', (e) => {
+            const touchCount = e.touches.length;
+
+            if (touchCount === 1) {
+                // Single finger - start panning (if touching viewport/world)
+                if (e.target === this.el || e.target.id === 'rumor-map-world') {
+                    touchState.isPanning = true;
+                    touchState.lastTouch = {
+                        clientX: e.touches[0].clientX,
+                        clientY: e.touches[0].clientY
+                    };
+                }
+            } else if (touchCount === 2) {
+                // Two fingers - start pinch zoom
+                touchState.isPinching = true;
+                touchState.isPanning = false; // Cancel any pan
+                touchState.startDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                touchState.startZoom = this.getCurrentZoom();
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        this.el.addEventListener('touchmove', (e) => {
+            if (touchState.isPanning && e.touches.length === 1) {
+                // Single finger pan
+                const touch = e.touches[0];
+                const dx = touch.clientX - touchState.lastTouch.clientX;
+                const dy = touch.clientY - touchState.lastTouch.clientY;
+
+                touchState.lastTouch = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                };
+
+                this.pushEvent('pan', { dx, dy });
+                e.preventDefault();
+            } else if (touchState.isPinching && e.touches.length === 2) {
+                // Two finger pinch zoom
+                const currentDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                const scale = currentDistance / touchState.startDistance;
+
+                // Calculate center point between fingers (zoom focal point)
+                const rect = this.el.getBoundingClientRect();
+                const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+                const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
+
+                // Calculate delta for zoom (convert scale ratio to zoom factor)
+                const newZoom = touchState.startZoom * scale;
+                const currentZoom = this.getCurrentZoom();
+                const delta = newZoom / currentZoom;
+
+                this.pushEvent('zoom', {
+                    delta: delta,
+                    mouseX: centerX,
+                    mouseY: centerY
+                });
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        this.el.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                // All fingers lifted
+                touchState.isPanning = false;
+                touchState.isPinching = false;
+            } else if (e.touches.length === 1 && touchState.isPinching) {
+                // Went from 2 fingers to 1 - resume panning
+                touchState.isPinching = false;
+                touchState.isPanning = true;
+                touchState.lastTouch = {
+                    clientX: e.touches[0].clientX,
+                    clientY: e.touches[0].clientY
+                };
+            }
+        });
+
+        this.el.addEventListener('touchcancel', () => {
+            // Touch interrupted - reset all touch state
+            touchState.isPanning = false;
+            touchState.isPinching = false;
         });
 
         // Handle CSS transitions - update LeaderLines during animation
