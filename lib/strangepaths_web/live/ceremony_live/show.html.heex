@@ -114,7 +114,7 @@
                     <%= for card <- @selectedEntity.cards.hand do %>
                       <div class="dark:hover:text-white bg-indigo-300 dark:bg-gray-900" phx-click="handCardClick" phx-value-card={card.uuid}>
                         <h4 class="text-center"><%= card.name %></h4>
-                        <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                        <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
                         <div><%= card.rules %></div>
                       </div>
                     <% end %>
@@ -135,7 +135,7 @@
                     <%= for card <- @selectedEntity.cards.draw do %>
                       <div class="dark:hover:text-white bg-indigo-300 dark:bg-gray-900" phx-click="handCardClick" phx-value-card={card.uuid}>
                         <h4 class="text-center"><%= card.name %></h4>
-                        <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                        <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
                         <div><%= card.rules %></div>
                       </div>
                     <% end %>
@@ -155,7 +155,7 @@
                     <%= for card <- @selectedEntity.cards.discard do %>
                       <div class="dark:hover:text-white bg-indigo-300 dark:bg-gray-900" phx-click="handCardClick" phx-value-card={card.uuid}>
                         <h4 class="text-center"><%= card.name %></h4>
-                        <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                        <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
                         <div><%= card.rules %></div>
                       </div>
                     <% end %>
@@ -201,7 +201,7 @@
               <%= for card <- @selectedEntity.cards.hand do %>
                 <div class="dark:hover:text-white bg-indigo-200 dark:bg-gray-900">
                   <h4 class="text-center"><%= card.name %></h4>
-                  <div class="flex justify-center"><img class="object-scale-down h-auto" src={card.img}></div>
+                  <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
                   <div><%= card.rules %></div>
                 </div>
               <% end %>

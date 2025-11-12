@@ -458,12 +458,13 @@ defmodule StrangepathsWeb.CardLive.Show do
 
       {:ok, final_img} = Image.thumbnail(img, 900, height: 900)
 
+      card_save_dir = Path.join([:code.priv_dir(:strangepaths), "static", "uploads", "card"])
       # Overwrite @card.img with the final image
       output_path =
         if card.img != nil do
-          base_path <> card.img
+          card_save_dir <> card.img
         else
-          base_path <> "/images/#{Slug.slugify(card.name)}.png"
+          card_save_dir <> "/images/#{Slug.slugify(card.name)}.png"
         end
 
       IO.puts("in guts of render, about to write final img")
