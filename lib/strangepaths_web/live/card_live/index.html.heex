@@ -254,7 +254,7 @@
                   <%= live_redirect to: Routes.card_show_path(@socket, :show, starter_grace), class:
                     "block p-2 hover:text-indigo-900 dark:hover:text-white bg-blue-100 hover:bg-blue-300 dark:bg-yellow-700 dark:hover:bg-yellow-900" do %>
                       <h4 class="text-center"><%= starter_grace.name %></h4>
-                      <div class="flex justify-center"><img class="object-scale-down h-auto" src={starter_grace.img}></div>
+                      <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> starter_grace.img}></div>
                       <div><%= starter_grace.rules %></div>
                   <% end %>
                 </div>

@@ -53,7 +53,7 @@
     </div>
     <%= if @glory != nil do %>
       <div class="p-5 formstyle">
-        <div class="flex justify-center"><img class="object-scale-down h-auto" src={@glory.img}></div>
+        <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> @glory.img}></div>
         <h3 class="text-center"><%= @glory.statusline %></h3>
         <div class="text-center"><%= @glory.rules %></div>
         <hr>

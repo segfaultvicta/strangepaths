@@ -308,9 +308,9 @@ defmodule StrangepathsWeb.CardLive.Show do
           {"Blue", nil} -> "/images/counters/blue.png"
           {"White", nil} -> "/images/counters/white.png"
           {"Black", nil} -> "/images/counters/black.png"
-          {"Status", nil} -> "/images/counters/status.png"
-          {"Alethic", nil} -> nil
-          _ -> "/images/counters/alethic.png"
+          {"Status", nil} -> nil
+          {"Alethic", nil} -> "/images/counters/void.png"
+          _ -> nil
         end
 
       icon_path =
