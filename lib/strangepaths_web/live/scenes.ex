@@ -53,6 +53,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:narrative_mode, false)
         |> assign(:narrative_author_name, socket.assigns.current_user.nickname)
         |> assign(:narrative_author_editing, false)
+        |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
@@ -398,8 +399,6 @@ defmodule StrangepathsWeb.Scenes do
             content
           end
 
-        IO.inspect(content)
-
         content =
           content
           |> String.replace("[...]\”", "\” ⁂")
@@ -407,14 +406,30 @@ defmodule StrangepathsWeb.Scenes do
           |> String.replace("[X]\”", "\” 🙧")
           |> String.replace("[X]", "🙧")
 
+        IO.puts(author_name)
+        IO.puts(user.nickname)
+        IO.puts(socket.assigns.color_category)
+
+        # Determine color_category: only use custom color for Dragon with NPC name
+        color_category =
+          if user.role == :dragon and author_name != nil and author_name != "" do
+            socket.assigns.color_category
+          else
+            "redacted"
+          end
+
         post_attrs = %{
           scene_id: scene.id,
           user_id: user.id,
           avatar_id: socket.assigns.current_user.selected_avatar_id,
           content: String.trim(content),
           narrative_author_name: author_name,
-          ooc_content: if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil)
+          ooc_content:
+            if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil),
+          color_category: color_category
         }
+
+        IO.inspect(post_attrs)
 
         case Scenes.create_character_post(post_attrs) do
           {:ok, post} ->
@@ -615,6 +630,14 @@ defmodule StrangepathsWeb.Scenes do
     {:noreply, assign(socket, :narrative_author_name, narrative_author)}
   end
 
+  defp handle_scene_event(
+         "change_color_category",
+         %{"color_category" => color_category},
+         socket
+       ) do
+    {:noreply, assign(socket, :color_category, color_category)}
+  end
+
   defp handle_scene_event("toggle_presets", _params, socket) do
     presets =
       if !socket.assigns.collapse_presets do
@@ -646,7 +669,8 @@ defmodule StrangepathsWeb.Scenes do
          assign(socket, :current_user, user)
          |> assign(:narrative_author_name, "The Dragon")
          |> assign(:selected_avatar_id, nil)
-         |> assign(:selected_avatar_filepath, nil)}
+         |> assign(:selected_avatar_filepath, nil)
+         |> assign(:color_category, "redacted")}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to reset to dragon basis")}
@@ -666,7 +690,7 @@ defmodule StrangepathsWeb.Scenes do
     if trimmed_name == "" do
       {:noreply, put_flash(socket, :error, "Preset name cannot be empty")}
     else
-      case Accounts.create_preset_from_user(user, trimmed_name) do
+      case Accounts.create_preset_from_user(user, trimmed_name, socket.assigns.color_category) do
         {:ok, _preset} ->
           presets = Accounts.list_character_presets(user)
 
@@ -696,6 +720,9 @@ defmodule StrangepathsWeb.Scenes do
         case Accounts.load_preset_to_user(user, preset) do
           {:ok, updated_user} ->
             # Update selected avatar if in preset
+            IO.inspect(updated_user)
+            IO.puts(updated_user.color_category)
+
             avatar =
               if preset.selected_avatar_id,
                 do: Accounts.get_avatar!(preset.selected_avatar_id),
@@ -723,7 +750,8 @@ defmodule StrangepathsWeb.Scenes do
              |> assign(:current_user, %{updated_user | techne: techne})
              |> assign(:selected_avatar_filepath, avatar.filepath)
              |> assign(:selected_avatar_id, preset.selected_avatar_id)
-             |> assign(:narrative_author_name, preset.narrative_author_name || "")}
+             |> assign(:narrative_author_name, preset.narrative_author_name || "")
+             |> assign(:color_category, preset.color_category || "redacted")}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Failed to load preset")}
@@ -810,6 +838,7 @@ defmodule StrangepathsWeb.Scenes do
       |> Map.put(:arete, String.to_integer(params["arete"] || "0"))
       |> Map.put(:name, params["name"] || "")
       |> Map.put(:selected_avatar_id, String.to_integer(params["selected_avatar_id"] || "0"))
+      |> Map.put(:color_category, params["color_category"] || "redacted")
       |> Map.put(:primary_red, String.to_integer(params["primary_red"] || "4"))
       |> Map.put(:primary_green, String.to_integer(params["primary_green"] || "4"))
       |> Map.put(:primary_blue, String.to_integer(params["primary_blue"] || "4"))
@@ -851,6 +880,7 @@ defmodule StrangepathsWeb.Scenes do
           name: editing_data.name,
           arete: editing_data.arete,
           selected_avatar_id: editing_data.selected_avatar_id,
+          color_category: editing_data.color_category,
           primary_red: editing_data.primary_red,
           primary_green: editing_data.primary_green,
           primary_blue: editing_data.primary_blue,

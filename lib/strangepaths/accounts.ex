@@ -893,12 +893,13 @@ defmodule Strangepaths.Accounts do
   @doc """
   Creates a character preset from a user's current state.
   """
-  def create_preset_from_user(%User{} = user, preset_name) do
+  def create_preset_from_user(%User{} = user, preset_name, color_category \\ "redacted") do
     # Get the raw user from DB to ensure we have string-format techne (not transformed maps)
     attrs = %{
       name: preset_name,
       selected_avatar_id: user.selected_avatar_id,
       narrative_author_name: preset_name,
+      color_category: color_category,
       arete: 0,
       primary_red: 4,
       primary_green: 4,
@@ -957,6 +958,7 @@ defmodule Strangepaths.Accounts do
       alethic_black: 20,
       alethic_void: 20,
       nickname: "The Dragon",
+      color_category: "redacted",
       techne: [],
       public_ascension: true
     }
@@ -987,6 +989,7 @@ defmodule Strangepaths.Accounts do
       alethic_void: preset.alethic_void,
       nickname: preset.name,
       techne: preset.techne,
+      color_category: preset.color_category,
       public_ascension: true
     }
 

@@ -9,6 +9,7 @@ defmodule Strangepaths.Scenes.Post do
     field(:ooc_content_stripped, :string)
     field(:post_type, Ecto.Enum, values: [:character, :narrative, :system], default: :character)
     field(:narrative_author_name, :string)
+    field(:color_category, :string, default: "redacted")
     field(:posted_at, :utc_datetime)
 
     belongs_to(:scene, Strangepaths.Scenes.Scene)
@@ -29,7 +30,8 @@ defmodule Strangepaths.Scenes.Post do
       :avatar_id,
       :content,
       :ooc_content,
-      :narrative_author_name
+      :narrative_author_name,
+      :color_category
     ])
     |> validate_required([:scene_id, :user_id, :content])
     |> validate_length(:content, min: 1, max: 10000)
@@ -46,7 +48,7 @@ defmodule Strangepaths.Scenes.Post do
   """
   def narrative_changeset(post, attrs) do
     post
-    |> cast(attrs, [:scene_id, :user_id, :avatar_id, :content])
+    |> cast(attrs, [:scene_id, :user_id, :avatar_id, :content, :color_category])
     |> validate_required([:scene_id, :user_id, :content])
     |> validate_length(:content, min: 1, max: 10000)
     |> validate_length(:ooc_content, max: 2000)

@@ -90,7 +90,17 @@
                 <div data-post-id={post.id} class={"post-container-icecylee " <> case post.post_type do
                   :narrative -> "post-container-narrative lyrics-alternate-font"
                   :system -> "post-container-system lyrics-alternate-font"
-                  _ -> "post-container-post"
+                  _ ->
+                    # Apply color-specific classes for NPC posts with color_category
+                    color_classes = case post.color_category do
+                      "red" -> "text-burning-gnosis font-burning-gnosis"
+                      "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
+                      "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
+                      "white" -> "text-radiant-gnosis font-radiant-gnosis"
+                      "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
+                      _ -> ""
+                    end
+                    "post-container-post #{color_classes}"
                 end}>
                   <!-- Post Header -->
                   <%= if post.post_type not in [:narrative, :system] do %>
@@ -587,6 +597,22 @@
                           placeholder="Enter preset name..."
                         />
                       </div>
+                      <div class="flex flex-col">
+                        <label class="mb-1" for="color_category">Color:</label>
+                        <select
+                          name="color_category"
+                          id="color_category"
+                          class="dark:bg-gray-700 bg-white border border-gray-400 rounded px-2 py-1"
+                          phx-change="change_color_category"
+                        >
+                          <option value="redacted" selected={@color_category == "redacted"}>Redacted</option>
+                          <option value="red" selected={@color_category == "red"}>Red (Burning)</option>
+                          <option value="green" selected={@color_category == "green"}>Green (Flourishing)</option>
+                          <option value="blue" selected={@color_category == "blue"}>Blue (Pellucid)</option>
+                          <option value="white" selected={@color_category == "white"}>White (Radiant)</option>
+                          <option value="black" selected={@color_category == "black"}>Black (Tenebrous)</option>
+                        </select>
+                      </div>
                     </form>
                     <button
                       phx-click="save_preset"
@@ -640,6 +666,22 @@
                                     min="0"
                                     class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 w-20"
                                   />
+                                </div>
+
+                                <!-- Color Category -->
+                                <div class="flex items-center gap-2">
+                                  <label class="w-20">Color:</label>
+                                  <select
+                                    name="color_category"
+                                    class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 flex-1"
+                                  >
+                                    <option value="redacted" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "redacted"}>Redacted</option>
+                                    <option value="red" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "red"}>Red (Burning)</option>
+                                    <option value="green" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "green"}>Green (Flourishing)</option>
+                                    <option value="blue" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "blue"}>Blue (Pellucid)</option>
+                                    <option value="white" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "white"}>White (Radiant)</option>
+                                    <option value="black" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "black"}>Black (Tenebrous)</option>
+                                  </select>
                                 </div>
 
                                 <!-- Arete -->

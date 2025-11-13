@@ -289,9 +289,7 @@ defmodule StrangepathsWeb.CardLive.Show do
 
       frame_path = base_path <> frame_path
 
-      IO.puts("frame path is #{frame_path}")
       {:ok, frame} = Image.open(frame_path)
-      IO.puts("got past frame load")
 
       icon_path =
         case {aspect.name, aspect.parent_aspect_id} do
@@ -320,10 +318,8 @@ defmodule StrangepathsWeb.CardLive.Show do
           base_path <> icon_path
         end
 
-      IO.puts("art path is #{art_path}")
       # Load and resize the art to exact square dimensions
       {:ok, art} = Image.open(art_path)
-      IO.puts("got past art load")
 
       {:ok, art_resized} = Image.thumbnail(art, art_size, height: art_size, crop: :center)
 
@@ -407,8 +403,6 @@ defmodule StrangepathsWeb.CardLive.Show do
           img
         end
 
-      IO.puts("got past icon load")
-
       # Do preprocessing on rules text
       rules_text = String.replace(card.rules, "[One]", "✱")
       rules_text = String.replace(rules_text, "[Multi]", "⁂")
@@ -454,8 +448,6 @@ defmodule StrangepathsWeb.CardLive.Show do
           Image.compose(img, flavor_img, x: rules_x, y: rules_y + 220)
         end
 
-      IO.puts("got past rendering of text blocks")
-
       {:ok, final_img} = Image.thumbnail(img, 900, height: 900)
 
       card_save_dir = Path.join([:code.priv_dir(:strangepaths), "static", "uploads", "card"])
@@ -467,10 +459,8 @@ defmodule StrangepathsWeb.CardLive.Show do
           card_save_dir <> "/images/#{Slug.slugify(card.name)}.png"
         end
 
-      IO.puts("in guts of render, about to write final img")
-      IO.puts(output_path)
-      foo = Image.write(final_img, output_path)
-      IO.inspect(foo)
+      Image.write(final_img, output_path)
+
       {:ok, output_path}
     rescue
       e -> {:error, e}

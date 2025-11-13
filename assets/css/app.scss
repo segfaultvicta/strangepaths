@@ -352,6 +352,82 @@ body {
     color: #ceb900;
 }
 
+/* Gnosis color categories for NPC posts */
+/* Red (Burning Gnosis) */
+.text-burning-gnosis {
+    color: #7f1d1d;
+}
+
+.dark .text-burning-gnosis {
+    color: #fecaca;
+}
+
+.font-burning-gnosis {
+    font-family: "Burning Gnosis", serif;
+}
+
+/* Green (Flourishing Gnosis) */
+.text-flourishing-gnosis {
+    color: #064e3b;
+    /* light emerald-200 tinge */
+}
+
+.dark .text-flourishing-gnosis {
+    color: #a7f3d0;
+    /* dark emerald-900 tinge */
+}
+
+.font-flourishing-gnosis {
+    font-family: "Flourishing Gnosis", serif;
+    font-size: 32px;
+}
+
+/* Blue (Pellucid Gnosis) */
+.text-pellucid-gnosis {
+    color: #1e3a8a;
+
+    /* light blue-200 tinge */
+}
+
+.dark .text-pellucid-gnosis {
+    color: #aaccff;
+    /* dark blue-900 tinge */
+}
+
+.font-pellucid-gnosis {
+    font-family: "Pellucid Gnosis", serif;
+}
+
+/* White (Radiant Gnosis) - ochre/cream colors */
+.text-radiant-gnosis {
+    color: #78350f;
+    /* light very-dark-ochre (amber-900) */
+}
+
+.dark .text-radiant-gnosis {
+    color: #fef3c7;
+    /* dark very-light-cream-gold (amber-100) */
+}
+
+.font-radiant-gnosis {
+    font-family: "Radiant Gnosis", serif;
+}
+
+/* Black (Tenebrous Gnosis) - grey colors */
+.text-tenebrous-gnosis {
+    color: #000000;
+    /* light very-dark-grey (gray-800) */
+}
+
+.dark .text-tenebrous-gnosis {
+    color: #ffffff;
+    /* dark very-light-grey (gray-200) */
+}
+
+.font-tenebrous-gnosis {
+    font-family: "Tenebrous Gnosis", serif;
+}
+
 .node-panel-redacted {
     font-family: 'Redacted Gnosis';
     color: #ceb900;

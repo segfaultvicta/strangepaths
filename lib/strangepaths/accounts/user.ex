@@ -26,6 +26,7 @@ defmodule Strangepaths.Accounts.User do
     field(:alethic_black, :integer, default: 0)
     field(:alethic_void, :integer, default: 0)
     field(:techne, {:array, :string}, default: [])
+    field(:color_category, :string, default: "redacted", virtual: true)
     field(:theme, :string, default: "dark")
     field(:action_default, :string, default: "action")
     field(:last_rite_id, :string)
@@ -211,7 +212,8 @@ defmodule Strangepaths.Accounts.User do
       :alethic_white,
       :alethic_black,
       :alethic_void,
-      :public_ascension
+      :public_ascension,
+      :color_category
     ])
   end
 
@@ -233,7 +235,8 @@ defmodule Strangepaths.Accounts.User do
       :alethic_blue,
       :alethic_white,
       :alethic_black,
-      :alethic_void
+      :alethic_void,
+      :color_category
     ])
   end
 

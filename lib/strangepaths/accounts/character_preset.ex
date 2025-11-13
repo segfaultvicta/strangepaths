@@ -6,6 +6,7 @@ defmodule Strangepaths.Accounts.CharacterPreset do
     field(:name, :string)
     field(:selected_avatar_id, :integer)
     field(:narrative_author_name, :string)
+    field(:color_category, :string, default: "redacted")
     field(:arete, :integer, default: 0)
 
     # Primary dice
@@ -38,6 +39,7 @@ defmodule Strangepaths.Accounts.CharacterPreset do
       :name,
       :selected_avatar_id,
       :narrative_author_name,
+      :color_category,
       :arete,
       :primary_red,
       :primary_green,
@@ -65,6 +67,7 @@ defimpl Inspect, for: Strangepaths.Accounts.CharacterPreset do
     #{preset.name} (ID: #{preset.id})
     Avatar Selected: #{preset.selected_avatar_id}
     Narrative Author: #{preset.narrative_author_name}
+    Color Category: #{preset.color_category}
     Arete: #{preset.arete}
     R #{preset.primary_red} G #{preset.primary_green} U #{preset.primary_blue}
     W #{preset.primary_white} B #{preset.primary_black} V #{preset.primary_void}
