@@ -177,9 +177,9 @@ defmodule StrangepathsWeb.CardLive.Show do
   defp composite_card(card) do
     base_path = Application.get_env(:strangepaths, :base_image_store_path)
     art_path = base_path <> card.cardart
-    art_x = 105
-    art_y = 147
-    art_size = 790
+    art_x = 150
+    art_y = 150
+    art_size = 700
 
     aspect = Cards.get_aspect_with_parent(card.aspect_id)
 
@@ -218,11 +218,11 @@ defmodule StrangepathsWeb.CardLive.Show do
     title_center_x = 500
     title_y = 75
     statusline_x = 105
-    statusline_y = 945
-    icon_x = 845
-    icon_y = 905
-    rules_x = 105
-    rules_y = 1005
+    statusline_y = 875
+    icon_x = 835
+    icon_y = 835
+    rules_x = 155
+    rules_y = 955
 
     {font, font_file, text_color} =
       case aspect.name do
@@ -325,6 +325,8 @@ defmodule StrangepathsWeb.CardLive.Show do
 
       # Composite art onto frame
       {:ok, frame_with_art} = Image.compose(frame, art_resized, x: art_x, y: art_y)
+      # re-compose the frame for overlay transparency
+      {:ok, frame_with_art} = Image.compose(frame_with_art, frame)
 
       # Add text
       {:ok, title_image} =
@@ -414,7 +416,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       rules_img =
         render_text_block_with_newlines(
           rules_text,
-          800,
+          700,
           # Reduced to 200px to give flavor text more room
           200,
           text_color,
@@ -426,7 +428,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       {:ok, img} = Image.compose(img, rules_img, x: rules_x, y: rules_y)
 
       # Add separator - moved up to around 210px
-      {:ok, separator} = Image.new(700, 3, color: text_color)
+      {:ok, separator} = Image.new(600, 3, color: text_color)
       {:ok, img} = Image.compose(img, separator, x: rules_x + 50, y: rules_y + 200)
 
       # Render flavor text - increased to 180px height, starts at 220px
@@ -435,7 +437,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           flavor_img =
             render_text_block_with_newlines(
               card.flavortext,
-              800,
+              600,
               # Increased to 180px for more space
               180,
               text_color,
@@ -445,7 +447,7 @@ defmodule StrangepathsWeb.CardLive.Show do
               42
             )
 
-          Image.compose(img, flavor_img, x: rules_x, y: rules_y + 220)
+          Image.compose(img, flavor_img, x: rules_x + 50, y: rules_y + 220)
         end
 
       {:ok, final_img} = Image.thumbnail(img, 900, height: 900)
@@ -459,7 +461,11 @@ defmodule StrangepathsWeb.CardLive.Show do
           card_save_dir <> "/images/#{Slug.slugify(card.name)}.png"
         end
 
+      IO.puts("output path is #{output_path}")
+
       Image.write(final_img, output_path)
+
+      IO.puts("got here")
 
       {:ok, output_path}
     rescue

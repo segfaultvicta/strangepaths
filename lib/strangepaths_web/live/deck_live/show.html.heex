@@ -402,7 +402,7 @@
       <div class="flex flex-col lg:flex-row flex-wrap justify-center">
         <div id="base-grace" class="mx-4 lg:mx-24">
           <div class="p-2 dark:hover:text-white glorified">
-            <div class="flex justify-center"><img class="zoom-physis object-scale-down h-64" src={@basecards |> List.first() |> Map.get(:img)}></div>
+            <div class="flex justify-center"><img class="zoom-physis object-scale-down h-64" src={"/uploads/card" <> (@basecards |> List.first() |> Map.get(:img))}></div>
           </div>
         </div>
 
@@ -474,7 +474,7 @@
             <%= for rite <- Map.get(@sidereals, color) do %>
               <%= if @show_all_cards || (rite.deckstatus != "latent") do %>
                 <div class={"dark:hover:text-white " <> rite.deckstatus}>
-                  <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> rite.deckstatus} src={rite.img}></div>
+                  <div class="flex justify-center"><img class={"zoom object-scale-down h-auto " <> rite.deckstatus} src={"/uploads/card" <> rite.img}></div>
                   <div class="deckbuttons">
                     <%= if rite.deckstatus == "glorified" do %>
                       <button phx-click="swap", phx-value-card={rite.id}, phx-value-with={rite.alt}><i class="fa-solid fa-circle-minus"></i></button>

@@ -199,11 +199,22 @@
           <div class="p-1">
             <div class="grid grid-cols-4 gap-5 mb-24">
               <%= for card <- @selectedEntity.cards.hand do %>
-                <div class="dark:hover:text-white bg-indigo-200 dark:bg-gray-900">
-                  <h4 class="text-center"><%= card.name %></h4>
-                  <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
-                  <div><%= card.rules %></div>
-                </div>
+                <%= if is_alethic?(card) do %>
+                  <!-- Alethic card: show back with title only -->
+                  <div class="card-back-placeholder">
+                    <h4 class="text-center"><%= card.name %></h4>
+                    <div class="card-back-image">
+                      <div class="text-center text-purple-300 text-6xl">ꙮ</div>
+                    </div>
+                  </div>
+                <% else %>
+                  <!-- Normal card: show full details -->
+                  <div class="dark:hover:text-white bg-indigo-200 dark:bg-gray-900">
+                    <h4 class="text-center"><%= card.name %></h4>
+                    <div class="flex justify-center"><img class="object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
+                    <div><%= card.rules %></div>
+                  </div>
+                <% end %>
               <% end %>
             </div>
           </div>

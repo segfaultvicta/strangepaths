@@ -1505,6 +1505,11 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     Enum.count(cards, fn c -> Enum.member?(aspect_list, c.aspect_id) end)
   end
 
+  # Check if card is Alethic (hidden from other players)
+  defp is_alethic?(card) do
+    card.aspect_id == 15 || card.gnosis != nil
+  end
+
   defp ch(type, glory, gnosis) do
     if gnosis != nil do
       "ꙮ"
