@@ -65,20 +65,9 @@
 
 <div class="w-full flex flex-col" style="height: 86vh;">
   <!-- Header -->
-  <%= if false && @current_user && @current_user.role == :dragon do %>
-    <div class="bg-gray-800 text-white p-4 flex justify-between items-center">
-      <div class="flex gap-4 items-center">
-          <button phx-click="create_default_nodes"
-                  phx-click-confirm="Create the 5 default anchor nodes? This should only be done once."
-                  class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm">
-            Create Default Nodes
-          </button>
-        <div class="text-sm text-gray-400">
-          Zoom: <%= Float.round(@zoom, 2) %>x | Shift+Click to create node
-        </div>
-      </div>
-    </div>
-  <% end %>
+  <div class="text-sm text-gray-400">
+    Zoom: <%= Float.round(@zoom, 2) %>x | Shift+Click to create node
+  </div>
 
   <!-- Main viewport -->
   <div id="rumor-map-viewport"
@@ -261,7 +250,7 @@
           <%= unless @selected_node.is_anchor do %>
             <button phx-click="delete_node"
                     phx-value-node-id={@selected_node.id}
-                    phx-click-confirm="Are you sure?"
+                    data-confirm="Are you sure?"
                     class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition">
               <i class="fa-solid fa-trash"></i>
             </button>
@@ -441,7 +430,7 @@
                         <button type="button"
                                 phx-click="delete_connection"
                                 phx-value-connection-id={conn.id}
-                                phx-click-confirm="Delete this connection?"
+                                data-confirm="Delete this connection?"
                                 class="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs">
                           <i class="fa-solid fa-trash"></i>
                         </button>

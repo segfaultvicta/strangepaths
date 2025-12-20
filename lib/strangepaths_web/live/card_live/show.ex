@@ -175,13 +175,28 @@ defmodule StrangepathsWeb.CardLive.Show do
   end
 
   defp composite_card(card) do
+    aspect = Cards.get_aspect_with_parent(card.aspect_id)
+
     base_path = Application.get_env(:strangepaths, :base_image_store_path)
     art_path = base_path <> card.cardart
-    art_x = 150
-    art_y = 150
-    art_size = 700
 
-    aspect = Cards.get_aspect_with_parent(card.aspect_id)
+    art_x =
+      case aspect.name do
+        "Green" -> 135
+        _ -> 150
+      end
+
+    art_y =
+      case aspect.name do
+        "Green" -> 150
+        _ -> 150
+      end
+
+    art_size =
+      case aspect.name do
+        "Green" -> 750
+        _ -> 700
+      end
 
     title_decoration =
       case {card.type, aspect.name, card.glorified, aspect.parent_aspect_id} do
@@ -217,10 +232,31 @@ defmodule StrangepathsWeb.CardLive.Show do
     title_text = title_decoration <> " " <> card.name <> " " <> title_decoration
     title_center_x = 500
     title_y = 75
-    statusline_x = 105
-    statusline_y = 875
-    icon_x = 835
-    icon_y = 835
+
+    statusline_x =
+      case aspect.name do
+        "Green" -> 170
+        _ -> 105
+      end
+
+    statusline_y =
+      case aspect.name do
+        "Green" -> 865
+        _ -> 875
+      end
+
+    icon_x =
+      case aspect.name do
+        "Green" -> 845
+        _ -> 835
+      end
+
+    icon_y =
+      case aspect.name do
+        "Green" -> 825
+        _ -> 835
+      end
+
     rules_x = 155
     rules_y = 955
 
