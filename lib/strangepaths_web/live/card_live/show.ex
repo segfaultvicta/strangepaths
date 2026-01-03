@@ -183,19 +183,34 @@ defmodule StrangepathsWeb.CardLive.Show do
     art_x =
       case aspect.name do
         "Green" -> 135
-        _ -> 150
+        "Red" -> 135
+        "Blue" -> 135
+        "White" -> 135
+        "Black" -> 135
+        "Alethic" -> 150
+        _ -> 100
       end
 
     art_y =
       case aspect.name do
         "Green" -> 150
-        _ -> 150
+        "Red" -> 150
+        "Blue" -> 150
+        "White" -> 150
+        "Black" -> 150
+        "Alethic" -> 150
+        _ -> 140
       end
 
     art_size =
       case aspect.name do
         "Green" -> 750
-        _ -> 700
+        "Red" -> 750
+        "Blue" -> 750
+        "White" -> 750
+        "Black" -> 750
+        "Alethic" -> 700
+        _ -> 790
       end
 
     title_decoration =
@@ -236,29 +251,77 @@ defmodule StrangepathsWeb.CardLive.Show do
     statusline_x =
       case aspect.name do
         "Green" -> 170
-        _ -> 105
+        "Red" -> 170
+        "Blue" -> 170
+        "White" -> 170
+        "Black" -> 170
+        "Alethic" -> 170
+        _ -> 120
       end
 
     statusline_y =
       case aspect.name do
         "Green" -> 865
-        _ -> 875
+        "Red" -> 865
+        "Blue" -> 865
+        "White" -> 865
+        "Black" -> 865
+        "Alethic" -> 860
+        _ -> 935
       end
 
     icon_x =
       case aspect.name do
         "Green" -> 845
+        "Red" -> 845
+        "Blue" -> 845
+        "White" -> 845
+        "Black" -> 845
         _ -> 835
       end
 
     icon_y =
       case aspect.name do
         "Green" -> 825
-        _ -> 835
+        "Red" -> 825
+        "Blue" -> 825
+        "White" -> 825
+        "Black" -> 825
+        _ -> 905
       end
 
-    rules_x = 155
-    rules_y = 955
+    rules_x =
+      case aspect.name do
+        "Green" -> 155
+        "Red" -> 155
+        "Blue" -> 155
+        "White" -> 155
+        "Black" -> 155
+        "Alethic" -> 165
+        _ -> 135
+      end
+
+    rules_y =
+      case aspect.name do
+        "Green" -> 955
+        "Red" -> 955
+        "Blue" -> 955
+        "White" -> 955
+        "Black" -> 955
+        "Alethic" -> 955
+        _ -> 995
+      end
+
+    rules_width =
+      case aspect.name do
+        "Green" -> 700
+        "Red" -> 700
+        "Blue" -> 700
+        "White" -> 700
+        "Black" -> 700
+        "Alethic" -> 650
+        _ -> 700
+      end
 
     {font, font_file, text_color} =
       case aspect.name do
@@ -295,7 +358,7 @@ defmodule StrangepathsWeb.CardLive.Show do
 
         "Alethic" ->
           {"Cormorant Garamond Light",
-           "/usr/share/fonts/truetype/CormorantGaramond-VariableFont_wght.ttf", "#000000"}
+           "/usr/share/fonts/truetype/CormorantGaramond-VariableFont_wght.ttf", "#FFCCFF"}
 
         _ ->
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
@@ -325,6 +388,8 @@ defmodule StrangepathsWeb.CardLive.Show do
 
       frame_path = base_path <> frame_path
 
+      IO.puts("frame_path is #{frame_path}")
+
       {:ok, frame} = Image.open(frame_path)
 
       icon_path =
@@ -343,7 +408,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           {"White", nil} -> "/images/counters/white.png"
           {"Black", nil} -> "/images/counters/black.png"
           {"Status", nil} -> nil
-          {"Alethic", nil} -> "/images/counters/void.png"
+          {"Alethic", nil} -> nil
           _ -> nil
         end
 
@@ -355,7 +420,10 @@ defmodule StrangepathsWeb.CardLive.Show do
         end
 
       # Load and resize the art to exact square dimensions
+      IO.puts("buh?")
       {:ok, art} = Image.open(art_path)
+      IO.puts("art path is #{art_path}")
+      IO.puts("art size is #{art_size}, art_x is #{art_x}, art_y is #{art_y}")
 
       {:ok, art_resized} = Image.thumbnail(art, art_size, height: art_size, crop: :center)
 
@@ -452,7 +520,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       rules_img =
         render_text_block_with_newlines(
           rules_text,
-          700,
+          rules_width,
           # Reduced to 200px to give flavor text more room
           200,
           text_color,
