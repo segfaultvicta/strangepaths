@@ -13,7 +13,8 @@ defmodule StrangepathsWeb.DeckLive.Show do
     {:ok,
      assign_defaults(session, socket)
      |> assign(:show_all_cards, true)
-     |> assign(:deck_drawer_open, false)}
+     |> assign(:deck_drawer_open, false)
+     |> assign(:editing_name, false)}
   end
 
   @impl true
@@ -119,6 +120,31 @@ defmodule StrangepathsWeb.DeckLive.Show do
      |> recalc(deck)}
   end
 
+  defp handle_deck_event("start_rename", _, socket) do
+    {:noreply, assign(socket, :editing_name, true)}
+  end
+
+  defp handle_deck_event("cancel_rename", _, socket) do
+    {:noreply, assign(socket, :editing_name, false)}
+  end
+
+  defp handle_deck_event("save_rename", %{"name" => name}, socket) do
+    name = String.trim(name)
+
+    if name == "" do
+      {:noreply, socket}
+    else
+      deck = socket.assigns.deck
+      {:ok, updated_deck} = Cards.update_deck(deck, %{name: name})
+
+      {:noreply,
+       socket
+       |> assign(:editing_name, false)
+       |> assign(:page_title, name)
+       |> recalc(updated_deck)}
+    end
+  end
+
   defp handle_deck_event("truth", _, socket) do
     {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
   end
@@ -213,6 +239,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
      |> assign(:avatar_picker_open, false)
      |> assign(:avatars_by_category, [])
      |> assign(:open_categories, [])
+     |> assign(:editing_name, false)
      |> assign(:page_title, deck.name)
      |> recalc(deck)}
   end

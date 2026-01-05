@@ -28,6 +28,7 @@ defmodule StrangepathsWeb.ContentLive do
           {:ok,
            socket
            |> assign(:page, page)
+           |> assign(:page_title, "Codex - " <> page.title)
            # n.b. "can see content admin link"
            |> assign(:can_edit, can_edit)
            |> assign(:editing, false)}

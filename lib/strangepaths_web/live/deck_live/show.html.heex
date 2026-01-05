@@ -88,23 +88,45 @@
   <!-- Desktop: Single row layout -->
   <div class="hidden lg:flex flex-col justify-between items-center h-16">
     <div>
-      <span class="text-4xl text-indigo-900 dark:text-indigo-50 font-boldtext-center"><%= @deck.name %>
-        <span>
-          <button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
-          ❁<%= @deck.glory %>
-          <button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button>
+      <%= if @editing_name do %>
+        <form phx-submit="save_rename" class="inline-flex items-center gap-2">
+          <input
+            id="rename_deck"
+            type="text"
+            name="name"
+            value={@deck.name}
+            class="text-4xl text-indigo-900 dark:text-indigo-50 font-bold text-center bg-white dark:bg-gray-800 border-2 border-indigo-400 rounded px-2"
+            autofocus
+            phx-hook="AutoFocus"
+          />
+          <button type="submit" class="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300">
+            <i class="fa-solid fa-check text-2xl"></i>
+          </button>
+          <button type="button" phx-click="cancel_rename" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+            <i class="fa-solid fa-times text-2xl"></i>
+          </button>
+        </form>
+      <% else %>
+        <span class="text-4xl text-indigo-900 dark:text-indigo-50 font-bold text-center group cursor-pointer" phx-click="start_rename">
+          <%= @deck.name %>
+
+          <span>
+            <button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+            ❁<%= @deck.glory %>
+            <button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button>
+          </span>
+          <span>
+            <button class="pl-5" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+            ♥<%= @deck.tolerance %>
+            <button phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button>
+          </span>
+          <span>
+            <button class="pl-5" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+            ⛨<%= @deck.blockcap %>
+            <button phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button>
+          </span>
         </span>
-        <span>
-          <button class="pl-5" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button>
-          ♥<%= @deck.tolerance %>
-          <button phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button>
-        </span>
-        <span>
-          <button class="pl-5" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button>
-          ⛨<%= @deck.blockcap %>
-          <button phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button>
-        </span>
-      </span>
+      <% end %>
     </div>
 
     <!-- Mana progress bar -->
@@ -162,9 +184,29 @@
 
   <!-- Mobile: Compact layout -->
   <div class="lg:hidden">
-    <div>
-      <span class="text-lg text-indigo-800 dark:text-white font-bold truncate mx-4"><%= @deck.name %></span>
-    </div>
+    <%= if @editing_name do %>
+      <form phx-submit="save_rename" class="inline-flex items-center gap-2">
+        <input
+          id="rename_deck"
+          type="text"
+          name="name"
+          value={@deck.name}
+          class="text-xl text-indigo-900 dark:text-indigo-50 font-bold text-center bg-white dark:bg-gray-800 border-2 border-indigo-400 rounded px-2"
+          autofocus
+          phx-hook="AutoFocus"
+        />
+        <button type="submit" class="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300">
+          <i class="fa-solid fa-check text-xl"></i>
+        </button>
+        <button type="button" phx-click="cancel_rename" class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+          <i class="fa-solid fa-times text-xl"></i>
+        </button>
+      </form>
+    <% else %>
+      <div>
+        <span class="text-lg text-indigo-800 dark:text-white font-bold truncate mx-4" phx-click="start_rename"><%= @deck.name %></span>
+      </div>
+    <% end %>
     <div class="flex items-center justify-between px-3 pb-2 gap-2">
       <div class="flex-1 min-w-0">
         

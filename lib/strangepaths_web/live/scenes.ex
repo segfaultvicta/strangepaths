@@ -22,6 +22,7 @@ defmodule StrangepathsWeb.Scenes do
       socket =
         socket
         |> assign(:scenes, [])
+        |> assign(:page_title, "Stillness")
         |> assign(:current_scene, nil)
         |> assign(:posts, [])
         |> assign(:avatars, [])
@@ -160,6 +161,7 @@ defmodule StrangepathsWeb.Scenes do
 
             socket
             |> assign(:current_scene, last_scene)
+            |> assign(:page_title, last_scene.name)
             |> assign(:posts, posts)
             |> assign(:posts_offset, length(posts))
             |> assign(:has_more_posts, length(posts) >= 30)
@@ -185,6 +187,7 @@ defmodule StrangepathsWeb.Scenes do
 
               socket
               |> assign(:current_scene, elsewhere_scene)
+              |> assign(:page_title, "Elsewhere")
               |> assign(:posts, posts)
               |> assign(:posts_offset, length(posts))
               |> assign(:has_more_posts, length(posts) >= 30)
@@ -321,6 +324,7 @@ defmodule StrangepathsWeb.Scenes do
       {:noreply,
        socket
        |> assign(:current_scene, scene)
+       |> assign(:page_title, scene.name)
        |> assign(:posts, posts)
        |> assign(:posts_offset, length(posts))
        |> assign(:has_more_posts, has_more)

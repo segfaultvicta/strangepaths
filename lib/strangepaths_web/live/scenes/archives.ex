@@ -30,6 +30,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
        |> assign(:archived_scenes, archived_scenes)
        |> assign(:elsewhere_scene, elsewhere_scene)
        |> assign(:elsewhere_weeks, elsewhere_weeks)
+       |> assign(:page_title, "Sanctuary - Archive")
        |> assign(:selected_scene, nil)
        |> assign(:selected_week, nil)
        |> assign(:posts, [])

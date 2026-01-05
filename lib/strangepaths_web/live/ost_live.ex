@@ -19,6 +19,7 @@ defmodule StrangepathsWeb.OstLive do
      socket
      |> assign(:disc1, disc1)
      |> assign(:disc2, disc2)
+     |> assign(:page_title, "Sanctuary OST")
      |> assign(:editing_song, nil)
      |> assign(:creating_song, nil)}
   end

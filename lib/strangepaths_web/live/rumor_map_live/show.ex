@@ -11,6 +11,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     socket =
       assign_defaults(session, socket)
       |> assign(:avatar_picker_open, false)
+      |> assign(:page_title, "Rumor Map")
       |> assign(:selected_avatar_id, nil)
       |> assign(:selected_avatar_filepath, nil)
       |> assign(:open_categories, [])
@@ -146,8 +147,11 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     center_world_y = 968
 
     # Use actual viewport dimensions if available, otherwise use defaults
-    viewport_center_x = if socket.assigns.viewport_width, do: socket.assigns.viewport_width / 2, else: 960
-    viewport_center_y = if socket.assigns.viewport_height, do: socket.assigns.viewport_height / 2, else: 464
+    viewport_center_x =
+      if socket.assigns.viewport_width, do: socket.assigns.viewport_width / 2, else: 960
+
+    viewport_center_y =
+      if socket.assigns.viewport_height, do: socket.assigns.viewport_height / 2, else: 464
 
     initial_pan_x = viewport_center_x - center_world_x * initial_zoom
     initial_pan_y = viewport_center_y - center_world_y * initial_zoom
@@ -159,9 +163,14 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
      |> assign(:zoom, initial_zoom)}
   end
 
-  defp handle_rumormap_event("set_viewport_dimensions", %{"width" => width, "height" => height}, socket) do
+  defp handle_rumormap_event(
+         "set_viewport_dimensions",
+         %{"width" => width, "height" => height},
+         socket
+       ) do
     # Store viewport dimensions
-    socket = socket
+    socket =
+      socket
       |> assign(:viewport_width, width)
       |> assign(:viewport_height, height)
 
@@ -458,17 +467,19 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
   defp handle_rumormap_event("deselect_node", _params, socket) do
     # Clicking background deselects node and also cancels connecting state
-    socket = socket
+    socket =
+      socket
       |> assign(:selected_node, nil)
 
-    socket = if socket.assigns.state == :connecting do
-      socket
-      |> assign(:state, :viewing)
-      |> assign(:connecting_from_node_id, nil)
-      |> clear_flash()
-    else
-      socket
-    end
+    socket =
+      if socket.assigns.state == :connecting do
+        socket
+        |> assign(:state, :viewing)
+        |> assign(:connecting_from_node_id, nil)
+        |> clear_flash()
+      else
+        socket
+      end
 
     {:noreply, socket}
   end
@@ -596,8 +607,11 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
     if node do
       # Use actual viewport dimensions if available, otherwise use defaults
-      viewport_center_x = if socket.assigns.viewport_width, do: socket.assigns.viewport_width / 2, else: 960
-      viewport_center_y = if socket.assigns.viewport_height, do: socket.assigns.viewport_height / 2, else: 464
+      viewport_center_x =
+        if socket.assigns.viewport_width, do: socket.assigns.viewport_width / 2, else: 960
+
+      viewport_center_y =
+        if socket.assigns.viewport_height, do: socket.assigns.viewport_height / 2, else: 464
 
       # Calculate pan to center the node in viewport
       # Formula: pan = viewport_center - (node_position * zoom)

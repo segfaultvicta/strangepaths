@@ -24,6 +24,7 @@ defmodule StrangepathsWeb.ContentIndexLive do
     {:ok,
      socket
      |> assign(:pages, pages)
+     |> assign(:page_title, "Codex - Index")
      |> assign(:creating, false)
      |> assign(:is_admin, is_admin)}
   end

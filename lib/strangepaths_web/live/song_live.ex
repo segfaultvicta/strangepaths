@@ -18,6 +18,7 @@ defmodule StrangepathsWeb.SongLive do
     {:ok,
      socket
      |> assign(:song, song)
+     |> assign(:page_title, song.title)
      |> assign(:can_view, can_view)
      |> assign(:editing_lyrics, false)
      |> assign(:uploaded_files, [])

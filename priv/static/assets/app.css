@@ -1710,6 +1710,11 @@ a:hover {
   border-color: rgb(253 224 71 / var(--tw-border-opacity));
 }
 
+.border-indigo-400 {
+  --tw-border-opacity: 1;
+  border-color: rgb(129 140 248 / var(--tw-border-opacity));
+}
+
 .border-red-700 {
   --tw-border-opacity: 1;
   border-color: rgb(185 28 28 / var(--tw-border-opacity));
@@ -4765,9 +4770,9 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(255 255 255 / var(--tw-text-opacity));
 }
 
-.hover\:text-indigo-500:hover {
+.hover\:text-green-700:hover {
   --tw-text-opacity: 1;
-  color: rgb(99 102 241 / var(--tw-text-opacity));
+  color: rgb(21 128 61 / var(--tw-text-opacity));
 }
 
 .hover\:text-red-700:hover {
@@ -4775,9 +4780,9 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(185 28 28 / var(--tw-text-opacity));
 }
 
-.hover\:text-green-700:hover {
+.hover\:text-indigo-500:hover {
   --tw-text-opacity: 1;
-  color: rgb(21 128 61 / var(--tw-text-opacity));
+  color: rgb(99 102 241 / var(--tw-text-opacity));
 }
 
 .hover\:text-indigo-300:hover {
@@ -4868,6 +4873,10 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .group:hover .group-hover\:opacity-100 {
   opacity: 1;
+}
+
+.group:hover .group-hover\:opacity-50 {
+  opacity: 0.5;
 }
 
 .dark .dark\:border-4 {
@@ -5033,6 +5042,11 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(107 114 128 / var(--tw-text-opacity));
 }
 
+.dark .dark\:text-green-400 {
+  --tw-text-opacity: 1;
+  color: rgb(74 222 128 / var(--tw-text-opacity));
+}
+
 .dark .dark\:text-indigo-900 {
   --tw-text-opacity: 1;
   color: rgb(49 46 129 / var(--tw-text-opacity));
@@ -5136,6 +5150,16 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:hover\:text-indigo-50:hover {
   --tw-text-opacity: 1;
   color: rgb(238 242 255 / var(--tw-text-opacity));
+}
+
+.dark .dark\:hover\:text-green-300:hover {
+  --tw-text-opacity: 1;
+  color: rgb(134 239 172 / var(--tw-text-opacity));
+}
+
+.dark .dark\:hover\:text-red-300:hover {
+  --tw-text-opacity: 1;
+  color: rgb(252 165 165 / var(--tw-text-opacity));
 }
 
 .dark .hover\:dark\:text-red-500:hover {
