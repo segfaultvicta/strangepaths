@@ -4875,10 +4875,6 @@ input[type=range].slider-purple::-moz-range-progress {
   opacity: 1;
 }
 
-.group:hover .group-hover\:opacity-50 {
-  opacity: 0.5;
-}
-
 .dark .dark\:border-4 {
   border-width: 4px;
 }

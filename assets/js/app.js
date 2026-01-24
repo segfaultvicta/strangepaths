@@ -96,6 +96,25 @@ Hooks.ChatScrollManager = {
 
 Hooks.PostContentInput = {
     mounted() {
+        this.currentSceneId = null;
+        this.initForScene();
+
+        // Save on input - uses dynamic sceneId lookup
+        this.el.addEventListener("input", () => {
+            const storageKey = `draft_post_${this.currentSceneId}`;
+            if (this.el.value.trim()) {
+                localStorage.setItem(storageKey, this.el.value);
+            } else {
+                localStorage.removeItem(storageKey);
+            }
+        });
+
+        // Clear on successful form submit
+        this.handleEvent("post_submitted", () => {
+            const storageKey = `draft_post_${this.currentSceneId}`;
+            localStorage.removeItem(storageKey);
+        });
+
         // Focus on mount (combining FocusOnMount behavior)
         this.el.focus();
 
@@ -122,11 +141,51 @@ Hooks.PostContentInput = {
                 this.pushEvent("toggle_narrative_mode", {});
             }
         });
+    },
+
+    updated() {
+        const newSceneId = this.el.dataset.sceneId;
+        if (newSceneId !== this.currentSceneId) {
+            this.initForScene();
+        }
+    },
+
+    initForScene() {
+        const newSceneId = this.el.dataset.sceneId;
+        this.currentSceneId = newSceneId;
+        const storageKey = `draft_post_${newSceneId}`;
+
+        // Restore saved content for this scene
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            this.el.value = saved;
+            // Notify server of restored content
+            this.pushEvent("update_post_content", { content: saved });
+        }
     }
 }
 
 Hooks.OOCContentInput = {
     mounted() {
+        this.currentSceneId = null;
+        this.initForScene();
+
+        // Save on input - uses dynamic sceneId lookup
+        this.el.addEventListener("input", () => {
+            const storageKey = `draft_ooc_${this.currentSceneId}`;
+            if (this.el.value.trim()) {
+                localStorage.setItem(storageKey, this.el.value);
+            } else {
+                localStorage.removeItem(storageKey);
+            }
+        });
+
+        // Clear on successful form submit
+        this.handleEvent("post_submitted", () => {
+            const storageKey = `draft_ooc_${this.currentSceneId}`;
+            localStorage.removeItem(storageKey);
+        });
+
         // Handle Ctrl+Enter to submit
         this.el.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && e.ctrlKey) {
@@ -145,6 +204,27 @@ Hooks.OOCContentInput = {
                 this.pushEvent("toggle_post_mode", {});
             }
         });
+    },
+
+    updated() {
+        const newSceneId = this.el.dataset.sceneId;
+        if (newSceneId !== this.currentSceneId) {
+            this.initForScene();
+        }
+    },
+
+    initForScene() {
+        const newSceneId = this.el.dataset.sceneId;
+        this.currentSceneId = newSceneId;
+        const storageKey = `draft_ooc_${newSceneId}`;
+
+        // Restore saved content for this scene
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+            this.el.value = saved;
+            // Notify server of restored content
+            this.pushEvent("update_post_content", { ooc_content: saved });
+        }
     }
 }
 
@@ -1013,8 +1093,6 @@ Hooks.RumorMap = {
                 lineOpts.dash = true;
             }
 
-            console.log("LINEOPTS:");
-            console.log(lineOpts);
             const line = new LeaderLine(startEl, endEl, lineOpts);
 
             this.lines[conn.id] = {

@@ -387,8 +387,17 @@ defmodule StrangepathsWeb.Scenes do
 
         ooc_content = Map.get(params, "ooc_content", "")
 
+        {content, post_mode} =
+          if String.starts_with?(content, "/me ") do
+            stripped_content = String.slice(content, 4..-1//1)
+            # If speech, convert to action; if already action, just strip /me
+            {stripped_content, :action}
+          else
+            {content, socket.assigns.post_mode}
+          end
+
         content =
-          if socket.assigns.post_mode == :speech do
+          if post_mode == :speech do
             "*says,* \“" <> content <> "\”"
           else
             "*" <> transform_quotes(content) <> "*"
@@ -446,6 +455,7 @@ defmodule StrangepathsWeb.Scenes do
              |> assign(:post_content, "")
              |> assign(:narrative_author_name, author_name)
              |> assign(:ooc_content, "")
+             |> push_event("post_submitted", %{})
              |> push_event("focus_post_input", %{})}
 
           {:error, _changeset} ->
@@ -493,6 +503,7 @@ defmodule StrangepathsWeb.Scenes do
             {:noreply,
              socket
              |> assign(:post_content, "")
+             |> push_event("post_submitted", %{})
              |> push_event("focus_post_input", %{})}
 
           {:error, _changeset} ->

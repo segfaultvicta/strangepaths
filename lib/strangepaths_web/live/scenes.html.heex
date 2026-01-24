@@ -198,6 +198,7 @@
                 <textarea
                   id="post-content-input-chat"
                   name="content"
+                  data-scene-id={@current_scene.id}
                   placeholder="Write your post..."
                   class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none"
                   rows="2"
@@ -209,6 +210,7 @@
                   <textarea
                     id="ooc-content-input"
                     name="ooc_content"
+                    data-scene-id={@current_scene.id}
                     placeholder="OOC comment (optional)"
                     class="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none text-sm"
                     rows="1"
