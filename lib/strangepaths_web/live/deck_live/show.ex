@@ -245,10 +245,31 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp recalc(socket, deck) do
+    deck_aspect = Strangepaths.Repo.get!(Strangepaths.Cards.Aspect, deck.aspect_id)
+    parent_aspect_id = deck_aspect.parent_aspect_id
+
+    # For sub-aspects, use parent aspect for base rites lookup
+    effective_aspect_id = parent_aspect_id || deck.aspect_id
+
     deck_ids = Enum.map(deck.cards, fn c -> c.id end)
     cards = Cards.list_cards_for_codex()
-    graces = Cards.rites(cards, deck.aspect_id, 1, :Grace)
-    aspectrites = Cards.rites(cards, deck.aspect_id, 20, :Rite)
+
+    # Get parent aspect's graces and rites
+    {graces, aspectrites} = {
+      Cards.rites(cards, effective_aspect_id, 1, :Grace),
+      Cards.rites(cards, effective_aspect_id, 20, :Rite)
+    }
+
+    # If sub-aspect has exclusive cards, add them
+    {graces, aspectrites} =
+      if parent_aspect_id && cards[deck.aspect_id] do
+        sub_graces = Cards.rites(cards, deck.aspect_id, 1, :Grace)
+        sub_rites = Cards.rites(cards, deck.aspect_id, 20, :Rite)
+        {graces ++ sub_graces, aspectrites ++ sub_rites}
+      else
+        {graces, aspectrites}
+      end
+
     aspects = Cards.list_aspects()
 
     sidereals =
@@ -285,24 +306,51 @@ defmodule StrangepathsWeb.DeckLive.Show do
         end
       )
 
-    basecards =
-      ([Enum.at(graces, 0)] ++ aspectrites)
-      |> Enum.reject(fn c -> !Enum.member?(deck_ids, c.id) end)
-      |> Enum.map(fn c ->
-        Map.put(
-          c,
-          :deckstatus,
-          if c.glorified do
-            "glorified"
-          else
-            "extant"
-          end
-        )
-      end)
+    is_subaspect = parent_aspect_id != nil
 
+    # For base aspects: first grace is "inherent" and goes in basecards, only show cards in deck
+    # For sub-aspects: all rites are selectable (like graces), show with latent/extant/glorified status
+    basecards =
+      if is_subaspect do
+        # Sub-aspect: show all aspect rites with status (same logic as sidereals)
+        aspectrites
+        |> Enum.map(fn c ->
+          if Enum.member?(deck_ids, c.id) do
+            # Card is in deck - show as extant or glorified
+            Map.put(c, :deckstatus, if(c.glorified, do: "glorified", else: "extant"))
+          else
+            # Card not in deck - only show if it's the base version and glorified isn't selected
+            if !c.glorified && !Enum.member?(deck_ids, c.alt) do
+              Map.put(c, :deckstatus, "latent")
+            end
+          end
+        end)
+        |> Enum.reject(fn c -> c == nil end)
+      else
+        # Base aspect: only show cards that are in the deck
+        ([Enum.at(graces, 0)] ++ aspectrites)
+        |> Enum.reject(fn c -> c == nil || !Enum.member?(deck_ids, c.id) end)
+        |> Enum.map(fn c ->
+          Map.put(
+            c,
+            :deckstatus,
+            if c.glorified do
+              "glorified"
+            else
+              "extant"
+            end
+          )
+        end)
+      end
+
+    # For base aspects: skip the inherent grace (index 0)
+    # For sub-aspects: all graces are selectable
     graces =
-      graces
-      |> Enum.slice(1, 5)
+      if is_subaspect do
+        graces
+      else
+        graces |> Enum.slice(1, 5)
+      end
       |> Enum.map(fn c ->
         if Enum.member?(deck_ids, c.id) do
           if(c.glorified) do
@@ -379,6 +427,7 @@ defmodule StrangepathsWeb.DeckLive.Show do
     |> assign(:glory, glory)
     |> assign(:total_sidereals, total_sidereals)
     |> assign(:bonustext, bonustext)
+    |> assign(:is_subaspect, is_subaspect)
     |> assign(:deck, %{deck | glory_used: glory, manabalance: manabalance})
   end
 

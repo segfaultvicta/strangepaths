@@ -86,10 +86,13 @@ defmodule StrangepathsWeb.DeckLive.FormComponent do
 
     Enum.flat_map(base_aspects, fn parent ->
       parent_option = [{parent.name, parent.id}]
-      child_options = (grouped[parent.id] || [])
-                      |> Enum.map(fn child ->
-                        {"  └─ #{child.name}", child.id}
-                      end)
+
+      child_options =
+        (grouped[parent.id] || [])
+        |> Enum.map(fn child ->
+          {"  └─ #{child.name}", child.id}
+        end)
+
       parent_option ++ child_options
     end)
   end

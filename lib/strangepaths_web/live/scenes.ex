@@ -33,14 +33,6 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:present_users, [])
         |> assign(:rhs_users, [])
         |> assign(:eligible, false)
-        |> assign(
-          :post_mode,
-          if socket.assigns.current_user.action_default == "speech" do
-            :speech
-          else
-            :action
-          end
-        )
         |> assign(:post_content, "")
         |> assign(:saved_post_content, "")
         |> assign(:saved_ooc_content, "")
@@ -249,7 +241,8 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_event("close_avatar_picker", _, socket) do
-    {:noreply, assign(socket, :avatar_picker_open, false)}
+    {:noreply,
+     assign(socket, :avatar_picker_open, false) |> push_event("scroll_to_bottom_bugfix", %{})}
   end
 
   defp handle_scene_event("toggle_category", %{"category" => category}, socket) do
@@ -281,7 +274,8 @@ defmodule StrangepathsWeb.Scenes do
      |> assign(:current_user, user)
      |> assign(:avatar_picker_open, false)
      |> assign(:selected_avatar_filepath, avatar.filepath)
-     |> assign(:selected_avatar_id, avatar_id)}
+     |> assign(:selected_avatar_id, avatar_id)
+     |> push_event("scroll_to_bottom_bugfix", %{})}
   end
 
   # JOIN A SCENE FROM THE LIST OF SCENES
@@ -342,19 +336,6 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
-  defp handle_scene_event("toggle_post_mode", _params, socket) do
-    socket =
-      if socket.assigns.post_mode == :action do
-        socket
-        |> assign(:post_mode, :speech)
-      else
-        socket
-        |> assign(:post_mode, :action)
-      end
-
-    {:noreply, socket}
-  end
-
   defp handle_scene_event("update_post_content", params, socket) do
     ooc_content = Map.get(params, "ooc_content", socket.assigns.ooc_content)
     post_content = Map.get(params, "content", socket.assigns.post_content)
@@ -387,27 +368,28 @@ defmodule StrangepathsWeb.Scenes do
 
         ooc_content = Map.get(params, "ooc_content", "")
 
-        {content, post_mode} =
+        content =
           if String.starts_with?(content, "/me ") do
-            stripped_content = String.slice(content, 4..-1//1)
-            # If speech, convert to action; if already action, just strip /me
-            {stripped_content, :action}
+            String.slice(content, 4..-1//1)
           else
-            {content, socket.assigns.post_mode}
+            content
           end
 
-        content =
-          if post_mode == :speech do
-            "*says,* \“" <> content <> "\”"
-          else
-            "*" <> transform_quotes(content) <> "*"
-          end
+        content = "*" <> transform_quotes(content) <> "*"
 
         # if the last two characters of content are "**" preceded by a "”",
         # remove the final asterisks.
         content =
           if String.ends_with?(content, "”**") do
-            String.slice(content, 0..-3//-1)
+            String.slice(content, 0..-3//1)
+          else
+            content
+          end
+
+        # do the same thing with the FIRST two characters
+        content =
+          if String.starts_with?(content, "**") do
+            ": " <> String.slice(content, 2..-1//1)
           else
             content
           end
@@ -418,10 +400,6 @@ defmodule StrangepathsWeb.Scenes do
           |> String.replace("[...]", "⁂")
           |> String.replace("[X]\”", "\” 🙧")
           |> String.replace("[X]", "🙧")
-
-        IO.puts(author_name)
-        IO.puts(user.nickname)
-        IO.puts(socket.assigns.color_category)
 
         # Determine color_category: only use custom color for Dragon with NPC name
         color_category =

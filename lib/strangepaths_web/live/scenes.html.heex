@@ -1,6 +1,6 @@
 <!-- Avatar Picker Modal -->
 <%= if @avatar_picker_open do %>
-  <div class="fixed inset-0 z-[60] overflow-y-auto">
+  <div class="fixed inset-0 z-[60]">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black bg-opacity-75" phx-click="close_avatar_picker"></div>
 
@@ -232,19 +232,6 @@
                     >
                       <%= if @narrative_mode, do: "Narr", else: "Char" %>
                     </button>
-                  <% end %>
-
-                  <%= if !@narrative_mode do %>
-                    <button
-                      type="button"
-                      phx-click="toggle_post_mode"
-                      class={"w-full text-base px-2 py-1 rounded transition " <>
-                              if(@post_mode == :speech, do: "bg-blue-600 hover:bg-blue-700 text-white", else: "bg-gray-600 hover:bg-gray-700 text-white")}
-                    >
-                      <%= if @post_mode == :speech, do: "Speech", else: "Action" %>
-                    </button>
-                  <% else %>
-                    <div></div>
                   <% end %>
 
                   <button

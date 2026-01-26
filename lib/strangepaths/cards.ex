@@ -60,6 +60,31 @@ defmodule Strangepaths.Cards do
   end
 
   @doc """
+  Gets cards for a deck's aspect. For sub-aspects, returns both the parent's cards
+  and any cards specifically tagged with the sub-aspect ID.
+  """
+  def get_cards_for_deck_aspect(cards_map, aspect_id, parent_aspect_id) do
+    sub_aspect_cards = cards_map[aspect_id]
+
+    if parent_aspect_id do
+      # Sub-aspect: combine parent cards with any sub-aspect-specific cards
+      parent_cards = cards_map[parent_aspect_id]
+
+      case {parent_cards, sub_aspect_cards} do
+        {nil, nil} -> %{name: "Unknown", cards: []}
+        {nil, sub} -> sub
+        {parent, nil} -> parent
+        {parent, sub} ->
+          # Merge: parent cards + sub-aspect exclusive cards
+          %{name: sub.name, cards: parent.cards ++ sub.cards}
+      end
+    else
+      # Base aspect: use directly
+      sub_aspect_cards || %{name: "Unknown", cards: []}
+    end
+  end
+
+  @doc """
   Searches and filters cards based on query and filters.
   Returns cards grouped by aspect.
 
@@ -764,14 +789,11 @@ defmodule Strangepaths.Cards do
     aspect_id = String.to_integer(attrs["aspect_id"])
     aspect = Repo.get!(Aspect, aspect_id)
 
-    # Only preload base cards for base aspects (Fang, Claw, Scale, Breath)
-    # Sub-aspects (with parent_aspect_id) start with empty deck
     basecards =
       if aspect.parent_aspect_id do
-        # Sub-aspect: no base cards
         []
       else
-        # Base aspect: preload the basic Grace and base 5 Rites
+        # Base aspect: preload the basic Grace and base Rites
         cards = list_cards_for_codex()
 
         [Enum.at(rites(cards, aspect_id, 1, :Grace), 0)] ++
@@ -1076,36 +1098,42 @@ defmodule Strangepaths.Cards do
   end
 
   def rites(cards, aspect_id, base_cards_in_aspect, type) do
-    rites = Enum.filter(cards[aspect_id].cards, fn c -> c.type == type end)
+    aspect_data = cards[aspect_id]
 
-    Enum.reduce(rites, %{rites: [], i: 1}, fn rite, %{rites: acc, i: i} ->
-      %{
-        rites: [
-          %{
-            rite
-            | glory_cost:
-                if i in 1..base_cards_in_aspect do
-                  0 +
-                    if rite.glorified do
-                      1
-                    else
-                      0
-                    end
-                else
-                  1 +
-                    if rite.glorified do
-                      1
-                    else
-                      0
-                    end
-                end
-          }
-          | acc
-        ],
-        i: i + 1
-      }
-    end).rites
-    |> Enum.reverse()
+    if aspect_data == nil do
+      []
+    else
+      rites = Enum.filter(aspect_data.cards, fn c -> c.type == type end)
+
+      Enum.reduce(rites, %{rites: [], i: 1}, fn rite, %{rites: acc, i: i} ->
+        %{
+          rites: [
+            %{
+              rite
+              | glory_cost:
+                  if i in 1..base_cards_in_aspect do
+                    0 +
+                      if rite.glorified do
+                        1
+                      else
+                        0
+                      end
+                  else
+                    1 +
+                      if rite.glorified do
+                        1
+                      else
+                        0
+                      end
+                  end
+            }
+            | acc
+          ],
+          i: i + 1
+        }
+      end).rites
+      |> Enum.reverse()
+    end
   end
 
   defmodule Entity do

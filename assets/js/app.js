@@ -65,6 +65,10 @@ Hooks.ChatScrollManager = {
             }
         })
 
+        this.handleEvent("scroll_to_bottom_bugfix", () => {
+            this.scrollToBottom();
+        })
+
         // Handle "Load More" - preserve scroll position
         this.handleEvent("posts_loaded", ({ old_first_post_id }) => {
             requestAnimationFrame(() => {

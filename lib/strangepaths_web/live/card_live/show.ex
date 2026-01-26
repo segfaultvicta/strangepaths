@@ -478,7 +478,7 @@ defmodule StrangepathsWeb.CardLive.Show do
             "Status Effect"
 
           true ->
-            "Veiled Rite of the " <> aspect.name
+            "Veiled #{card.type} of the " <> aspect.name
         end
 
       true_statusline =

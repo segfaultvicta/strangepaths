@@ -439,37 +439,50 @@
       </div>
     </div>
 
-    <div class="text-center">
-      <span class="text-2xl text-indigo-800 dark:text-indigo-50 pb-2 underline">Inherent Grace</span>
-      <div class="flex flex-col lg:flex-row flex-wrap justify-center">
-        <div id="base-grace" class="mx-4 lg:mx-24">
-          <div class="p-2 dark:hover:text-white glorified">
-            <div class="flex justify-center"><img class="zoom-physis object-scale-down h-64" src={"/uploads/card" <> (@basecards |> List.first() |> Map.get(:img))}></div>
+    <%= if !@is_subaspect do %>
+      <div class="text-center">
+        <span class="text-2xl text-indigo-800 dark:text-indigo-50 pb-2 underline">Inherent Grace</span>
+        <div class="flex flex-col lg:flex-row flex-wrap justify-center">
+          <div id="base-grace" class="mx-4 lg:mx-24">
+            <div class="p-2 dark:hover:text-white glorified">
+              <div class="flex justify-center"><img class="zoom-physis object-scale-down h-64" src={"/uploads/card" <> (@basecards |> List.first() |> Map.get(:img))}></div>
+            </div>
+          </div>
+
+          <div id="bonuses-text">
+            <%= raw Earmark.as_html!(@bonustext) %>
           </div>
         </div>
-
+      </div>
+    <% else %>
+      <div class="text-center">
         <div id="bonuses-text">
           <%= raw Earmark.as_html!(@bonustext) %>
         </div>
       </div>
-    </div>
+    <% end %>
 
     <div class="text-center">
       <span class="text-2xl text-indigo-800 dark:text-indigo-50 pb-2 underline">Tellurian Rites of the <%= @deck.aspect %></span>
       <div class="mx-4 lg:mx-24 grid grid-cols-2 lg:grid-cols-5 gap-5">
         <%= for card <- @basecards |> Enum.reject(&(&1.type == :Grace)) do %>
           <div class={"p-2 dark:hover:text-white " <> card.deckstatus}>
-            <div class="flex justify-center"><img class="zoom-physis object-scale-down h-auto" src={"/uploads/card" <> card.img}></div>
+            <div class="flex justify-center"><img class={"zoom-physis object-scale-down h-auto " <> card.deckstatus} src={"/uploads/card" <> card.img}></div>
             <div class="deckbuttons">
               <%= if card.deckstatus == "glorified" do %>
                 <button phx-click="swap", phx-value-card={card.id}, phx-value-with={card.alt}><i class="fa-solid fa-circle-minus"></i></button>
               <% end %>
 
-              <%= if card.deckstatus == "extant" && card.type == :Rite && @deck.glory_used < @deck.glory do %>
+              <%= if card.deckstatus == "extant" && @is_subaspect do %>
+                <button phx-click="remove", value={card.id}><i class="fa-solid fa-minus"></i></button>
+              <% end %>
+
+              <%= if card.deckstatus == "extant" && card.alt != nil && @deck.glory_used < @deck.glory do %>
                 <button phx-click="swap", phx-value-card={card.id}, phx-value-with={card.alt}><i class="fa-solid fa-circle-plus"></i></button>
               <% end %>
 
-              <%= if card.deckstatus == "latent" do %>
+              <%= if card.deckstatus == "latent" && @is_subaspect && @deck.glory_used < @deck.glory do %>
+                <button phx-click="add", value={card.id}><i class="fa-solid fa-plus"></i></button>
               <% end %>
             </div>
           </div>
