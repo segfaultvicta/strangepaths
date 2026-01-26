@@ -85,33 +85,6 @@
       </.form>
     </div>
 
-    <!-- Default Action Selection -->
-    <div class="section p-6">
-      <h2 class="mb-4">Default Action Preference</h2>
-
-      <.form let={f} for={@action_default_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_action_default" class="formstyle">
-        <%= hidden_input f, :action, name: "action", value: "update_action_default" %>
-
-        <div class="mb-4">
-          <div class="flex gap-4">
-            <label class="flex items-center cursor-pointer">
-              <%= radio_button f, :action_default, "action", class: "mr-2" %>
-              <span>Action</span>
-            </label>
-
-            <label class="flex items-center cursor-pointer">
-              <%= radio_button f, :action_default, "speech", class: "mr-2" %>
-              <span>Speech</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="pt-2">
-          <%= submit "Save", class: "submit" %>
-        </div>
-      </.form>
-    </div>
-
     <!-- Change Password Section -->
     <div class="section p-6">
       <h2 class="mb-4">Change Password</h2>
