@@ -71,9 +71,15 @@ defmodule Strangepaths.Cards do
       parent_cards = cards_map[parent_aspect_id]
 
       case {parent_cards, sub_aspect_cards} do
-        {nil, nil} -> %{name: "Unknown", cards: []}
-        {nil, sub} -> sub
-        {parent, nil} -> parent
+        {nil, nil} ->
+          %{name: "Unknown", cards: []}
+
+        {nil, sub} ->
+          sub
+
+        {parent, nil} ->
+          parent
+
         {parent, sub} ->
           # Merge: parent cards + sub-aspect exclusive cards
           %{name: sub.name, cards: parent.cards ++ sub.cards}
@@ -207,12 +213,12 @@ defmodule Strangepaths.Cards do
   @doc """
   Gets aspects that can be selected for deck creation based on user role.
   - Regular users: Only base aspects (Fang, Claw, Scale, Breath)
-  - Dragons: Base aspects + all unlocked sub-aspects
+  - Dragons: all aspects
   """
   def list_aspects_for_deck_creation(:dragon) do
     # Get all base aspects and their unlocked children
     from(a in Aspect,
-      where: a.id in [1, 2, 3, 4] or (a.unlocked == true and not is_nil(a.parent_aspect_id)),
+      where: a.id in [1, 2, 3, 4] or not is_nil(a.parent_aspect_id),
       order_by: [asc: a.parent_aspect_id, asc: a.id],
       preload: [:parent_aspect]
     )
