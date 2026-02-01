@@ -865,8 +865,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       "green" -> "Flourishing Gnosis"
       "white" -> "Radiant Gnosis"
       "black" -> "Tenebrous Gnosis"
-      "redacted" -> "Redacted Gnosis"
-      _ -> "Redacted Gnosis"
+      "redacted" -> "Aletheia"
+      _ -> "Aletheia"
     end
   end
 

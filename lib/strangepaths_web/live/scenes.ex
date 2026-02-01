@@ -1336,7 +1336,7 @@ defmodule StrangepathsWeb.Scenes do
       case Strangepaths.Accounts.ascend(user, color) do
         :alethic_sacrifice ->
           {true,
-           "- **#{user.nickname}** chose to perform a beautiful, and terrible, magic; for a brief moment their [redacted] sacrifice of their entire #{color_lookup(color)} gnosis allows them communion with the Dragon."}
+           "- **#{user.nickname}** chose to perform a beautiful, and terrible, magic; for a brief moment their Alethic sacrifice of their entire #{color_lookup(color)} gnosis allows them communion with the Dragon."}
 
         {:ascension_successful, new_die} ->
           {false,
@@ -1635,9 +1635,9 @@ defmodule StrangepathsWeb.Scenes do
     case roll do
       {:alethic, stat, outcome, r1, r2} ->
         if outcome == stat do
-          "- **#{nickname}** invoked their [redacted] #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***! It ✨explodes!"
+          "- **#{nickname}** invoked their Alethic #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***! It ✨explodes!"
         else
-          "- **#{nickname}** invoked their [redacted] #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***."
+          "- **#{nickname}** invoked their Alethic #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***."
         end
 
       {:mundane, stat, outcome} ->

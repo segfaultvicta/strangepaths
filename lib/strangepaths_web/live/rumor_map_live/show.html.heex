@@ -326,7 +326,7 @@
             <div class="mb-4">
               <label class="block text-sm font-bold mb-2">Color Category</label>
               <select name="node[color_category]" class="w-full px-3 py-2 bg-gray-700 rounded">
-                <%= for {display, value} <- [{"Burning", "red"}, {"Pellucid", "blue"}, {"Flourishing", "green"}, {"Radiant", "white"}, {"Tenebrous", "black"}, {"[redacted]", "redacted"}] do %>
+                <%= for {display, value} <- [{"Burning", "red"}, {"Pellucid", "blue"}, {"Flourishing", "green"}, {"Radiant", "white"}, {"Tenebrous", "black"}, {"Alethic", "redacted"}] do %>
                   <option value={value} selected={@selected_node.color_category == value}>
                     <%= display %>
                   </option>

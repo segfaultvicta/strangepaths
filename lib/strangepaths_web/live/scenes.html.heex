@@ -594,7 +594,7 @@
                           class="dark:bg-gray-700 bg-white border border-gray-400 rounded px-2 py-1"
                           phx-change="change_color_category"
                         >
-                          <option value="redacted" selected={@color_category == "redacted"}>Redacted</option>
+                          <option value="redacted" selected={@color_category == "redacted"}>Aletheia</option>
                           <option value="red" selected={@color_category == "red"}>Red (Burning)</option>
                           <option value="green" selected={@color_category == "green"}>Green (Flourishing)</option>
                           <option value="blue" selected={@color_category == "blue"}>Blue (Pellucid)</option>
@@ -664,7 +664,7 @@
                                     name="color_category"
                                     class="dark:bg-gray-600 bg-white border border-gray-400 rounded px-2 py-1 flex-1"
                                   >
-                                    <option value="redacted" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "redacted"}>Redacted</option>
+                                    <option value="redacted" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "redacted"}>Aletheia</option>
                                     <option value="red" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "red"}>Red (Burning)</option>
                                     <option value="green" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "green"}>Green (Flourishing)</option>
                                     <option value="blue" selected={Map.get(@editing_preset_data, :color_category, preset.color_category) == "blue"}>Blue (Pellucid)</option>
@@ -1042,7 +1042,7 @@
                           data-confirm="Is it thy will to perform a terrible, and beautiful, magic?"
                           class={"areteglow ascension-button-" <> color}
                         >
-                          [redacted] Sacrifice <%= display_name %>
+                          Alethic Sacrifice <%= display_name %>
                         </button>
                         <button
                           phx-click="sacrifice"
@@ -1079,12 +1079,12 @@
                   <div class="text-sm dark:text-gray-400"><%= user.arete %> Arete</div>
                 </div>
                 <div class="flex justify-between mt-2">
-                  <span class={"text-2xl " <> if(user.alethic_red > 0, do: "text-red-500 areteglow", else: "text-red-600")} x-data={if user.alethic_red > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_red > 0, do: "[redacted]: #{user.alethic_red}", else: nil}><%= user.primary_red %></span>
-                  <span class={"text-2xl " <> if(user.alethic_green > 0, do: "text-green-500 areteglow", else: "text-green-600")} x-data={if user.alethic_green > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_green > 0, do: "[redacted]: #{user.alethic_green}", else: nil}><%= user.primary_green %></span>
-                  <span class={"text-2xl " <> if(user.alethic_blue > 0, do: "text-blue-500 areteglow", else: "text-blue-600")} x-data={if user.alethic_blue > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_blue > 0, do: "[redacted]: #{user.alethic_blue}", else: nil}><%= user.primary_blue %></span>
-                  <span class={"text-2xl " <> if(user.alethic_white > 0, do: "text-gray-300 areteglow", else: "text-gray-400")} x-data={if user.alethic_white > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_white > 0, do: "[redacted]: #{user.alethic_white}", else: nil}><%= user.primary_white %></span>
-                  <span class={"text-2xl " <> if(user.alethic_black > 0, do: "text-black areteglow", else: "text-black")} style={if user.alethic_black == 0, do: "text-shadow: 0 0 2px #FFF;", else: ""} x-data={if user.alethic_black > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_black > 0, do: "[redacted]: #{user.alethic_black}", else: nil}><%= user.primary_black %></span>
-                  <span class={"text-2xl " <> if(user.alethic_void > 0, do: "text-purple-500 areteglow", else: "text-purple-600")} x-data={if user.alethic_void > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_void > 0, do: "[redacted]: #{user.alethic_void}", else: nil}><%= user.primary_void %></span>
+                  <span class={"text-2xl " <> if(user.alethic_red > 0, do: "text-red-500 areteglow", else: "text-red-600")} x-data={if user.alethic_red > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_red > 0, do: "Alethic: #{user.alethic_red}", else: nil}><%= user.primary_red %></span>
+                  <span class={"text-2xl " <> if(user.alethic_green > 0, do: "text-green-500 areteglow", else: "text-green-600")} x-data={if user.alethic_green > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_green > 0, do: "Alethic: #{user.alethic_green}", else: nil}><%= user.primary_green %></span>
+                  <span class={"text-2xl " <> if(user.alethic_blue > 0, do: "text-blue-500 areteglow", else: "text-blue-600")} x-data={if user.alethic_blue > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_blue > 0, do: "Alethic: #{user.alethic_blue}", else: nil}><%= user.primary_blue %></span>
+                  <span class={"text-2xl " <> if(user.alethic_white > 0, do: "text-gray-300 areteglow", else: "text-gray-400")} x-data={if user.alethic_white > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_white > 0, do: "Alethic: #{user.alethic_white}", else: nil}><%= user.primary_white %></span>
+                  <span class={"text-2xl " <> if(user.alethic_black > 0, do: "text-black areteglow", else: "text-black")} style={if user.alethic_black == 0, do: "text-shadow: 0 0 2px #FFF;", else: ""} x-data={if user.alethic_black > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_black > 0, do: "Alethic: #{user.alethic_black}", else: nil}><%= user.primary_black %></span>
+                  <span class={"text-2xl " <> if(user.alethic_void > 0, do: "text-purple-500 areteglow", else: "text-purple-600")} x-data={if user.alethic_void > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_void > 0, do: "Alethic: #{user.alethic_void}", else: nil}><%= user.primary_void %></span>
                 </div>
                 <div class="techne-list">
                   <%= if length(user.techne) > 0 do %>
