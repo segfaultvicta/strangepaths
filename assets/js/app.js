@@ -373,8 +373,15 @@ Hooks.MusicPlayer = {
                 manualPlayBtn.classList.remove("hidden");
             }
 
+            console.log("song_id", song_id);
+            console.log("title", title);
+            console.log("link", link);
+            console.log("queued_by", queued_by);
+            console.log("start_position", start_position);
+
             // Wait for metadata to load before seeking
             audio.addEventListener('loadeddata', () => {
+                console.log("line 384 event is occurring.");
                 audio.play().catch(err => {
                     console.warn("Autoplay blocked:", err);
                     document.getElementById("manual-play-btn")?.classList.remove("hidden");
@@ -383,6 +390,8 @@ Hooks.MusicPlayer = {
 
             songTitle.textContent = title;
             queuedBy.textContent = `Queued by ${queued_by}`;
+
+            console.log("butts! butts! butts!");
         });
 
         // When queue updates
