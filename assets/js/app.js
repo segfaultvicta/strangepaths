@@ -318,6 +318,9 @@ Hooks.MusicPlayer = {
         setTimeout(() => {
             if (this.isMainTab) {
                 // If no one responded to our ping, we're the main tab
+                console.log("main tab timeout effect");
+            } else {
+                console.log("sub-tab timeout effect");
             }
         }, 100);
 
@@ -359,12 +362,14 @@ Hooks.MusicPlayer = {
 
         // Handle incoming broadcasts
         this.handleEvent("play_song", ({ song_id, title, link, queued_by, start_position }) => {
+            console.log("received play_song event");
             currentSongId = song_id; // Store the song ID
             audio.src = link;
             audio.currentTime = start_position || 0;
             if (audio.volume == 0) {
                 // TODO FIXME i'm not sure this is doing what I want it to be doing and I'm too tired to fix it.
                 // I want the Manual Play button to un-hide itself at the appropriate times.
+                console.log("line 369 event is occurring. this may be relevant.");
                 manualPlayBtn.classList.remove("hidden");
             }
 
