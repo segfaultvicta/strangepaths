@@ -39,53 +39,62 @@
       </div>
 
       <%= if @posts && length(@posts) > 0 do %>
-        <div class="space-y-4">
+        <div id="posts-spacing">
           <%= for post <- @posts do %>
-            <div id={"post-#{post.id}"} class={"p-4 rounded flex flex-row " <> case post.post_type do
-              :narrative -> "lyrics-alternate-font bg-purple-100 dark:bg-purple-900 border-l-4 border-purple-500"
-              :system -> "lyrics-alternate-font bg-blue-200 dark:bg-blue-600 border-l-4 border-blue-500"
-              _ -> "bg-indigo-100 dark:bg-gray-800"
+            <div id={"post-#{post.id}"} class={"post-container-icecylee " <> case post.post_type do
+              :narrative -> "post-container-narrative lyrics-alternate-font"
+              :system -> "post-container-system lyrics-alternate-font"
+              _ ->
+                color_classes = case post.color_category do
+                  "red" -> "text-burning-gnosis font-burning-gnosis"
+                  "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
+                  "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
+                  "white" -> "text-radiant-gnosis font-radiant-gnosis"
+                  "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
+                  _ -> ""
+                end
+                "post-container-post #{color_classes}"
             end}>
               <!-- Post Header -->
-              <%= if post.post_type != :narrative do %>
-                <div class="post-header">
+              <%= if post.post_type not in [:narrative, :system] do %>
+                <div class="post-header-icecylee">
                   <%= if post.avatar do %>
                     <img
                       src={post.avatar.filepath}
                       alt="Avatar"
-                      class="w-24 h-24 rounded mr-3"
+                      class="post-avatar-icecylee"
                     />
                   <% end %>
                 </div>
               <% end %>
 
               <!-- Post Content -->
+              <div class="post-content-icecylee">
+                <div class="post-ic-content-icecylee">
+                  <span class="post-ic-authorspan">
+                    <%= cond do %>
+                      <% post.post_type == :system -> %>
 
-              <div class="post-content">
-                <div class="post-ic-content">
-                  <%= cond do %>
-                    <% post.post_type == :narrative -> %>
+                      <% post.post_type == :narrative -> %>
 
-                    <% post.narrative_author_name != nil -> %>
-                      <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
-                    <% post.user -> %>
-                      <%= post.user.nickname %>
-                    <% true -> %>
-                      Unknown
-                  <% end %>
-                  <%= raw Earmark.as_html!(post.content || "") %>
+                      <% post.narrative_author_name != nil -> %>
+                        <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                      <% post.user -> %>
+                        <%= post.user.nickname %>
+                      <% true -> %>
+                        Unknown
+                    <% end %>
+                  </span>
+                  <%= raw Earmark.as_html!(post.content || "", sub_sup: true) %>
                 </div>
 
                 <!-- OOC Content -->
                 <%= if post.ooc_content do %>
                   <div class="post-ooc-container">
-                    <hr class="post-ooc-divider">
-                      <span class="post-ooc-content"><%= post.ooc_content %></span>
+                    <hr class="post-ooc-divider-icecylee">
+                      <span class="post-ooc-content-icecylee"><%= post.ooc_content %></span>
                   </div>
                 <% end %>
-                <div class={if post.ooc_content do "post-timestamp-with-ooc" else "post-timestamp-no-ooc" end <> " mt-2"}>
-                  <%= Calendar.strftime(post.posted_at, "%B %d, %Y at %I:%M %p") %>
-                </div>
               </div>
             </div>
           <% end %>

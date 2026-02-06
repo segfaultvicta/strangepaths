@@ -85,6 +85,36 @@ defmodule Strangepaths.Scenes do
   end
 
   @doc """
+  Returns the most recently archived scenes visible to the given user, up to `limit`.
+  """
+  def list_recent_archived_scenes(%User{role: :dragon}, limit) do
+    Scene
+    |> where([s], s.status == :archived)
+    |> where([s], s.is_elsewhere == false)
+    |> order_by([s], desc: s.archived_at)
+    |> limit(^limit)
+    |> preload(:owner)
+    |> Repo.all()
+  end
+
+  def list_recent_archived_scenes(%User{id: user_id}, limit) do
+    Scene
+    |> where([s], s.status == :archived)
+    |> where([s], s.is_elsewhere == false)
+    |> where(
+      [s],
+      fragment("? = '{}'", s.locked_to_users) or
+        fragment("? = ANY(?)", ^user_id, s.locked_to_users)
+    )
+    |> order_by([s], desc: s.archived_at)
+    |> limit(^limit)
+    |> preload(:owner)
+    |> Repo.all()
+  end
+
+  def list_recent_archived_scenes(nil, _limit), do: []
+
+  @doc """
   Gets a single scene by ID.
   """
   def get_scene(id) do
@@ -303,7 +333,7 @@ defmodule Strangepaths.Scenes do
 
   def system_message(msg) do
     # Send message to ALL non-locked scenes, including Elsewhere
-    scenes = Repo.all(from(s in Scene, where: s.locked_to_users == []))
+    scenes = Repo.all(from(s in Scene, where: s.locked_to_users == [] and s.status == :active))
     Enum.each(scenes, fn scene -> system_message(msg, false, scene.id) end)
   end
 
