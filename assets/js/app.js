@@ -289,47 +289,72 @@ Hooks.TooltipUpdater = {
 
 Hooks.MusicPlayer = {
     mounted() {
+        const MP = "[MusicPlayer]";
         const audio = document.getElementById("audio-player");
         const volumeControl = document.getElementById("volume-control");
         const songTitle = document.getElementById("song-title");
         const queuedBy = document.getElementById("queued-by");
         const queueList = document.getElementById("queue-list");
+        const manualPlayBtn = document.getElementById("manual-play-btn");
 
-        this.channel = new BroadcastChannel('strangepaths_music');
+        console.log(MP, "Hook mounted");
+
+        // Restore volume from localStorage first, before any async stuff can interfere
+        const savedVolume = localStorage.getItem("volume");
+        const userVolume = savedVolume !== null ? parseFloat(savedVolume) : 0.5;
+        audio.volume = userVolume;
+        volumeControl.value = userVolume * 100;
+        console.log(MP, "Volume restored from localStorage:", {
+            raw: savedVolume, parsed: userVolume, slider: volumeControl.value
+        });
+
+        // Cross-tab coordination: only one tab should produce audio.
+        // We track this with a flag rather than zeroing volume, so the
+        // user's chosen volume is never lost.
         this.isMainTab = true;
+        this.channel = new BroadcastChannel('strangepaths_music');
 
-        // Check if another tab exists
-        this.channel.postMessage({ type: 'ping' });
-        // Listen for responses
+        // Small delay before pinging — gives the old hook's destroyed()
+        // time to close its channel during same-tab LiveView navigation,
+        // so we don't get a pong from ourselves.
+        setTimeout(() => {
+            console.log(MP, "Sending cross-tab ping");
+            this.channel.postMessage({ type: 'ping' });
+        }, 50);
+
         this.channel.onmessage = (event) => {
             if (event.data.type === 'pong') {
-                // Another tab exists and responded - we should mute
+                // Another tab is already playing — mute audio output
+                // but keep the volume slider at the user's saved value
+                console.log(MP, "Received pong — another tab is active, muting audio output (slider stays at user value)");
                 this.isMainTab = false;
-                document.getElementById("manual-play-btn")?.classList.remove("hidden");
-                volumeControl.value = 0;
                 audio.volume = 0;
+                manualPlayBtn?.classList.remove("hidden");
             } else if (event.data.type === 'ping') {
-                // New tab is asking if we exist - respond
+                // A new tab is asking if anyone is here — respond
+                console.log(MP, "Received ping from another tab, responding with pong");
                 this.channel.postMessage({ type: 'pong' });
             }
         };
 
-        // Respond to pings from new tabs
+        // After the ping timeout, if we're still main tab, apply saved volume
         setTimeout(() => {
             if (this.isMainTab) {
-                // If no one responded to our ping, we're the main tab
-                console.log("main tab timeout effect");
+                audio.volume = userVolume;
+                console.log(MP, "Confirmed main tab — volume set to", userVolume);
             } else {
-                console.log("sub-tab timeout effect");
+                console.log(MP, "Confirmed secondary tab — audio muted, user volume preserved as", userVolume);
             }
-        }, 100);
+        }, 150);
 
-        // Add click handler for manual play
-        const manualPlayBtn = document.getElementById("manual-play-btn");
         manualPlayBtn.classList.add("hidden"); // hide by default, show if needed
         manualPlayBtn.addEventListener("click", () => {
-            audio.volume = 0.5;
-            volumeControl.value = 50;
+            this.isMainTab = true;
+            const vol = localStorage.getItem("volume");
+            const restoreVol = vol !== null ? parseFloat(vol) : 0.5;
+            audio.volume = restoreVol;
+            volumeControl.value = restoreVol * 100;
+            console.log(MP, "Manual play clicked — claiming main tab, restoring volume to", restoreVol);
             audio.play();
             manualPlayBtn.classList.add("hidden");
         });
@@ -351,52 +376,45 @@ Hooks.MusicPlayer = {
             const volume = e.target.value / 100;
             audio.volume = volume;
             localStorage.setItem("volume", volume);
+            console.log(MP, "Volume slider changed:", volume);
 
             if (volume == 0) {
                 manualPlayBtn.classList.remove("hidden");
             }
         });
-        const savedVolume = localStorage.getItem("volume");
-        audio.volume = savedVolume !== null ? parseFloat(savedVolume) : 0.5;
-        volumeControl.value = audio.volume * 100;
 
         // Handle incoming broadcasts
         this.handleEvent("play_song", ({ song_id, title, link, queued_by, start_position }) => {
-            console.log("received play_song event");
-            currentSongId = song_id; // Store the song ID
+            console.log(MP, "Received play_song:", {
+                song_id, title, queued_by, start_position,
+                isMainTab: this.isMainTab, audioVolume: audio.volume
+            });
+            currentSongId = song_id;
             audio.src = link;
             audio.currentTime = start_position || 0;
-            if (audio.volume == 0) {
-                // TODO FIXME i'm not sure this is doing what I want it to be doing and I'm too tired to fix it.
-                // I want the Manual Play button to un-hide itself at the appropriate times.
-                console.log("line 369 event is occurring. this may be relevant.");
-                manualPlayBtn.classList.remove("hidden");
+
+            if (!this.isMainTab) {
+                // We're a secondary tab — show manual play button instead of autoplaying
+                console.log(MP, "Secondary tab — showing manual play button, not autoplaying");
+                manualPlayBtn?.classList.remove("hidden");
+            } else {
+                console.log(MP, "Primary tab - adding event listener for loadeddata");
+                audio.addEventListener('loadeddata', () => {
+                    console.log(MP, "Audio data loaded, attempting autoplay at volume", audio.volume);
+                    audio.play().catch(err => {
+                        console.warn(MP, "Autoplay blocked:", err.message);
+                        manualPlayBtn?.classList.remove("hidden");
+                    });
+                }, { once: true });
             }
-
-            console.log("song_id", song_id);
-            console.log("title", title);
-            console.log("link", link);
-            console.log("queued_by", queued_by);
-            console.log("start_position", start_position);
-
-            // Wait for metadata to load before seeking
-            audio.addEventListener('loadeddata', () => {
-                console.log("line 384 event is occurring.");
-                audio.play().catch(err => {
-                    console.warn("Autoplay blocked:", err);
-                    document.getElementById("manual-play-btn")?.classList.remove("hidden");
-                });
-            }, { once: true }); // once: true removes listener after first call
 
             songTitle.textContent = title;
             queuedBy.textContent = `Queued by ${queued_by}`;
-
-            console.log("butts! butts! butts!");
         });
 
         // When queue updates
         this.handleEvent("queue_update", ({ now_playing, queue, queue_length }) => {
-            // Update queue display
+            console.log(MP, "Queue update:", { now_playing, queue_length, items: queue.length });
             if (queueList) {
                 queueList.innerHTML = queue.map((item, i) =>
                     `<li>${i + 1}. ${item.title} (by ${item.queued_by})</li>`
@@ -405,6 +423,7 @@ Hooks.MusicPlayer = {
         });
 
         this.handleEvent("stopped", () => {
+            console.log(MP, "Received stop — pausing audio, clearing source");
             audio.pause();
             audio.src = "";
             currentSongId = null;
@@ -412,14 +431,37 @@ Hooks.MusicPlayer = {
 
         // Auto-advance when song ends
         audio.addEventListener("ended", () => {
-            // Tell server to advance to next song, including the song ID
+            console.log(MP, "Song ended, currentSongId:", currentSongId);
             if (currentSongId) {
+                console.log(MP, "Pushing song_ended event to server");
                 this.pushEvent("song_ended", { song_id: currentSongId });
             }
+        });
+
+        // Log audio element errors for debugging playback issues
+        audio.addEventListener("error", () => {
+            const err = audio.error;
+            console.error(MP, "Audio element error:", {
+                code: err?.code, message: err?.message,
+                src: audio.src, currentSongId
+            });
+        });
+
+        audio.addEventListener("stalled", () => {
+            console.warn(MP, "Audio stalled — network may be slow", {
+                src: audio.src, currentTime: audio.currentTime, readyState: audio.readyState
+            });
+        });
+
+        audio.addEventListener("waiting", () => {
+            console.log(MP, "Audio waiting for data (buffering)", {
+                currentTime: audio.currentTime, readyState: audio.readyState
+            });
         });
     },
 
     destroyed() {
+        console.log("[MusicPlayer]", "Hook destroyed — closing BroadcastChannel");
         if (this.channel) {
             this.channel.close();
         }
