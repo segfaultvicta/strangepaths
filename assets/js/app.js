@@ -60,6 +60,8 @@ Hooks.SceneFocusManager = {
 
 Hooks.ChatScrollManager = {
     mounted() {
+        this._currentSceneId = this.el.dataset.sceneId || null;
+
         // Scroll to bottom on mount
         this.scrollToBottom();
 
@@ -99,8 +101,12 @@ Hooks.ChatScrollManager = {
     },
 
     updated() {
-        // When DOM updates (like scene change), scroll to bottom
-        this.scrollToBottom();
+        // Only scroll to bottom on scene change, not on every DOM patch (e.g. new posts)
+        const newSceneId = this.el.dataset.sceneId || null;
+        if (newSceneId !== this._currentSceneId) {
+            this._currentSceneId = newSceneId;
+            this.scrollToBottom();
+        }
     },
 
     scrollToBottom() {

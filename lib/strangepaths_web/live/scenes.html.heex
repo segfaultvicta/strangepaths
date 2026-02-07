@@ -72,7 +72,7 @@
     <!-- LEFT COLUMN (75%): Flex column with 2 rows -->
     <div id="scene-left-col" class="flex flex-col flex-1">
       <!-- Row 1: Posts container -->
-      <div id="chat-posts-container" phx-hook="ChatScrollManager">
+      <div id="chat-posts-container" phx-hook="ChatScrollManager" data-scene-id={if @current_scene, do: @current_scene.id}>
         <%= if @current_scene do %>
           <%= if @has_more_posts do %>
             <button
