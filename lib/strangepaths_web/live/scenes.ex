@@ -414,7 +414,11 @@ defmodule StrangepathsWeb.Scenes do
 
         content = "*" <> transform_quotes(content) <> "*"
 
-        # if the last two characters of content are "**" preceded by a "”",
+        # Strip leading whitespace after paragraph-break italic markers so
+        # Earmark doesn't interpret "* " at the start of a line as a bullet list
+        content = Regex.replace(~r/(\n+\*)[ \t]+/, content, "\\1")
+
+        # if the last two characters of content are "**" preceded by a """,
         # remove the final asterisks.
         content =
           if String.ends_with?(content, "”**") do
@@ -456,8 +460,6 @@ defmodule StrangepathsWeb.Scenes do
             if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil),
           color_category: color_category
         }
-
-        IO.inspect(post_attrs)
 
         case Scenes.create_character_post(post_attrs) do
           {:ok, post} ->
