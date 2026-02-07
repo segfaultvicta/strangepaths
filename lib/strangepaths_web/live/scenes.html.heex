@@ -1070,7 +1070,15 @@
             <i class={"fa-solid #{if @collapse_userlist, do: "fa-plus", else: "fa-minus"}"}></i>
           </button>
           <%= if !@collapse_userlist do %>
-            <%= for user <- @rhs_users do %>
+            <%= for user <- Enum.sort_by(@rhs_users, fn u ->
+              m = Enum.find(@present_users, fn p -> p.user.id == u.id end)
+              cond do
+                m && m.typing -> 0
+                m && m.has_buffer -> 1
+                m && m.active -> 2
+                true -> 3
+              end
+            end) do %>
               <% user_meta = Enum.find(@present_users, fn p -> p.user.id == user.id end) %>
               <div id={"rhs-user-#{user.id}"} class="p-2 mb-2 bg-gray-200 dark:bg-gray-800 rounded">
                 <div class="flex justify-between items-center flex-row">
