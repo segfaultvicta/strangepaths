@@ -1071,26 +1071,34 @@
           </button>
           <%= if !@collapse_userlist do %>
             <%= for user <- @rhs_users do %>
-              <div class="p-2 mb-2 bg-gray-200 dark:bg-gray-800 rounded">
+              <% user_meta = Enum.find(@present_users, fn p -> p.user.id == user.id end) %>
+              <div id={"rhs-user-#{user.id}"} class="p-2 mb-2 bg-gray-200 dark:bg-gray-800 rounded">
                 <div class="flex justify-between items-center flex-row">
                   <div class="font-bold text-lg">
-                    <span class={if user.id in (@present_users |> Enum.map(&(&1.id))) do "" else "italic" end}><%= user.nickname %></span>
+                    <span class={if user_meta && user_meta.active do "" else "italic" end}><%= user.nickname %></span>
+                    <%= cond do %>
+                      <% user_meta && user_meta.typing -> %>
+                        <i class="fa-solid fa-ellipsis fa-fade text-sm ml-1 text-purple-400"></i>
+                      <% user_meta && user_meta.has_buffer -> %>
+                        <i class="fa-solid fa-pencil text-sm ml-1 text-gray-400"></i>
+                      <% true -> %>
+                    <% end %>
                   </div>
                   <div class="text-sm dark:text-gray-400"><%= user.arete %> Arete</div>
                 </div>
                 <div class="flex justify-between mt-2">
-                  <span class={"text-2xl " <> if(user.alethic_red > 0, do: "text-red-500 areteglow", else: "text-red-600")} x-data={if user.alethic_red > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_red > 0, do: "Alethic: #{user.alethic_red}", else: nil}><%= user.primary_red %></span>
-                  <span class={"text-2xl " <> if(user.alethic_green > 0, do: "text-green-500 areteglow", else: "text-green-600")} x-data={if user.alethic_green > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_green > 0, do: "Alethic: #{user.alethic_green}", else: nil}><%= user.primary_green %></span>
-                  <span class={"text-2xl " <> if(user.alethic_blue > 0, do: "text-blue-500 areteglow", else: "text-blue-600")} x-data={if user.alethic_blue > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_blue > 0, do: "Alethic: #{user.alethic_blue}", else: nil}><%= user.primary_blue %></span>
-                  <span class={"text-2xl " <> if(user.alethic_white > 0, do: "text-gray-300 areteglow", else: "text-gray-400")} x-data={if user.alethic_white > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_white > 0, do: "Alethic: #{user.alethic_white}", else: nil}><%= user.primary_white %></span>
-                  <span class={"text-2xl " <> if(user.alethic_black > 0, do: "text-black areteglow", else: "text-black")} style={if user.alethic_black == 0, do: "text-shadow: 0 0 2px #FFF;", else: ""} x-data={if user.alethic_black > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_black > 0, do: "Alethic: #{user.alethic_black}", else: nil}><%= user.primary_black %></span>
-                  <span class={"text-2xl " <> if(user.alethic_void > 0, do: "text-purple-500 areteglow", else: "text-purple-600")} x-data={if user.alethic_void > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_void > 0, do: "Alethic: #{user.alethic_void}", else: nil}><%= user.primary_void %></span>
+                  <span id={"rhs-die-#{user.id}-red"} class={"text-2xl " <> if(user.alethic_red > 0, do: "text-red-500 areteglow", else: "text-red-600")} x-data={if user.alethic_red > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_red > 0, do: "Alethic: #{user.alethic_red}", else: nil}><%= user.primary_red %></span>
+                  <span id={"rhs-die-#{user.id}-green"} class={"text-2xl " <> if(user.alethic_green > 0, do: "text-green-500 areteglow", else: "text-green-600")} x-data={if user.alethic_green > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_green > 0, do: "Alethic: #{user.alethic_green}", else: nil}><%= user.primary_green %></span>
+                  <span id={"rhs-die-#{user.id}-blue"} class={"text-2xl " <> if(user.alethic_blue > 0, do: "text-blue-500 areteglow", else: "text-blue-600")} x-data={if user.alethic_blue > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_blue > 0, do: "Alethic: #{user.alethic_blue}", else: nil}><%= user.primary_blue %></span>
+                  <span id={"rhs-die-#{user.id}-white"} class={"text-2xl " <> if(user.alethic_white > 0, do: "text-gray-300 areteglow", else: "text-gray-400")} x-data={if user.alethic_white > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_white > 0, do: "Alethic: #{user.alethic_white}", else: nil}><%= user.primary_white %></span>
+                  <span id={"rhs-die-#{user.id}-black"} class={"text-2xl " <> if(user.alethic_black > 0, do: "text-black areteglow", else: "text-black")} style={if user.alethic_black == 0, do: "text-shadow: 0 0 2px #FFF;", else: ""} x-data={if user.alethic_black > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_black > 0, do: "Alethic: #{user.alethic_black}", else: nil}><%= user.primary_black %></span>
+                  <span id={"rhs-die-#{user.id}-void"} class={"text-2xl " <> if(user.alethic_void > 0, do: "text-purple-500 areteglow", else: "text-purple-600")} x-data={if user.alethic_void > 0, do: "", else: nil} x-tooltip.raw={if user.alethic_void > 0, do: "Alethic: #{user.alethic_void}", else: nil}><%= user.primary_void %></span>
                 </div>
                 <div class="techne-list">
                   <%= if length(user.techne) > 0 do %>
                     <span class="mt-2">
-                      <%= for techne <- user.techne do %>
-                        <span x-data x-tooltip.raw={techne.desc} class="text-md"><%= techne.name %></span><%= if techne != List.last(user.techne), do: ", " %>
+                      <%= for {techne, idx} <- Enum.with_index(user.techne) do %>
+                        <span id={"rhs-techne-#{user.id}-#{idx}"} x-data x-tooltip.raw={techne.desc} class="text-md"><%= techne.name %></span><%= if techne != List.last(user.techne), do: ", " %>
                       <% end %>
                     </span>
                   <% end %>

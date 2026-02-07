@@ -38,6 +38,23 @@ Hooks.SceneFocusManager = {
                 }
             });
         });
+
+        // Ctrl+Up/Down to cycle between scenes
+        this._handleSceneKeys = (e) => {
+            if (e.ctrlKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+                e.preventDefault();
+                this.pushEvent("cycle_scene", {
+                    direction: e.key === "ArrowUp" ? "up" : "down"
+                });
+            }
+        };
+        window.addEventListener("keydown", this._handleSceneKeys);
+    },
+
+    destroyed() {
+        if (this._handleSceneKeys) {
+            window.removeEventListener("keydown", this._handleSceneKeys);
+        }
     }
 }
 
@@ -101,22 +118,45 @@ Hooks.ChatScrollManager = {
 Hooks.PostContentInput = {
     mounted() {
         this.currentSceneId = null;
+        this.typingTimer = null;
+        this.isTyping = false;
         this.initForScene();
 
-        // Save on input - uses dynamic sceneId lookup
+        // Save on input + push typing state
         this.el.addEventListener("input", () => {
             const storageKey = `draft_post_${this.currentSceneId}`;
-            if (this.el.value.trim()) {
+            const hasContent = this.el.value.trim() !== "";
+
+            if (hasContent) {
                 localStorage.setItem(storageKey, this.el.value);
             } else {
                 localStorage.removeItem(storageKey);
             }
+
+            // Push typing:true only if we weren't already typing (avoid spamming)
+            if (!this.isTyping) {
+                this.isTyping = true;
+                this.pushEvent("typing_state", { typing: true, has_buffer: hasContent });
+            }
+
+            // Reset the inactivity timer — after 3s of no input, mark typing as stopped
+            clearTimeout(this.typingTimer);
+            this.typingTimer = setTimeout(() => {
+                this.isTyping = false;
+                this.pushEvent("typing_state", {
+                    typing: false,
+                    has_buffer: this.el.value.trim() !== ""
+                });
+            }, 3000);
         });
 
         // Clear on successful form submit
         this.handleEvent("post_submitted", () => {
             const storageKey = `draft_post_${this.currentSceneId}`;
             localStorage.removeItem(storageKey);
+            clearTimeout(this.typingTimer);
+            this.isTyping = false;
+            this.pushEvent("typing_state", { typing: false, has_buffer: false });
         });
 
         // Focus on mount (combining FocusOnMount behavior)
@@ -137,11 +177,6 @@ Hooks.PostContentInput = {
 
             if (e.key === " " && e.ctrlKey) {
                 e.preventDefault();
-                this.pushEvent("toggle_post_mode", {});
-            }
-
-            if (e.key === "." && e.ctrlKey) {
-                e.preventDefault();
                 this.pushEvent("toggle_narrative_mode", {});
             }
         });
@@ -157,6 +192,8 @@ Hooks.PostContentInput = {
     initForScene() {
         const newSceneId = this.el.dataset.sceneId;
         this.currentSceneId = newSceneId;
+        this.isTyping = false;
+        clearTimeout(this.typingTimer);
         const storageKey = `draft_post_${newSceneId}`;
 
         // Restore saved content for this scene
@@ -165,7 +202,14 @@ Hooks.PostContentInput = {
             this.el.value = saved;
             // Notify server of restored content
             this.pushEvent("update_post_content", { content: saved });
+            this.pushEvent("typing_state", { typing: false, has_buffer: true });
+        } else {
+            this.pushEvent("typing_state", { typing: false, has_buffer: false });
         }
+    },
+
+    destroyed() {
+        clearTimeout(this.typingTimer);
     }
 }
 
@@ -205,7 +249,7 @@ Hooks.OOCContentInput = {
 
             if (e.key === " " && e.ctrlKey) {
                 e.preventDefault();
-                this.pushEvent("toggle_post_mode", {});
+                this.pushEvent("toggle_narrative_mode", {});
             }
         });
     },
@@ -1353,6 +1397,12 @@ let liveSocket = new LiveSocket("/live", Socket, {
     dom: {
         onBeforeElUpdated(from, to) {
             if (from._x_dataStack) { window.Alpine.clone(from, to) }
+
+            // If the tooltip content changed, destroy the old Tippy instance
+            // so Alpine Tooltip creates a fresh one with the correct content.
+            if (from._tippy && from.getAttribute('x-tooltip.raw') !== to.getAttribute('x-tooltip.raw')) {
+                from._tippy.destroy();
+            }
         },
         onNodeAdded(node) {
             // Initialize Alpine on newly added nodes

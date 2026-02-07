@@ -142,7 +142,10 @@ defmodule StrangepathsWeb.Scenes do
             # Already subscribed to all scenes above, just track presence
             Presence.track(self(), "scene:#{last_scene.id}", socket.id, %{
               user_id: socket.assigns.current_user.id,
-              nickname: socket.assigns.current_user.nickname
+              nickname: socket.assigns.current_user.nickname,
+              active: true,
+              typing: false,
+              has_buffer: false
             })
 
             posts = SceneServer.get_cached_posts(last_scene.id)
@@ -168,7 +171,10 @@ defmodule StrangepathsWeb.Scenes do
               # automatically join Elsewhere (already subscribed above, just track presence)
               Presence.track(self(), "scene:#{elsewhere_scene.id}", socket.id, %{
                 user_id: socket.assigns.current_user.id,
-                nickname: socket.assigns.current_user.nickname
+                nickname: socket.assigns.current_user.nickname,
+                active: true,
+                typing: false,
+                has_buffer: false
               })
 
               posts = SceneServer.get_cached_posts(elsewhere_scene.id)
@@ -285,16 +291,33 @@ defmodule StrangepathsWeb.Scenes do
     scene = Scenes.get_scene(scene_id)
 
     if scene && Scenes.can_view_scene?(scene, socket.assigns.current_user) do
-      # Untrack presence from previous scene (stay subscribed for unread counts)
+      # Update presence in previous scene to inactive (keep entry alive for buffer indicator)
       if socket.assigns.current_scene do
-        Presence.untrack(self(), "scene:#{socket.assigns.current_scene.id}", socket.id)
+        has_buffer = String.trim(socket.assigns.post_content || "") != ""
+
+        Presence.update(self(), "scene:#{socket.assigns.current_scene.id}", socket.id, %{
+          user_id: socket.assigns.current_user.id,
+          nickname: socket.assigns.current_user.nickname,
+          active: false,
+          typing: false,
+          has_buffer: has_buffer
+        })
       end
 
-      # Track presence in new scene (already subscribed for unread counts)
-      Presence.track(self(), "scene:#{scene.id}", socket.id, %{
+      # Track or update presence in new scene (may already have an inactive entry from a previous visit)
+      new_meta = %{
         user_id: socket.assigns.current_user.id,
-        nickname: socket.assigns.current_user.nickname
-      })
+        nickname: socket.assigns.current_user.nickname,
+        active: true,
+        typing: false,
+        has_buffer: false
+      }
+
+      case Presence.track(self(), "scene:#{scene.id}", socket.id, new_meta) do
+        {:ok, _ref} -> :ok
+        {:error, {:already_tracked, _pid, _topic, _key}} ->
+          Presence.update(self(), "scene:#{scene.id}", socket.id, new_meta)
+      end
 
       # Load posts
       posts = SceneServer.get_cached_posts(scene.id)
@@ -334,6 +357,20 @@ defmodule StrangepathsWeb.Scenes do
     else
       {:noreply, put_flash(socket, :error, "You don't have permission to view this scene")}
     end
+  end
+
+  defp handle_scene_event("typing_state", %{"typing" => typing, "has_buffer" => has_buffer}, socket) do
+    if socket.assigns.current_scene do
+      Presence.update(self(), "scene:#{socket.assigns.current_scene.id}", socket.id, %{
+        user_id: socket.assigns.current_user.id,
+        nickname: socket.assigns.current_user.nickname,
+        active: true,
+        typing: typing,
+        has_buffer: has_buffer
+      })
+    end
+
+    {:noreply, socket}
   end
 
   defp handle_scene_event("update_post_content", params, socket) do
@@ -494,9 +531,40 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_event("toggle_narrative_mode", _params, socket) do
-    {:noreply,
-     assign(socket, :narrative_mode, !socket.assigns.narrative_mode)
-     |> push_event("scroll_to_bottom", %{})}
+    if socket.assigns.role == :dragon do
+      {:noreply,
+       assign(socket, :narrative_mode, !socket.assigns.narrative_mode)
+       |> push_event("scroll_to_bottom", %{})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_scene_event("cycle_scene", %{"direction" => direction}, socket) do
+    scenes = socket.assigns.scenes
+    current = socket.assigns.current_scene
+
+    if scenes == [] || current == nil do
+      {:noreply, socket}
+    else
+      current_index = Enum.find_index(scenes, fn s -> s.id == current.id end) || 0
+
+      scene_count = length(scenes)
+
+      new_index =
+        case direction do
+          "up" -> rem(current_index - 1 + scene_count, scene_count)
+          "down" -> rem(current_index + 1, scene_count)
+        end
+
+      target_scene = Enum.at(scenes, new_index)
+
+      if target_scene.id == current.id do
+        {:noreply, socket}
+      else
+        handle_scene_event("select_scene", %{"scene_id" => to_string(target_scene.id)}, socket)
+      end
+    end
   end
 
   defp handle_scene_event("create_scene", params, socket) do
@@ -1543,11 +1611,17 @@ defmodule StrangepathsWeb.Scenes do
 
     Presence.list(topic)
     |> Enum.map(fn {_id, %{metas: [meta | _]}} ->
-      # Load full user data
       if meta[:user_id] do
-        Accounts.get_user(meta.user_id)
-      else
-        nil
+        user = Accounts.get_user(meta.user_id)
+
+        if user do
+          %{
+            user: user,
+            active: Map.get(meta, :active, true),
+            typing: Map.get(meta, :typing, false),
+            has_buffer: Map.get(meta, :has_buffer, false)
+          }
+        end
       end
     end)
     |> Enum.filter(&(&1 != nil))

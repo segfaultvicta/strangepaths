@@ -186,6 +186,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
        |> assign(:placingX, 0)
        |> assign(:placingY, 0)
        |> assign(:placingEntity, %Cards.Entity{})}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -313,17 +315,21 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   defp handle_ceremony_event("entityClick", data, socket) do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
-    if(entity.owner_id == socket.assigns.current_user.id) do
-      socket = socket |> assign(:state, :avatarMenu) |> assign(:selectedEntity, entity)
-      menuEntity = %{entity | type: :Radial}
-
-      {:noreply,
-       push_event(socket, "loadAvatarMenu", %{
-         x: Cards.Entity.screen_x(menuEntity, socket.assigns.context),
-         y: Cards.Entity.screen_y(menuEntity, socket.assigns.context)
-       })}
+    if is_nil(entity) do
+      {:noreply, socket}
     else
-      {:noreply, socket |> assign(:state, :othersHand) |> assign(:selectedEntity, entity)}
+      if(entity.owner_id == socket.assigns.current_user.id) do
+        socket = socket |> assign(:state, :avatarMenu) |> assign(:selectedEntity, entity)
+        menuEntity = %{entity | type: :Radial}
+
+        {:noreply,
+         push_event(socket, "loadAvatarMenu", %{
+           x: Cards.Entity.screen_x(menuEntity, socket.assigns.context),
+           y: Cards.Entity.screen_y(menuEntity, socket.assigns.context)
+         })}
+      else
+        {:noreply, socket |> assign(:state, :othersHand) |> assign(:selectedEntity, entity)}
+      end
     end
   end
 
@@ -1152,24 +1158,28 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   defp handle_ceremony_event("cardClick", data, socket) do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
-    socket = socket |> assign(:state, :cardMenu) |> assign(:selectedEntity, entity)
-    menuEntity = %{entity | type: :Radial}
-
-    # Yes, these are magic numbers
-    # No, I do not care
-
-    if entity.smol do
-      {:noreply,
-       push_event(socket, "loadCardMenu", %{
-         x: Cards.Entity.screen_x(menuEntity, socket.assigns.context) - 205,
-         y: Cards.Entity.screen_y(menuEntity, socket.assigns.context) - 215
-       })}
+    if is_nil(entity) do
+      {:noreply, socket}
     else
-      {:noreply,
-       push_event(socket, "loadCardMenu", %{
-         x: Cards.Entity.screen_x(menuEntity, socket.assigns.context) + 30,
-         y: Cards.Entity.screen_y(menuEntity, socket.assigns.context) + 40
-       })}
+      socket = socket |> assign(:state, :cardMenu) |> assign(:selectedEntity, entity)
+      menuEntity = %{entity | type: :Radial}
+
+      # Yes, these are magic numbers
+      # No, I do not care
+
+      if entity.smol do
+        {:noreply,
+         push_event(socket, "loadCardMenu", %{
+           x: Cards.Entity.screen_x(menuEntity, socket.assigns.context) - 205,
+           y: Cards.Entity.screen_y(menuEntity, socket.assigns.context) - 215
+         })}
+      else
+        {:noreply,
+         push_event(socket, "loadCardMenu", %{
+           x: Cards.Entity.screen_x(menuEntity, socket.assigns.context) + 30,
+           y: Cards.Entity.screen_y(menuEntity, socket.assigns.context) + 40
+         })}
+      end
     end
   end
 
@@ -1385,7 +1395,6 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
   defp handle_ceremony_event("move", _data, socket)
        when socket.assigns.pendingCeremonyUpdate == true do
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
-    IO.puts("WHEN IS THIS ACTUALLY HAPPENING")
     {:noreply, socket |> assign(:pendingCeremonyUpdate, false) |> assign(:ceremony, ceremony)}
   end
 
