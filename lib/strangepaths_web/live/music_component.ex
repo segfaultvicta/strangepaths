@@ -73,7 +73,7 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
   def render(assigns) do
     ~H"""
       <div id="music-player" style="z-index: 100;" class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur border-t border-purple-500/30 p-4" phx-hook="MusicPlayer" phx-target={@myself}>
-        <audio id="audio-player" class="hidden"></audio>
+        <audio id="audio-player" class="hidden" preload="none"></audio>
         <div class="container mx-auto flex items-center gap-4">
           <%= if @current_user != nil and @current_user.role == :dragon do %>
             <button id="clear_queue" data-confirm="Confirm queue clear?" phx-click="clear_queue" class="text-red-500">✘</button>

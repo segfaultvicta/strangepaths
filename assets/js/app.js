@@ -441,21 +441,36 @@ Hooks.MusicPlayer = {
             });
             currentSongId = song_id;
             audio.src = link;
-            audio.currentTime = start_position || 0;
+            audio.load(); // Force browser to start loading the new source
 
             if (!this.isMainTab) {
                 // We're a secondary tab — show manual play button instead of autoplaying
                 console.log(MP, "Secondary tab — showing manual play button, not autoplaying");
                 manualPlayBtn?.classList.remove("hidden");
             } else {
-                console.log(MP, "Primary tab - adding event listener for loadeddata");
-                audio.addEventListener('loadeddata', () => {
-                    console.log(MP, "Audio data loaded, attempting autoplay at volume", audio.volume);
+                // Seek after metadata is available, then play
+                const startPlayback = () => {
+                    if (start_position) {
+                        audio.currentTime = start_position;
+                    }
                     audio.play().catch(err => {
                         console.warn(MP, "Autoplay blocked:", err.message);
                         manualPlayBtn?.classList.remove("hidden");
                     });
-                }, { once: true });
+                };
+
+                if (audio.readyState >= 1) {
+                    // Metadata already loaded (cached), seek and play immediately
+                    console.log(MP, "Primary tab — metadata ready, playing immediately");
+                    startPlayback();
+                } else {
+                    // Wait for metadata so the seek is reliable, then play
+                    console.log(MP, "Primary tab — waiting for metadata before playing");
+                    audio.addEventListener('loadedmetadata', () => {
+                        console.log(MP, "Metadata loaded, starting playback");
+                        startPlayback();
+                    }, { once: true });
+                }
             }
 
             songTitle.textContent = title;
