@@ -46,6 +46,9 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:narrative_mode, false)
         |> assign(:narrative_author_name, socket.assigns.current_user.nickname)
         |> assign(:narrative_author_editing, false)
+        |> assign(:editing_post_id, nil)
+        |> assign(:editing_post_content, "")
+        |> assign(:editing_post_ooc, "")
         |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
         |> assign(:all_users, [])
@@ -1502,6 +1505,74 @@ defmodule StrangepathsWeb.Scenes do
       {:noreply, socket}
     end
   end
+
+  # POST EDITING
+
+  defp handle_scene_event("start_edit_post", %{"post-id" => post_id_str}, socket) do
+    post_id = String.to_integer(post_id_str)
+    post = Enum.find(socket.assigns.posts, &(&1.id == post_id))
+
+    if post && can_edit_post?(post, socket.assigns.current_user) do
+      {:noreply,
+       socket
+       |> assign(:editing_post_id, post_id)
+       |> assign(:editing_post_content, post.content || "")
+       |> assign(:editing_post_ooc, post.ooc_content || "")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_scene_event("cancel_edit_post", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_post_id, nil)
+     |> assign(:editing_post_content, "")
+     |> assign(:editing_post_ooc, "")}
+  end
+
+  defp handle_scene_event("update_edit_post", params, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_post_content, Map.get(params, "content", socket.assigns.editing_post_content))
+     |> assign(:editing_post_ooc, Map.get(params, "ooc_content", socket.assigns.editing_post_ooc))}
+  end
+
+  defp handle_scene_event("save_edit_post", %{"content" => content} = params, socket) do
+    post_id = socket.assigns.editing_post_id
+    post = Enum.find(socket.assigns.posts, &(&1.id == post_id))
+
+    if post && can_edit_post?(post, socket.assigns.current_user) do
+      ooc = Map.get(params, "ooc_content", "")
+      ooc = if String.trim(ooc) == "", do: nil, else: String.trim(ooc)
+
+      case Scenes.update_post(post, %{content: String.trim(content), ooc_content: ooc}) do
+        {:ok, updated_post} ->
+          posts = Enum.map(socket.assigns.posts, fn p ->
+            if p.id == updated_post.id, do: updated_post, else: p
+          end)
+
+          SceneServer.invalidate_cache(socket.assigns.current_scene.id)
+
+          {:noreply,
+           socket
+           |> assign(:posts, posts)
+           |> assign(:editing_post_id, nil)
+           |> assign(:editing_post_content, "")
+           |> assign(:editing_post_ooc, "")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to save edit")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp can_edit_post?(%{post_type: :system}, _user), do: false
+  defp can_edit_post?(_post, %{role: :dragon}), do: true
+  defp can_edit_post?(%{user_id: post_user_id}, %{id: user_id}), do: post_user_id == user_id
+  defp can_edit_post?(_, _), do: false
 
   defp handle_scene_event(event, params, socket) do
     IO.puts("Unhandled scene event: #{event} #{inspect(params)}")

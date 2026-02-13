@@ -307,6 +307,19 @@ defmodule Strangepaths.Scenes do
     |> Repo.insert()
   end
 
+  @doc """
+  Updates an existing post's content.
+  """
+  def update_post(%Post{} = post, attrs) do
+    post
+    |> Post.edit_changeset(attrs)
+    |> Repo.update()
+    |> case do
+      {:ok, post} -> {:ok, Repo.preload(post, [:user, :avatar])}
+      error -> error
+    end
+  end
+
   def system_message(msg, also_to_elsewhere?, scene_id) do
     post_attrs = %{
       scene_id: scene_id,

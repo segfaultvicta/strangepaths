@@ -11,6 +11,7 @@ defmodule Strangepaths.Scenes.Post do
     field(:narrative_author_name, :string)
     field(:color_category, :string, default: "redacted")
     field(:posted_at, :utc_datetime)
+    field(:edited_at, :utc_datetime)
 
     belongs_to(:scene, Strangepaths.Scenes.Scene)
     belongs_to(:user, Strangepaths.Accounts.User)
@@ -71,5 +72,17 @@ defmodule Strangepaths.Scenes.Post do
     |> put_change(:post_type, :system)
     |> put_change(:posted_at, DateTime.utc_now() |> DateTime.truncate(:second))
     |> foreign_key_constraint(:scene_id)
+  end
+
+  @doc """
+  Changeset for editing an existing post's content.
+  """
+  def edit_changeset(post, attrs) do
+    post
+    |> cast(attrs, [:content, :ooc_content])
+    |> validate_required([:content])
+    |> validate_length(:content, min: 1, max: 10000)
+    |> validate_length(:ooc_content, max: 2000)
+    |> put_change(:edited_at, DateTime.utc_now() |> DateTime.truncate(:second))
   end
 end

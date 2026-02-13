@@ -116,31 +116,65 @@
                   <% end %>
 
                   <!-- Post Content -->
-                  <div class="post-content-icecylee">
-                    <div class="post-ic-content-icecylee">
-                      <span class="post-ic-authorspan">
-                        <%= cond do %>
-                          <% post.post_type == :system -> %>
-
-                          <% post.post_type == :narrative -> %>
-
-                          <% post.narrative_author_name != nil -> %>
-                            <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
-                          <% post.user -> %>
-                            <%= post.user.nickname %>
-                          <% true -> %>
-                            Unknown
+                  <% editable = post.post_type != :system && (@role == :dragon || post.user_id == @current_user.id) %>
+                  <div
+                    class={"post-content-icecylee" <> if(editable && @editing_post_id != post.id, do: " post-editable", else: "")}
+                    phx-click={if(editable && @editing_post_id != post.id, do: "start_edit_post")}
+                    phx-value-post-id={if(editable && @editing_post_id != post.id, do: post.id)}
+                  >
+                    <%= if @editing_post_id == post.id do %>
+                      <!-- Edit Mode -->
+                      <form phx-submit="save_edit_post" phx-change="update_edit_post" phx-window-keydown="cancel_edit_post" phx-key="Escape" class="w-full">
+                        <textarea
+                          name="content"
+                          rows="4"
+                          class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-y"
+                          required
+                        ><%= @editing_post_content %></textarea>
+                        <%= if post.post_type == :character do %>
+                          <textarea
+                            name="ooc_content"
+                            rows="2"
+                            placeholder="OOC comment (optional)"
+                            class="w-full p-2 mt-1 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-y text-sm"
+                          ><%= @editing_post_ooc %></textarea>
                         <% end %>
-                      </span>
-                        <%= raw Earmark.as_html!(post.content, sub_sup: true) %>
-                    </div>
+                        <div class="flex gap-2 mt-1">
+                          <button type="submit" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition">Save</button>
+                          <button type="button" phx-click="cancel_edit_post" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition">Cancel</button>
+                        </div>
+                      </form>
+                    <% else %>
+                      <!-- View Mode -->
+                      <div class="post-ic-content-icecylee">
+                        <span class="post-ic-authorspan">
+                          <%= cond do %>
+                            <% post.post_type == :system -> %>
 
-                    <!-- OOC Content -->
-                    <%= if post.ooc_content do %>
-                      <div class="post-ooc-container">
-                        <hr class="post-ooc-divider-icecylee">
-                          <span class="post-ooc-content-icecylee"><%= post.ooc_content %></span>
+                            <% post.post_type == :narrative -> %>
+
+                            <% post.narrative_author_name != nil -> %>
+                              <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                            <% post.user -> %>
+                              <%= post.user.nickname %>
+                            <% true -> %>
+                              Unknown
+                          <% end %>
+                        </span>
+                          <%= raw Earmark.as_html!(post.content, sub_sup: true) %>
+                        <%= if post.edited_at do %>
+                          <span class="text-xs italic text-gray-400 ml-1">(edited)</span>
+                        <% end %>
                       </div>
+
+                      <!-- OOC Content -->
+                      <%= if post.ooc_content do %>
+                        <div class="post-ooc-container">
+                          <hr class="post-ooc-divider-icecylee">
+                            <span class="post-ooc-content-icecylee"><%= post.ooc_content %></span>
+                        </div>
+                      <% end %>
+
                     <% end %>
                   </div>
                 </div>
