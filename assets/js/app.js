@@ -202,7 +202,7 @@ Hooks.PostContentInput = {
         clearTimeout(this.typingTimer);
         const storageKey = `draft_post_${newSceneId}`;
 
-        // Restore saved content for this scene
+        // Restore saved content for this scene, or clear the textarea
         const saved = localStorage.getItem(storageKey);
         if (saved) {
             this.el.value = saved;
@@ -210,6 +210,7 @@ Hooks.PostContentInput = {
             this.pushEvent("update_post_content", { content: saved });
             this.pushEvent("typing_state", { typing: false, has_buffer: true });
         } else {
+            this.el.value = "";
             this.pushEvent("typing_state", { typing: false, has_buffer: false });
         }
     },
@@ -272,12 +273,14 @@ Hooks.OOCContentInput = {
         this.currentSceneId = newSceneId;
         const storageKey = `draft_ooc_${newSceneId}`;
 
-        // Restore saved content for this scene
+        // Restore saved content for this scene, or clear the textarea
         const saved = localStorage.getItem(storageKey);
         if (saved) {
             this.el.value = saved;
             // Notify server of restored content
             this.pushEvent("update_post_content", { ooc_content: saved });
+        } else {
+            this.el.value = "";
         }
     }
 }

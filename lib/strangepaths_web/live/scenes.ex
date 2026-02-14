@@ -49,6 +49,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:editing_post_id, nil)
         |> assign(:editing_post_content, "")
         |> assign(:editing_post_ooc, "")
+        |> assign(:lightbox_avatar, nil)
         |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
         |> assign(:all_users, [])
@@ -1567,6 +1568,16 @@ defmodule StrangepathsWeb.Scenes do
     else
       {:noreply, socket}
     end
+  end
+
+  defp handle_scene_event("show_avatar_lightbox", %{"src" => src}, socket) do
+    {:noreply, assign(socket, :lightbox_avatar, src)}
+  end
+
+  defp handle_scene_event("close_avatar_lightbox", _params, socket) do
+    {:noreply,
+     assign(socket, :lightbox_avatar, nil)
+     |> push_event("scroll_to_bottom_bugfix", %{})}
   end
 
   defp can_edit_post?(%{post_type: :system}, _user), do: false

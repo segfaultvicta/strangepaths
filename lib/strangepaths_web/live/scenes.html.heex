@@ -1,3 +1,16 @@
+<!-- Avatar Lightbox -->
+<%= if @lightbox_avatar do %>
+  <div class="fixed inset-0 z-[70] flex items-center justify-center" phx-window-keydown="close_avatar_lightbox" phx-key="Escape">
+    <div class="fixed inset-0 bg-black bg-opacity-80" phx-click="close_avatar_lightbox"></div>
+    <img
+      src={@lightbox_avatar}
+      alt="Avatar"
+      class="relative w-80 h-80 rounded-full shadow-2xl object-contain"
+      phx-click="close_avatar_lightbox"
+    />
+  </div>
+<% end %>
+
 <!-- Avatar Picker Modal -->
 <%= if @avatar_picker_open do %>
   <div class="fixed inset-0 z-[60]">
@@ -109,7 +122,9 @@
                         <img
                           src={post.avatar.filepath}
                           alt="Avatar"
-                          class="post-avatar-icecylee"
+                          class="post-avatar-icecylee cursor-pointer hover:ring-2 hover:ring-purple-400 transition"
+                          phx-click="show_avatar_lightbox"
+                          phx-value-src={post.avatar.filepath}
                         />
                       <% end %>
                     </div>
