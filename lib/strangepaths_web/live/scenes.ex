@@ -318,7 +318,9 @@ defmodule StrangepathsWeb.Scenes do
       }
 
       case Presence.track(self(), "scene:#{scene.id}", socket.id, new_meta) do
-        {:ok, _ref} -> :ok
+        {:ok, _ref} ->
+          :ok
+
         {:error, {:already_tracked, _pid, _topic, _key}} ->
           Presence.update(self(), "scene:#{scene.id}", socket.id, new_meta)
       end
@@ -363,7 +365,11 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
-  defp handle_scene_event("typing_state", %{"typing" => typing, "has_buffer" => has_buffer}, socket) do
+  defp handle_scene_event(
+         "typing_state",
+         %{"typing" => typing, "has_buffer" => has_buffer},
+         socket
+       ) do
     if socket.assigns.current_scene do
       Presence.update(self(), "scene:#{socket.assigns.current_scene.id}", socket.id, %{
         user_id: socket.assigns.current_user.id,
@@ -1535,7 +1541,10 @@ defmodule StrangepathsWeb.Scenes do
   defp handle_scene_event("update_edit_post", params, socket) do
     {:noreply,
      socket
-     |> assign(:editing_post_content, Map.get(params, "content", socket.assigns.editing_post_content))
+     |> assign(
+       :editing_post_content,
+       Map.get(params, "content", socket.assigns.editing_post_content)
+     )
      |> assign(:editing_post_ooc, Map.get(params, "ooc_content", socket.assigns.editing_post_ooc))}
   end
 
@@ -1549,9 +1558,10 @@ defmodule StrangepathsWeb.Scenes do
 
       case Scenes.update_post(post, %{content: String.trim(content), ooc_content: ooc}) do
         {:ok, updated_post} ->
-          posts = Enum.map(socket.assigns.posts, fn p ->
-            if p.id == updated_post.id, do: updated_post, else: p
-          end)
+          posts =
+            Enum.map(socket.assigns.posts, fn p ->
+              if p.id == updated_post.id, do: updated_post, else: p
+            end)
 
           SceneServer.invalidate_cache(socket.assigns.current_scene.id)
 
@@ -1580,15 +1590,15 @@ defmodule StrangepathsWeb.Scenes do
      |> push_event("scroll_to_bottom_bugfix", %{})}
   end
 
-  defp can_edit_post?(%{post_type: :system}, _user), do: false
-  defp can_edit_post?(_post, %{role: :dragon}), do: true
-  defp can_edit_post?(%{user_id: post_user_id}, %{id: user_id}), do: post_user_id == user_id
-  defp can_edit_post?(_, _), do: false
-
   defp handle_scene_event(event, params, socket) do
     IO.puts("Unhandled scene event: #{event} #{inspect(params)}")
     {:noreply, socket}
   end
+
+  defp can_edit_post?(%{post_type: :system}, _user), do: false
+  defp can_edit_post?(_post, %{role: :dragon}), do: true
+  defp can_edit_post?(%{user_id: post_user_id}, %{id: user_id}), do: post_user_id == user_id
+  defp can_edit_post?(_, _), do: false
 
   # Handle music broadcasts and scene updates
   @impl true
