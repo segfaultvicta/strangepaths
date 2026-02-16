@@ -599,7 +599,10 @@ defmodule StrangepathsWeb.Scenes do
       }
 
       case Scenes.create_scene(scene_attrs) do
-        {:ok, _scene} ->
+        {:ok, scene} ->
+          # Subscribe to the new scene's topic for unread notifications
+          E.subscribe("scene:#{scene.id}")
+
           # Broadcast scene list update
           SceneServer.broadcast_scene_update()
 
