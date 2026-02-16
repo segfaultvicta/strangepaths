@@ -52,6 +52,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:lightbox_avatar, nil)
         |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
+        |> assign(:filter_unread_scenes, false)
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
         |> assign(:private_users, [])
@@ -641,6 +642,10 @@ defmodule StrangepathsWeb.Scenes do
      |> assign(:collapse_manage_users, !socket.assigns.collapse_manage_users)}
   end
 
+  defp handle_scene_event("toggle_filter_unread", _params, socket) do
+    {:noreply, assign(socket, :filter_unread_scenes, !socket.assigns.filter_unread_scenes)}
+  end
+
   defp handle_scene_event("toggle_scenepicker", _params, socket) do
     {:noreply,
      socket
@@ -699,7 +704,6 @@ defmodule StrangepathsWeb.Scenes do
          %{"narrative_author_name" => narrative_author},
          socket
        ) do
-    IO.puts("is this only happening when I edit the text field?")
     {:noreply, assign(socket, :narrative_author_name, narrative_author)}
   end
 
@@ -1641,9 +1645,22 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_info(%{event: "scene_list_updated"}, socket) do
-    # Reload scene list
-    scenes = Scenes.list_active_scenes(socket.assigns.current_user)
-    {:noreply, assign(socket, :scenes, scenes)}
+    if socket.assigns.current_user do
+      # Reload scene list
+      old_scene_ids = MapSet.new(socket.assigns.scenes, & &1.id)
+      scenes = Scenes.list_active_scenes(socket.assigns.current_user)
+
+      # Subscribe to any new scenes so we get unread notifications
+      Enum.each(scenes, fn scene ->
+        if not MapSet.member?(old_scene_ids, scene.id) do
+          E.subscribe("scene:#{scene.id}")
+        end
+      end)
+
+      {:noreply, assign(socket, :scenes, scenes)}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp handle_scene_info(%{event: "presence_diff"}, socket) do
@@ -1662,12 +1679,19 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_info(%{topic: "ascension", event: "update"}, socket) do
+    rhs_users =
+      if socket.assigns.current_scene do
+        Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene)
+      else
+        []
+      end
+
     socket =
       if socket.assigns.current_user.role == :dragon do
         socket
         |> assign(:ascended_users, Accounts.get_ascended_users())
         |> assign(:private_users, Accounts.get_private_users())
-        |> assign(:rhs_users, Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene))
+        |> assign(:rhs_users, rhs_users)
       else
         # Need to be updating the current user's techne, arete, primaries, and alethics
         user = Strangepaths.Accounts.get_user!(socket.assigns.current_user.id)
@@ -1687,7 +1711,7 @@ defmodule StrangepathsWeb.Scenes do
           end
 
         socket
-        |> assign(:rhs_users, Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene))
+        |> assign(:rhs_users, rhs_users)
         |> assign(:current_user, %{user | techne: techne})
       end
 

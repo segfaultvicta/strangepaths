@@ -327,15 +327,22 @@
       <% end %>
 
       <!--  Scene Picker -->
-      <button phx-click="toggle_scenepicker" class="slim-accordion">
-        <span>scenes</span>
-        <div class="line"></div>
-        <i class={"fa-solid #{if @collapse_scenepicker, do: "fa-plus", else: "fa-minus"}"}></i>
-      </button>
+      <div class="flex items-center">
+        <button phx-click="toggle_scenepicker" class="slim-accordion flex-1">
+          <span>scenes</span>
+          <div class="line"></div>
+          <i class={"fa-solid #{if @collapse_scenepicker, do: "fa-plus", else: "fa-minus"}"}></i>
+        </button>
+        <%= if @role == :dragon do %>
+          <button phx-click="toggle_filter_unread" class={"px-2 text-sm transition " <> if(@filter_unread_scenes, do: "text-purple-400", else: "text-gray-500 hover:text-gray-300")} title="Show only scenes with unread messages">
+            <i class="fa-solid fa-filter"></i>
+          </button>
+        <% end %>
+      </div>
       <%= if !@collapse_scenepicker do %>
         <div id="scene-select" class="bg-indigo-200 dark:bg-gray-900 rounded p-1 mb-4 flex-shrink-0">
           <%= if @scenes && length(@scenes) > 0 do %>
-            <%= for scene <- @scenes do %>
+            <%= for scene <- @scenes, !@filter_unread_scenes || scene.is_elsewhere || (@current_scene && scene.id == @current_scene.id) || Map.get(@unread_counts, scene.id, 0) > 0 do %>
               <div tabindex="0"
                 phx-click="select_scene"
                 phx-keydown="select_scene"
