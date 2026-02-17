@@ -7,7 +7,7 @@ defmodule Strangepaths.Scenes do
 
   import Ecto.Query, warn: false
   alias Strangepaths.Repo
-  alias Strangepaths.Scenes.{Scene, Post}
+  alias Strangepaths.Scenes.{Scene, Post, SceneReadMark}
   alias Strangepaths.Accounts.User
 
   ## Scene functions
@@ -317,6 +317,63 @@ defmodule Strangepaths.Scenes do
     |> case do
       {:ok, post} -> {:ok, Repo.preload(post, [:user, :avatar])}
       error -> error
+    end
+  end
+
+  ## Read marks (persistent unread tracking)
+
+  @doc """
+  Upserts a read mark for the given user and scene to the current time.
+  """
+  def upsert_read_mark(user_id, scene_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    %SceneReadMark{}
+    |> SceneReadMark.changeset(%{user_id: user_id, scene_id: scene_id, last_read_at: now})
+    |> Repo.insert(
+      on_conflict: [set: [last_read_at: now]],
+      conflict_target: [:user_id, :scene_id]
+    )
+  end
+
+  @doc """
+  Returns a map of %{scene_id => unread_count} for all active scenes visible to the user.
+  Counts posts with posted_at > last_read_at (or all posts if no read mark exists).
+  """
+  def unread_counts_for_user(%User{} = user, scene_ids) when is_list(scene_ids) do
+    if scene_ids == [] do
+      %{}
+    else
+      # Get read marks for this user across all requested scenes
+      read_marks =
+        from(rm in SceneReadMark,
+          where: rm.user_id == ^user.id and rm.scene_id in ^scene_ids,
+          select: {rm.scene_id, rm.last_read_at}
+        )
+        |> Repo.all()
+        |> Map.new()
+
+      # For each scene, count posts after the read mark (or all posts if no mark)
+      scene_ids
+      |> Enum.map(fn scene_id ->
+        last_read = Map.get(read_marks, scene_id)
+
+        count =
+          if last_read do
+            Repo.one(
+              from(p in Post,
+                where: p.scene_id == ^scene_id and p.posted_at > ^last_read,
+                select: count(p.id)
+              )
+            )
+          else
+            0
+          end
+
+        {scene_id, count}
+      end)
+      |> Enum.filter(fn {_id, count} -> count > 0 end)
+      |> Map.new()
     end
   end
 

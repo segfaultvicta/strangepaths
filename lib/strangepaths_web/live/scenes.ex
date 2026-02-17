@@ -102,6 +102,16 @@ defmodule StrangepathsWeb.Scenes do
           E.subscribe("scene:#{scene.id}")
         end)
 
+        # Seed unread counts from DB (persistent across sessions)
+        scene_ids = Enum.map(scenes, & &1.id)
+        unread_counts = Scenes.unread_counts_for_user(socket.assigns.current_user, scene_ids)
+        unread_count = unread_counts |> Map.values() |> Enum.sum()
+
+        socket =
+          socket
+          |> assign(:unread_counts, unread_counts)
+          |> assign(:unread_count, unread_count)
+
         elsewhere_scene = Enum.find(scenes, fn s -> s.is_elsewhere end)
 
         selected_avatar_id = socket.assigns.current_user.selected_avatar_id || nil
@@ -159,6 +169,11 @@ defmodule StrangepathsWeb.Scenes do
             present_users = get_present_users(last_scene.id)
             rhs_users = Strangepaths.Scenes.rhs_eligible(last_scene)
 
+            # Mark this scene as read and clear its unread count
+            Scenes.upsert_read_mark(socket.assigns.current_user.id, last_scene.id)
+            mount_unread = Map.delete(socket.assigns.unread_counts, last_scene.id)
+            mount_unread_total = mount_unread |> Map.values() |> Enum.sum()
+
             socket
             |> assign(:current_scene, last_scene)
             |> assign(:page_title, last_scene.name)
@@ -167,6 +182,8 @@ defmodule StrangepathsWeb.Scenes do
             |> assign(:has_more_posts, length(posts) >= 30)
             |> assign(:present_users, present_users)
             |> assign(:rhs_users, rhs_users)
+            |> assign(:unread_counts, mount_unread)
+            |> assign(:unread_count, mount_unread_total)
             |> assign(
               :eligible,
               Strangepaths.Scenes.post_eligible(socket.assigns.current_user, last_scene)
@@ -188,6 +205,11 @@ defmodule StrangepathsWeb.Scenes do
               present_users = get_present_users(elsewhere_scene.id)
               rhs_users = Strangepaths.Scenes.rhs_eligible(elsewhere_scene)
 
+              # Mark Elsewhere as read and clear its unread count
+              Scenes.upsert_read_mark(socket.assigns.current_user.id, elsewhere_scene.id)
+              mount_unread = Map.delete(socket.assigns.unread_counts, elsewhere_scene.id)
+              mount_unread_total = mount_unread |> Map.values() |> Enum.sum()
+
               socket
               |> assign(:current_scene, elsewhere_scene)
               |> assign(:page_title, "Elsewhere")
@@ -196,6 +218,8 @@ defmodule StrangepathsWeb.Scenes do
               |> assign(:has_more_posts, length(posts) >= 30)
               |> assign(:present_users, present_users)
               |> assign(:rhs_users, rhs_users)
+              |> assign(:unread_counts, mount_unread)
+              |> assign(:unread_count, mount_unread_total)
               |> assign(:eligible, true)
             else
               socket
@@ -341,7 +365,8 @@ defmodule StrangepathsWeb.Scenes do
           last_scene_id: scene_id
         })
 
-      # Clear unread count for this scene
+      # Mark scene as read (persistent) and clear unread count
+      Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
       unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
       unread_count = calculate_total_unread(unread_counts)
 
@@ -1630,6 +1655,9 @@ defmodule StrangepathsWeb.Scenes do
 
       # For chat layout: notify scroll manager about new post
       is_own_post = post.user_id == socket.assigns.current_user.id
+
+      # Advance read mark since we're viewing this post live
+      Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
 
       socket =
         socket
