@@ -312,7 +312,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
      |> assign(:state, :ready)}
   end
 
-  defp handle_ceremony_event("entityClick", data, socket) do
+  defp handle_ceremony_event("entityClick", data, socket)
+       when socket.assigns.state == :ready do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
     if is_nil(entity) do
@@ -331,6 +332,10 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
         {:noreply, socket |> assign(:state, :othersHand) |> assign(:selectedEntity, entity)}
       end
     end
+  end
+
+  defp handle_ceremony_event("entityClick", _data, socket) do
+    {:noreply, socket}
   end
 
   defp handle_ceremony_event("menuClick", %{"e" => "avatarHand"}, socket) do
@@ -553,7 +558,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
        socket
        |> assign(:state, :setupEntity)
        |> assign(:setupEntityType, :Avatar),
-       "unloadAvatarMenu",
+       "unloadTemenosMenu",
        %{}
      )}
   end
@@ -564,7 +569,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
        socket
        |> assign(:state, :setupEntity)
        |> assign(:setupEntityType, :Counter),
-       "unloadAvatarMenu",
+       "unloadTemenosMenu",
        %{}
      )}
   end
@@ -595,7 +600,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
        push_event(
          socket
          |> assign(:state, :ready),
-         "unloadAvatarMenu",
+         "unloadTemenosMenu",
          %{}
        )}
     else
@@ -609,7 +614,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
       {:noreply,
        push_event(
          socket |> assign(:state, :setupTarget) |> assign(:targetSource, nil),
-         "unloadAvatarMenu",
+         "unloadTemenosMenu",
          %{}
        )}
     else
@@ -1155,7 +1160,8 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {:noreply, socket |> assign(:state, :ready)}
   end
 
-  defp handle_ceremony_event("cardClick", data, socket) do
+  defp handle_ceremony_event("cardClick", data, socket)
+       when socket.assigns.state == :ready do
     entity = socket.assigns.ceremony.entities |> Enum.find(fn e -> e.uuid == data["id"] end)
 
     if is_nil(entity) do
@@ -1183,6 +1189,10 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     end
   end
 
+  defp handle_ceremony_event("cardClick", _data, socket) do
+    {:noreply, socket}
+  end
+
   defp handle_ceremony_event("menuClick", %{"e" => "catchall"}, socket)
        when socket.assigns.state == :cardMenu do
     uuid = socket.assigns.selectedEntity.uuid
@@ -1204,7 +1214,7 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
       )
       |> assign(:placingEntity, socket.assigns.selectedEntity)
 
-    {:noreply, push_event(socket |> assign(:state, :placeEntity), "unloadAvatarMenu", %{})}
+    {:noreply, push_event(socket |> assign(:state, :placeEntity), "unloadCardMenu", %{})}
   end
 
   defp handle_ceremony_event("menuClick", %{"e" => "cardDiscard"}, socket) do
@@ -1433,7 +1443,15 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     {_, ceremony} = Cards.Ceremony.get(socket.assigns.ceremony.id)
     state = socket.assigns.state
 
-    if state == :temenosMenu || state == :avatarMenu || state == :cardMenu do
+    if state in [
+         :temenosMenu,
+         :avatarMenu,
+         :cardMenu,
+         :selectStressAmount,
+         :selectPierceAmount,
+         :selectRecoverAmount,
+         :selectDefendAmount
+       ] do
       {:noreply, socket |> assign(:pendingCeremonyUpdate, true)}
     else
       {:noreply, socket |> assign(:ceremony, ceremony)}
