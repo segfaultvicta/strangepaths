@@ -367,7 +367,13 @@ defmodule Strangepaths.Scenes do
               )
             )
           else
-            0
+            # No read mark = never visited; count all posts
+            Repo.one(
+              from(p in Post,
+                where: p.scene_id == ^scene_id,
+                select: count(p.id)
+              )
+            )
           end
 
         {scene_id, count}

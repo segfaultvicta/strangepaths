@@ -254,7 +254,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Red" -> 170
         "Blue" -> 170
         "White" -> 170
-        "Black" -> 170
+        "Black" -> 130
         "Alethic" -> 170
         _ -> 120
       end
@@ -265,7 +265,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Red" -> 865
         "Blue" -> 865
         "White" -> 865
-        "Black" -> 865
+        "Black" -> 880
         "Alethic" -> 860
         _ -> 935
       end
@@ -296,7 +296,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Red" -> 155
         "Blue" -> 155
         "White" -> 155
-        "Black" -> 155
+        "Black" -> 205
         "Alethic" -> 165
         _ -> 135
       end
@@ -307,7 +307,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Red" -> 955
         "Blue" -> 955
         "White" -> 955
-        "Black" -> 955
+        "Black" -> 985
         "Alethic" -> 955
         _ -> 995
       end
@@ -318,9 +318,53 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Red" -> 700
         "Blue" -> 700
         "White" -> 700
-        "Black" -> 700
+        "Black" -> 600
         "Alethic" -> 650
         _ -> 700
+      end
+
+    seperator_offset_x =
+      case aspect.name do
+        "Green" -> 50
+        "Red" -> 50
+        "Blue" -> 50
+        "White" -> 50
+        "Black" -> -10
+        "Alethic" -> 50
+        _ -> 50
+      end
+
+    seperator_offset_y =
+      case aspect.name do
+        "Green" -> 200
+        "Red" -> 200
+        "Blue" -> 200
+        "White" -> 200
+        "Black" -> 200
+        "Alethic" -> 200
+        _ -> 200
+      end
+
+    flavor_offset_x =
+      case aspect.name do
+        "Green" -> 50
+        "Red" -> 50
+        "Blue" -> 50
+        "White" -> 50
+        "Black" -> -15
+        "Alethic" -> 50
+        _ -> 50
+      end
+
+    flavor_offset_y =
+      case aspect.name do
+        "Green" -> 220
+        "Red" -> 220
+        "Blue" -> 220
+        "White" -> 220
+        "Black" -> 220
+        "Alethic" -> 220
+        _ -> 220
       end
 
     {font, font_file, text_color} =
@@ -351,7 +395,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           {"Quintessential", "/usr/share/fonts/truetype/Quintessential-Regular.ttf", "#000000"}
 
         "Black" ->
-          {"Bellefair", "/usr/share/fonts/truetype/Bellefair-Regular.ttf", "#FFFFFF"}
+          {"Bellefair", "/usr/share/fonts/truetype/Bellefair-Regular.ttf", "#220022"}
 
         "Status" ->
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
@@ -533,7 +577,12 @@ defmodule StrangepathsWeb.CardLive.Show do
 
       # Add separator - moved up to around 210px
       {:ok, separator} = Image.new(600, 3, color: text_color)
-      {:ok, img} = Image.compose(img, separator, x: rules_x + 50, y: rules_y + 200)
+
+      {:ok, img} =
+        Image.compose(img, separator,
+          x: rules_x + seperator_offset_x,
+          y: rules_y + seperator_offset_y
+        )
 
       # Render flavor text - increased to 180px height, starts at 220px
       {:ok, img} =
@@ -541,7 +590,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           flavor_img =
             render_text_block_with_newlines(
               card.flavortext,
-              600,
+              rules_width,
               # Increased to 180px for more space
               180,
               text_color,
@@ -551,7 +600,10 @@ defmodule StrangepathsWeb.CardLive.Show do
               42
             )
 
-          Image.compose(img, flavor_img, x: rules_x + 50, y: rules_y + 220)
+          Image.compose(img, flavor_img,
+            x: rules_x + flavor_offset_x,
+            y: rules_y + flavor_offset_y
+          )
         end
 
       {:ok, final_img} = Image.thumbnail(img, 900, height: 900)
