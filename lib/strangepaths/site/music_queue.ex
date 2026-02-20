@@ -223,6 +223,18 @@ defmodule Strangepaths.Site.MusicQueue do
       queued_by: queue_item.queued_by,
       start_position: start_position_seconds
     })
+
+    case Strangepaths.Scenes.get_elsewhere_scene() do
+      nil ->
+        :ok
+
+      elsewhere ->
+        Strangepaths.Scenes.system_message(
+          "♪ Now playing: #{queue_item.song.title} · queued by #{queue_item.queued_by}",
+          false,
+          elsewhere.id
+        )
+    end
   end
 
   defp broadcast_queue_update(state) do
