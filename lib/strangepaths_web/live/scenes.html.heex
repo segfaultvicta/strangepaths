@@ -326,6 +326,8 @@
         </button>
       <% end %>
 
+      <div id="pinned-scenes-sync" phx-hook="PinnedScenes" class="hidden"></div>
+
       <!--  Scene Picker -->
       <div class="flex items-center">
         <button phx-click="toggle_scenepicker" class="slim-accordion flex-1">
@@ -342,39 +344,51 @@
       <%= if !@collapse_scenepicker do %>
         <div id="scene-select" class="bg-indigo-200 dark:bg-gray-900 rounded p-1 mb-4 flex-shrink-0">
           <%= if @scenes && length(@scenes) > 0 do %>
-            <%= for scene <- @scenes, !@filter_unread_scenes || scene.is_elsewhere || (@current_scene && scene.id == @current_scene.id) || Map.get(@unread_counts, scene.id, 0) > 0 do %>
-              <div tabindex="0"
-                phx-click="select_scene"
-                phx-keydown="select_scene"
-                phx-key="Enter"
-                phx-value-scene_id={scene.id}
-                class={"px-1 pb-1 mb-2 rounded cursor-pointer hover:bg-indigo-100 dark:hover:bg-gray-700 transition " <> if(@current_scene && @current_scene.id == scene.id, do: "bg-indigo-100 dark:bg-gray-700 border-l-4 border-blue-500", else: "bg-indigo-300 dark:bg-gray-800")}
-              >
-                <%= if !scene.is_elsewhere do %>
-                  <div class="font-semibold flex justify-between items-center">
-                    <span><%= scene.name %></span>
-                    <%= if Map.get(@unread_counts, scene.id, 0) > 0 do %>
-                      <span class="text-xs bg-blue-500 text-white rounded-full px-2 py-1 ml-2">
-                        <%= Map.get(@unread_counts, scene.id) %>
-                      </span>
-                    <% end %>
-                  </div>
-                <% end %>
-                <div class="text-sm text-gray-400">
-                  <%= if scene.is_elsewhere do %>
-                    <span class="text-purple-800 text-lg dark:text-purple-400 flex items-center">
-                      Elsewhere
+            <%= for scene <- @scenes, !@filter_unread_scenes || scene.is_elsewhere || MapSet.member?(@pinned_scene_ids, scene.id) || (@current_scene && scene.id == @current_scene.id) || Map.get(@unread_counts, scene.id, 0) > 0 do %>
+              <div class="flex items-stretch mb-2 gap-1">
+                <div tabindex="0"
+                  phx-click="select_scene"
+                  phx-keydown="select_scene"
+                  phx-key="Enter"
+                  phx-value-scene_id={scene.id}
+                  class={"flex-1 min-w-0 px-1 pb-1 rounded cursor-pointer hover:bg-indigo-100 dark:hover:bg-gray-700 transition " <> if(@current_scene && @current_scene.id == scene.id, do: "bg-indigo-100 dark:bg-gray-700 border-l-4 border-blue-500", else: "bg-indigo-300 dark:bg-gray-800")}
+                >
+                  <%= if !scene.is_elsewhere do %>
+                    <div class="font-semibold flex justify-between items-center">
+                      <span><%= scene.name %></span>
                       <%= if Map.get(@unread_counts, scene.id, 0) > 0 do %>
                         <span class="text-xs bg-blue-500 text-white rounded-full px-2 py-1 ml-2">
                           <%= Map.get(@unread_counts, scene.id) %>
                         </span>
                       <% end %>
-                    </span>
+                    </div>
                   <% end %>
-                  <%= if Strangepaths.Scenes.Scene.locked?(scene) do %>
-                    <span class="text-yellow-800 dark:text-yellow-400">🔒 Private</span>
-                  <% end %>
+                  <div class="text-sm text-gray-400">
+                    <%= if scene.is_elsewhere do %>
+                      <span class="text-purple-800 text-lg dark:text-purple-400 flex items-center">
+                        Elsewhere
+                        <%= if Map.get(@unread_counts, scene.id, 0) > 0 do %>
+                          <span class="text-xs bg-blue-500 text-white rounded-full px-2 py-1 ml-2">
+                            <%= Map.get(@unread_counts, scene.id) %>
+                          </span>
+                        <% end %>
+                      </span>
+                    <% end %>
+                    <%= if Strangepaths.Scenes.Scene.locked?(scene) do %>
+                      <span class="text-yellow-800 dark:text-yellow-400">🔒 Private</span>
+                    <% end %>
+                  </div>
                 </div>
+                <%= if @role == :dragon && !scene.is_elsewhere do %>
+                  <button
+                    phx-click="toggle_pin_scene"
+                    phx-value-scene_id={scene.id}
+                    class={"flex-shrink-0 self-center px-1 text-xs transition " <> if(MapSet.member?(@pinned_scene_ids, scene.id), do: "text-purple-400", else: "text-gray-500 hover:text-gray-300")}
+                    title={if MapSet.member?(@pinned_scene_ids, scene.id), do: "Unpin scene", else: "Pin scene (always visible when filter is active)"}
+                  >
+                    <i class="fa-solid fa-thumbtack"></i>
+                  </button>
+                <% end %>
               </div>
             <% end %>
           <% else %>

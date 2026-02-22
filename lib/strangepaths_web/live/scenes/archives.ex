@@ -4,6 +4,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
   import StrangepathsWeb.MusicBroadcast
 
   alias Strangepaths.Scenes
+  alias Strangepaths.Accounts
   alias Strangepaths.Site
 
   @impl true
@@ -25,6 +26,9 @@ defmodule StrangepathsWeb.Scenes.Archives do
           %{}
         end
 
+      all_users =
+        if socket.assigns.current_user.role == :dragon, do: Accounts.list_users(), else: []
+
       {:ok,
        socket
        |> assign(:archived_scenes, archived_scenes)
@@ -44,7 +48,10 @@ defmodule StrangepathsWeb.Scenes.Archives do
        |> assign(:filter_my_scenes, false)
        |> assign(:filter_hide_elsewhere, false)
        |> assign(:filter_hide_system, true)
-       |> assign(:filter_author, ""), temporary_assigns: [posts: []]}
+       |> assign(:filter_author, "")
+       |> assign(:all_users, all_users)
+       |> assign(:locking_scene, false)
+       |> assign(:lock_user_ids, []), temporary_assigns: [posts: []]}
     else
       {:ok,
        socket
@@ -258,9 +265,12 @@ defmodule StrangepathsWeb.Scenes.Archives do
       if scene && scene.status == :archived do
         case Scenes.unlock_archived_scene(scene) do
           {:ok, updated_scene} ->
+            archived_scenes = Scenes.list_archived_scenes(socket.assigns.current_user)
+
             {:noreply,
              socket
              |> assign(:selected_scene, updated_scene)
+             |> assign(:archived_scenes, archived_scenes)
              |> put_flash(:info, "Scene unlocked! It is now publicly viewable.")}
 
           {:error, _changeset} ->
@@ -372,6 +382,76 @@ defmodule StrangepathsWeb.Scenes.Archives do
       end
     else
       {:noreply, put_flash(socket, :error, "Invalid scene or name")}
+    end
+  end
+
+  defp handle_archive_event("show_lock_form", _params, socket) do
+    {:noreply, assign(socket, :locking_scene, true)}
+  end
+
+  defp handle_archive_event("cancel_lock_scene", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:locking_scene, false)
+     |> assign(:lock_user_ids, [])}
+  end
+
+  defp handle_archive_event("lock_scene", %{"user_ids" => raw_ids}, socket) do
+    if socket.assigns.current_user.role == :dragon do
+      scene = socket.assigns.selected_scene
+      user_ids = raw_ids |> List.wrap() |> Enum.map(&String.to_integer/1)
+
+      if scene && scene.status == :archived && length(user_ids) > 0 do
+        case Scenes.lock_archived_scene(scene, user_ids) do
+          {:ok, updated_scene} ->
+            archived_scenes = Scenes.list_archived_scenes(socket.assigns.current_user)
+
+            {:noreply,
+             socket
+             |> assign(:selected_scene, updated_scene)
+             |> assign(:archived_scenes, archived_scenes)
+             |> assign(:locking_scene, false)
+             |> assign(:lock_user_ids, [])
+             |> put_flash(:info, "Scene locked to #{length(user_ids)} user(s)")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to lock scene")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "Select at least one user")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You do not have permission to lock scenes")}
+    end
+  end
+
+  defp handle_archive_event("lock_scene", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Select at least one user to lock the scene to")}
+  end
+
+  defp handle_archive_event("delete_archived_scene", %{"scene_id" => scene_id_str}, socket) do
+    if socket.assigns.current_user.role == :dragon do
+      scene_id = String.to_integer(scene_id_str)
+      scene = Scenes.get_scene(scene_id)
+
+      if scene && scene.status == :archived do
+        case Scenes.delete_archived_scene(scene) do
+          {:ok, _scene} ->
+            archived_scenes = Scenes.list_archived_scenes(socket.assigns.current_user)
+
+            {:noreply,
+             socket
+             |> assign(:archived_scenes, archived_scenes)
+             |> put_flash(:info, "Scene deleted permanently")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete scene")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "Scene not found or not archived")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You do not have permission to delete scenes")}
     end
   end
 

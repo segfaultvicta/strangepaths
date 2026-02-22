@@ -85,6 +85,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:unread_counts, %{})
         |> assign(:unread_count, 0)
         |> assign(:dragon_selections, %{})
+        |> assign(:pinned_scene_ids, MapSet.new())
 
       # Only load data and subscribe when connected (WebSocket established)
       if connected?(socket) do
@@ -672,6 +673,28 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_filter_unread", _params, socket) do
     {:noreply, assign(socket, :filter_unread_scenes, !socket.assigns.filter_unread_scenes)}
+  end
+
+  defp handle_scene_event("restore_pinned_scenes", %{"ids" => ids}, socket) do
+    pinned = ids |> MapSet.new()
+    {:noreply, assign(socket, :pinned_scene_ids, pinned)}
+  end
+
+  defp handle_scene_event("toggle_pin_scene", %{"scene_id" => scene_id}, socket) do
+    scene_id = if is_binary(scene_id), do: String.to_integer(scene_id), else: scene_id
+    pinned = socket.assigns.pinned_scene_ids
+
+    new_pinned =
+      if MapSet.member?(pinned, scene_id) do
+        MapSet.delete(pinned, scene_id)
+      else
+        MapSet.put(pinned, scene_id)
+      end
+
+    {:noreply,
+     socket
+     |> assign(:pinned_scene_ids, new_pinned)
+     |> push_event("update_pinned_scenes", %{ids: MapSet.to_list(new_pinned)})}
   end
 
   defp handle_scene_event("toggle_scenepicker", _params, socket) do

@@ -25,16 +25,50 @@
           <% end %>
         </h2>
 
-        <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon && @selected_scene.locked_to_users != [] do %>
-          <button
-            phx-click="unlock_scene"
-            phx-value-scene-id={@selected_scene.id}
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-semibold transition flex items-center gap-2"
-            data-confirm="Are you sure you want to make this scene publicly viewable? This cannot be undone."
-          >
-            <i class="fa-solid fa-unlock"></i>
-            Unlock Scene
-          </button>
+        <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon do %>
+          <%= if @selected_scene.locked_to_users != [] do %>
+            <button
+              phx-click="unlock_scene"
+              phx-value-scene-id={@selected_scene.id}
+              class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded font-semibold transition flex items-center gap-2"
+              data-confirm="Are you sure you want to make this scene publicly viewable?"
+            >
+              <i class="fa-solid fa-unlock"></i>
+              Unlock Scene
+            </button>
+          <% else %>
+            <%= if @locking_scene do %>
+              <form phx-submit="lock_scene" class="flex flex-col gap-2 items-end">
+                <select
+                  name="user_ids[]"
+                  multiple
+                  size="5"
+                  class="p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm min-w-48"
+                >
+                  <%= for user <- @all_users do %>
+                    <option value={user.id}><%= user.nickname %></option>
+                  <% end %>
+                </select>
+                <p class="text-xs text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                <div class="flex gap-2">
+                  <button type="submit" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition">
+                    <i class="fa-solid fa-lock"></i> Lock
+                  </button>
+                  <button type="button" phx-click="cancel_lock_scene" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            <% else %>
+              <button
+                phx-click="show_lock_form"
+                class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition flex items-center gap-2"
+              >
+                <i class="fa-solid fa-lock"></i>
+                Lock Scene
+              </button>
+            <% end %>
+          <% end %>
         <% end %>
       </div>
 

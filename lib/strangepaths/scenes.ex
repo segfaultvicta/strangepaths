@@ -196,6 +196,32 @@ defmodule Strangepaths.Scenes do
   end
 
   @doc """
+  Permanently deletes an archived scene and all its posts.
+  Posts are cascade-deleted by the database. Only available for archived scenes.
+  """
+  def delete_archived_scene(%Scene{status: :archived} = scene) do
+    Repo.delete(scene)
+  end
+
+  def delete_archived_scene(_scene) do
+    {:error, "Can only delete archived scenes"}
+  end
+
+  @doc """
+  Locks an archived scene to specific users. Requires at least one user ID.
+  """
+  def lock_archived_scene(%Scene{status: :archived} = scene, user_ids)
+      when is_list(user_ids) and length(user_ids) > 0 do
+    scene
+    |> Scene.update_locked_users_changeset(%{locked_to_users: user_ids})
+    |> Repo.update()
+  end
+
+  def lock_archived_scene(_scene, _user_ids) do
+    {:error, "Can only lock archived scenes, and at least one user must be selected"}
+  end
+
+  @doc """
   Archives a scene. Only the Dragon or the scene owner can archive.
   Elsewhere cannot be archived.
   """
@@ -344,40 +370,16 @@ defmodule Strangepaths.Scenes do
     if scene_ids == [] do
       %{}
     else
-      # Get read marks for this user across all requested scenes
-      read_marks =
-        from(rm in SceneReadMark,
-          where: rm.user_id == ^user.id and rm.scene_id in ^scene_ids,
-          select: {rm.scene_id, rm.last_read_at}
-        )
-        |> Repo.all()
-        |> Map.new()
-
-      # For each scene, count posts after the read mark (or all posts if no mark)
-      scene_ids
-      |> Enum.map(fn scene_id ->
-        last_read = Map.get(read_marks, scene_id)
-
-        count =
-          if last_read do
-            Repo.one(
-              from(p in Post,
-                where: p.scene_id == ^scene_id and p.posted_at > ^last_read,
-                select: count(p.id)
-              )
-            )
-          else
-            # No read mark = never visited; count all posts
-            Repo.one(
-              from(p in Post,
-                where: p.scene_id == ^scene_id,
-                select: count(p.id)
-              )
-            )
-          end
-
-        {scene_id, count}
-      end)
+      # Single query: left join read marks, count posts after mark (or all posts if no mark)
+      from(p in Post,
+        left_join: rm in SceneReadMark,
+        on: rm.scene_id == p.scene_id and rm.user_id == ^user.id,
+        where: p.scene_id in ^scene_ids,
+        where: is_nil(rm.last_read_at) or p.posted_at > rm.last_read_at,
+        group_by: p.scene_id,
+        select: {p.scene_id, count(p.id)}
+      )
+      |> Repo.all()
       |> Enum.filter(fn {_id, count} -> count > 0 end)
       |> Map.new()
     end

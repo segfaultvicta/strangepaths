@@ -538,6 +538,18 @@ Hooks.MusicPlayer = {
 };
 
 
+Hooks.PinnedScenes = {
+    mounted() {
+        const stored = localStorage.getItem('pinnedSceneIds');
+        const ids = stored ? JSON.parse(stored) : [];
+        this.pushEvent("restore_pinned_scenes", { ids: ids });
+
+        this.handleEvent("update_pinned_scenes", ({ ids }) => {
+            localStorage.setItem('pinnedSceneIds', JSON.stringify(ids));
+        });
+    }
+}
+
 Hooks.TemenosMoveReporter = {
     mounted() {
         canvas = document.getElementById("temenos");

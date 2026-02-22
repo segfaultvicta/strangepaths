@@ -34,10 +34,6 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     nodes = Rumor.list_nodes()
     connections = Rumor.list_connections()
 
-    Enum.each(connections, fn conn ->
-      IO.puts("conn: #{conn.id} with label #{conn.label}")
-    end)
-
     # Initial zoom level
     initial_zoom = 0.09
 
@@ -208,8 +204,6 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         color_category: "redacted",
         created_by_id: socket.assigns.current_user.id
       }
-
-      IO.inspect(attrs)
 
       case Rumor.create_node(attrs) do
         {:ok, node} ->
@@ -838,6 +832,14 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
      socket
      |> assign(:connections, updated_connections)
      |> push_event("update_connection", connection_to_event(updated_connection))}
+  end
+
+  defp handle_rumormap_info(
+         %{event: "presence_diff", payload: %{joins: _joins, leaves: _leaves}},
+         socket
+       ) do
+    # Ignore for now, but handle the event
+    {:noreply, socket}
   end
 
   defp handle_rumormap_info(msg, socket) do
