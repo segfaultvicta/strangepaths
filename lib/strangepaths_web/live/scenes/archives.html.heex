@@ -17,13 +17,50 @@
 
     <div class="bg-gray-900 rounded p-6">
       <div class="flex justify-between items-start mb-4">
-        <h2 class="text-2xl font-bold">
-          <%= if @viewing_elsewhere do %>
-            Elsewhere - Week of <%= Calendar.strftime(@selected_week, "%B %d, %Y") %>
-          <% else %>
-            <%= @selected_scene.name %>
+        <div>
+          <h2 class="text-2xl font-bold">
+            <%= if @viewing_elsewhere do %>
+              Elsewhere - Week of <%= Calendar.strftime(@selected_week, "%B %d, %Y") %>
+            <% else %>
+              <%= @selected_scene.name %>
+            <% end %>
+          </h2>
+          <%= if !@viewing_elsewhere && @selected_scene && Strangepaths.Scenes.Scene.locked?(@selected_scene) do %>
+            <div class="text-sm text-yellow-600 dark:text-yellow-500 mt-1">
+              🔒 Visible to: <%= @selected_scene.locked_to_users |> Enum.map_join(", ", &Map.get(@user_nicknames, &1, "?")) %>
+            </div>
           <% end %>
-        </h2>
+          <!-- Tags in detail view -->
+          <%= if !@viewing_elsewhere && @selected_scene do %>
+            <div class="flex flex-wrap items-center gap-1 mt-2">
+              <%= for tag <- @selected_scene.tags do %>
+                <span class="inline-flex items-center gap-0.5">
+                  <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-300 dark:bg-gray-700 text-indigo-800 dark:text-purple-200">#<%= tag %></span>
+                  <%= if @role == :dragon do %>
+                    <button
+                      phx-click="remove_tag"
+                      phx-value-scene_id={@selected_scene.id}
+                      phx-value-tag={tag}
+                      class="text-xs text-gray-400 hover:text-red-400 transition"
+                      title="Remove tag"
+                    >×</button>
+                  <% end %>
+                </span>
+              <% end %>
+              <form phx-submit="add_tag" class="inline-flex items-center gap-1">
+                <input type="hidden" name="scene_id" value={@selected_scene.id} />
+                <input
+                  type="text"
+                  name="tag"
+                  placeholder="add tag"
+                  maxlength="50"
+                  class="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-500 rounded-full text-indigo-900 dark:text-white w-20 focus:outline-none focus:border-purple-500"
+                />
+                <button type="submit" class="text-xs text-gray-400 hover:text-purple-400 transition">+</button>
+              </form>
+            </div>
+          <% end %>
+        </div>
 
         <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon do %>
           <%= if @selected_scene.locked_to_users != [] do %>
@@ -302,7 +339,7 @@
                     <div class="font-semibold text-lg text-gray-900 dark:text-white">
                       <%= result.scene_name %>
                       <%= if result.matched_in_name do %>
-                        <span class="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">matched in name</span>
+                        <span class="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">matched in name / tag</span>
                       <% end %>
                     </div>
                   <% end %>
@@ -335,6 +372,31 @@
       </div>
     <% else %>
       <!-- Default Archive List View -->
+
+      <!-- Tag cloud filter -->
+      <%= if length(@all_tags) > 0 do %>
+        <div class="mb-5 flex flex-wrap items-center gap-2">
+          <span class="text-sm text-gray-500 dark:text-gray-400 mr-1">Tags:</span>
+          <%= for tag <- @all_tags do %>
+            <button
+              phx-click="filter_by_tag"
+              phx-value-tag={tag}
+              class={"px-2 py-0.5 rounded-full text-xs font-medium transition " <>
+                if(MapSet.member?(@tag_filter, tag),
+                  do: "bg-purple-600 text-white",
+                  else: "bg-indigo-200 dark:bg-gray-700 text-indigo-800 dark:text-purple-200 hover:bg-purple-500 hover:text-white"
+                )}
+            >#<%= tag %></button>
+          <% end %>
+          <%= if MapSet.size(@tag_filter) > 0 do %>
+            <button
+              phx-click="clear_tag_filter"
+              class="px-2 py-0.5 rounded-full text-xs bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-red-600 hover:text-white transition"
+            >× clear</button>
+          <% end %>
+        </div>
+      <% end %>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Elsewhere Archives -->
       <%= if @elsewhere_scene && map_size(@elsewhere_weeks) > 0 do %>
@@ -356,50 +418,52 @@
       <div class="bg-indigo-200 dark:bg-gray-900 rounded p-6">
         <span class="text-2xl font-bold mb-4">Archived Scenes</span>
 
-        <%= if @archived_scenes && length(@archived_scenes) > 0 do %>
+        <%= if @archived_scenes && Enum.any?(@archived_scenes, &(!&1.is_elsewhere)) do %>
           <div class="space-y-2">
-            <%= for scene <- @archived_scenes do %>
-              <%= unless scene.is_elsewhere do %>
-                <%= if @editing_scene_id == scene.id do %>
-                  <!-- Edit Mode -->
-                  <div class="flex flex-row gap-2 mb-2">
-                    <form phx-submit="save_archived_scene_edit" phx-change="update_editing_scene_name" class="flex-1">
-                      <input type="hidden" name="scene_id" value={scene.id} />
-                      <input
-                        type="text"
-                        name="scene_name"
-                        value={@editing_scene_name}
-                        placeholder="Scene name"
-                        class="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white"
-                        required
-                        autofocus
-                      />
-                    </form>
-                    <button
-                      phx-click="save_archived_scene_edit"
-                      phx-value-scene_id={scene.id}
-                      class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition"
-                    >
-                      Save
-                    </button>
-                    <button
-                      phx-click="cancel_edit_archived_scene"
-                      class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                <% else %>
-                  <!-- View Mode -->
-                  <div class="flex flex-row gap-2 mb-2">
+            <%= for scene <- @archived_scenes, !scene.is_elsewhere, MapSet.size(@tag_filter) == 0 || Enum.all?(@tag_filter, & &1 in scene.tags) do %>
+              <%= if @editing_scene_id == scene.id do %>
+                <!-- Edit Mode -->
+                <div class="flex flex-row gap-2 mb-2">
+                  <form phx-submit="save_archived_scene_edit" phx-change="update_editing_scene_name" class="flex-1">
+                    <input type="hidden" name="scene_id" value={scene.id} />
+                    <input
+                      type="text"
+                      name="scene_name"
+                      value={@editing_scene_name}
+                      placeholder="Scene name"
+                      class="w-full p-3 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white"
+                      required
+                      autofocus
+                    />
+                  </form>
+                  <button
+                    phx-click="save_archived_scene_edit"
+                    phx-value-scene_id={scene.id}
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition"
+                  >
+                    Save
+                  </button>
+                  <button
+                    phx-click="cancel_edit_archived_scene"
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              <% else %>
+                <!-- View Mode -->
+                <div class="mb-2">
+                  <div class="flex flex-row gap-2">
                     <%= live_patch to: "/scenes/archives/#{scene.slug}",
                         class: "flex-1 p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition" do %>
-
                       <div class="font-semibold"><%= scene.name %></div>
                       <div class="text-sm font-light dark:text-gray-400">
                         Archived <%= Calendar.strftime(scene.archived_at, "%B %d, %Y") %>
                         <%= if Strangepaths.Scenes.Scene.locked?(scene) do %>
                           <span class="text-yellow-400">🔒 Private</span>
+                          <span class="text-yellow-600 dark:text-yellow-600">
+                            · <%= scene.locked_to_users |> Enum.map_join(", ", &Map.get(@user_nicknames, &1, "?")) %>
+                          </span>
                         <% end %>
                       </div>
                     <% end %>
@@ -423,7 +487,54 @@
                       </div>
                     <% end %>
                   </div>
-                <% end %>
+                  <!-- Tags row -->
+                  <div class="flex flex-wrap items-center gap-1 px-1 mt-1">
+                    <%= for tag <- scene.tags do %>
+                      <span class="inline-flex items-center gap-0.5">
+                        <button
+                          phx-click="filter_by_tag"
+                          phx-value-tag={tag}
+                          class={"px-2 py-0.5 rounded-full text-xs transition " <>
+                            if(MapSet.member?(@tag_filter, tag),
+                              do: "bg-purple-600 text-white",
+                              else: "bg-indigo-300 dark:bg-gray-700 text-indigo-800 dark:text-purple-200 hover:bg-purple-500 hover:text-white"
+                            )}
+                        >#<%= tag %></button>
+                        <%= if @role == :dragon do %>
+                          <button
+                            phx-click="remove_tag"
+                            phx-value-scene_id={scene.id}
+                            phx-value-tag={tag}
+                            class="text-xs text-gray-400 hover:text-red-400 transition leading-none"
+                            title="Remove tag"
+                          >×</button>
+                        <% end %>
+                      </span>
+                    <% end %>
+                    <%= if @adding_tag_to == scene.id do %>
+                      <form phx-submit="add_tag" class="inline-flex items-center gap-1">
+                        <input type="hidden" name="scene_id" value={scene.id} />
+                        <input
+                          type="text"
+                          name="tag"
+                          placeholder="new tag"
+                          autofocus
+                          maxlength="50"
+                          class="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-400 rounded-full text-indigo-900 dark:text-white w-24 focus:outline-none focus:border-purple-500"
+                        />
+                        <button type="submit" class="text-xs text-green-400 hover:text-green-300 transition">✓</button>
+                        <button type="button" phx-click="hide_add_tag" class="text-xs text-gray-400 hover:text-gray-300 transition">✕</button>
+                      </form>
+                    <% else %>
+                      <button
+                        phx-click="show_add_tag"
+                        phx-value-scene_id={scene.id}
+                        class="px-2 py-0.5 rounded-full text-xs text-gray-400 hover:text-purple-400 bg-transparent transition"
+                        title="Add tag"
+                      >+</button>
+                    <% end %>
+                  </div>
+                </div>
               <% end %>
             <% end %>
           </div>

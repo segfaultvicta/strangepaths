@@ -7,6 +7,7 @@ defmodule Strangepaths.Scenes.Scene do
     field(:slug, :string)
     field(:status, Ecto.Enum, values: [:active, :archived], default: :active)
     field(:locked_to_users, {:array, :integer}, default: [])
+    field(:tags, {:array, :string}, default: [])
     field(:is_elsewhere, :boolean, default: false)
     field(:archived_at, :utc_datetime)
 
@@ -48,6 +49,11 @@ defmodule Strangepaths.Scenes.Scene do
   def update_locked_users_changeset(scene, attrs) do
     scene
     |> cast(attrs, [:locked_to_users])
+  end
+
+  def tags_changeset(scene, attrs) do
+    scene
+    |> cast(attrs, [:tags])
   end
 
   @doc """

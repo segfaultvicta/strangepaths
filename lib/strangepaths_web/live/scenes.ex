@@ -177,7 +177,7 @@ defmodule StrangepathsWeb.Scenes do
 
             socket
             |> assign(:current_scene, last_scene)
-            |> assign(:page_title, last_scene.name)
+            |> assign(:page_title, build_page_title(last_scene.name, mount_unread_total))
             |> assign(:posts, posts)
             |> assign(:posts_offset, length(posts))
             |> assign(:has_more_posts, length(posts) >= 30)
@@ -213,7 +213,7 @@ defmodule StrangepathsWeb.Scenes do
 
               socket
               |> assign(:current_scene, elsewhere_scene)
-              |> assign(:page_title, "Elsewhere")
+              |> assign(:page_title, build_page_title(elsewhere_scene.name, mount_unread_total))
               |> assign(:posts, posts)
               |> assign(:posts_offset, length(posts))
               |> assign(:has_more_posts, length(posts) >= 30)
@@ -374,7 +374,7 @@ defmodule StrangepathsWeb.Scenes do
       {:noreply,
        socket
        |> assign(:current_scene, scene)
-       |> assign(:page_title, scene.name)
+       |> assign(:page_title, build_page_title(scene.name, unread_count))
        |> assign(:posts, posts)
        |> assign(:posts_offset, length(posts))
        |> assign(:has_more_posts, has_more)
@@ -1635,6 +1635,35 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
+  defp handle_scene_event("delete_post", %{"post-id" => post_id_str}, socket) do
+    if socket.assigns.role == :dragon do
+      post_id = String.to_integer(post_id_str)
+      post = Enum.find(socket.assigns.posts, &(&1.id == post_id))
+
+      if post do
+        case Scenes.delete_post(post) do
+          {:ok, _} ->
+            posts = Enum.reject(socket.assigns.posts, &(&1.id == post_id))
+            SceneServer.invalidate_cache(socket.assigns.current_scene.id)
+
+            {:noreply,
+             socket
+             |> assign(:posts, posts)
+             |> assign(:editing_post_id, nil)
+             |> assign(:editing_post_content, "")
+             |> assign(:editing_post_ooc, "")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete post")}
+        end
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Only the Dragon can delete posts")}
+    end
+  end
+
   defp handle_scene_event("show_avatar_lightbox", %{"src" => src}, socket) do
     {:noreply, assign(socket, :lightbox_avatar, src)}
   end
@@ -1694,7 +1723,10 @@ defmodule StrangepathsWeb.Scenes do
       unread_count = calculate_total_unread(unread_counts)
 
       {:noreply,
-       socket |> assign(:unread_counts, unread_counts) |> assign(:unread_count, unread_count)}
+       socket
+       |> assign(:unread_counts, unread_counts)
+       |> assign(:unread_count, unread_count)
+       |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
     end
   end
 
@@ -1901,4 +1933,12 @@ defmodule StrangepathsWeb.Scenes do
     |> Map.values()
     |> Enum.sum()
   end
+
+  # Prepend unread count to page title when there are unreads
+  defp build_page_title(base, 0), do: base
+  defp build_page_title(base, n), do: "(#{n}) #{base}"
+
+  # Derive the base title from current_scene (without any unread prefix)
+  defp base_title(%{assigns: %{current_scene: nil}}), do: "Stillness"
+  defp base_title(%{assigns: %{current_scene: scene}}), do: scene.name
 end

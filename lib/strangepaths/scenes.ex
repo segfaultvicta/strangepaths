@@ -222,6 +222,49 @@ defmodule Strangepaths.Scenes do
   end
 
   @doc """
+  Adds a freeform tag to a scene. Normalizes to lowercase+trimmed. No-ops on duplicates.
+  """
+  def add_tag_to_scene(%Scene{} = scene, tag) when is_binary(tag) do
+    normalized = tag |> String.trim() |> String.downcase() |> String.replace(~r/\s+/, " ")
+
+    cond do
+      normalized == "" ->
+        {:ok, scene}
+
+      String.length(normalized) > 50 ->
+        {:error, "Tag must be 50 characters or fewer"}
+
+      normalized in scene.tags ->
+        {:ok, scene}
+
+      true ->
+        scene
+        |> Scene.tags_changeset(%{tags: scene.tags ++ [normalized]})
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Removes a tag from a scene. No-ops if the tag isn't present.
+  """
+  def remove_tag_from_scene(%Scene{} = scene, tag) do
+    scene
+    |> Scene.tags_changeset(%{tags: List.delete(scene.tags, tag)})
+    |> Repo.update()
+  end
+
+  @doc """
+  Returns a sorted list of all unique tags across all scenes.
+  """
+  def list_all_tags do
+    from(s in Scene, select: s.tags, where: s.tags != [])
+    |> Repo.all()
+    |> List.flatten()
+    |> Enum.uniq()
+    |> Enum.sort()
+  end
+
+  @doc """
   Archives a scene. Only the Dragon or the scene owner can archive.
   Elsewhere cannot be archived.
   """
@@ -331,6 +374,13 @@ defmodule Strangepaths.Scenes do
     %Post{}
     |> Post.system_changeset(attrs)
     |> Repo.insert()
+  end
+
+  @doc """
+  Permanently deletes a post.
+  """
+  def delete_post(%Post{} = post) do
+    Repo.delete(post)
   end
 
   @doc """
@@ -551,7 +601,13 @@ defmodule Strangepaths.Scenes do
     base_query =
       from(s in Scene,
         where: s.status == :archived or s.is_elsewhere == true,
-        where: ilike(s.name, ^search_pattern),
+        where:
+          ilike(s.name, ^search_pattern) or
+            fragment(
+              "EXISTS (SELECT 1 FROM unnest(?) AS tag WHERE tag ILIKE ?)",
+              s.tags,
+              ^search_pattern
+            ),
         select: %{
           scene_id: s.id,
           scene_name: s.name,

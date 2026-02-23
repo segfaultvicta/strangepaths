@@ -157,6 +157,15 @@
                         <div class="flex gap-2 mt-1">
                           <button type="submit" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition">Save</button>
                           <button type="button" phx-click="cancel_edit_post" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition">Cancel</button>
+                          <%= if @role == :dragon do %>
+                            <button
+                              type="button"
+                              phx-click="delete_post"
+                              phx-value-post-id={post.id}
+                              data-confirm="Permanently delete this post?"
+                              class="px-3 py-1 bg-red-700 hover:bg-red-800 text-white rounded text-sm transition ml-auto"
+                            >Delete</button>
+                          <% end %>
                         </div>
                       </form>
                     <% else %>

@@ -26,8 +26,9 @@ defmodule StrangepathsWeb.Scenes.Archives do
           %{}
         end
 
-      all_users =
-        if socket.assigns.current_user.role == :dragon, do: Accounts.list_users(), else: []
+      all_users = Accounts.list_users()
+      user_nicknames = Map.new(all_users, fn u -> {u.id, u.nickname} end)
+      all_tags = Scenes.list_all_tags()
 
       {:ok,
        socket
@@ -50,8 +51,12 @@ defmodule StrangepathsWeb.Scenes.Archives do
        |> assign(:filter_hide_system, true)
        |> assign(:filter_author, "")
        |> assign(:all_users, all_users)
+       |> assign(:user_nicknames, user_nicknames)
        |> assign(:locking_scene, false)
-       |> assign(:lock_user_ids, []), temporary_assigns: [posts: []]}
+       |> assign(:lock_user_ids, [])
+       |> assign(:all_tags, all_tags)
+       |> assign(:tag_filter, MapSet.new())
+       |> assign(:adding_tag_to, nil), temporary_assigns: [posts: []]}
     else
       {:ok,
        socket
@@ -383,6 +388,115 @@ defmodule StrangepathsWeb.Scenes.Archives do
     else
       {:noreply, put_flash(socket, :error, "Invalid scene or name")}
     end
+  end
+
+  defp handle_archive_event("add_tag", %{"scene_id" => scene_id_str, "tag" => tag}, socket) do
+    scene_id = String.to_integer(scene_id_str)
+    scene = Scenes.get_scene(scene_id)
+
+    if scene do
+      case Scenes.add_tag_to_scene(scene, tag) do
+        {:ok, updated_scene} ->
+          archived_scenes =
+            Enum.map(socket.assigns.archived_scenes, fn s ->
+              if s.id == scene_id, do: updated_scene, else: s
+            end)
+
+          all_tags = Scenes.list_all_tags()
+
+          socket =
+            socket
+            |> assign(:archived_scenes, archived_scenes)
+            |> assign(:all_tags, all_tags)
+            |> assign(:adding_tag_to, nil)
+
+          socket =
+            if socket.assigns.selected_scene && socket.assigns.selected_scene.id == scene_id do
+              assign(socket, :selected_scene, updated_scene)
+            else
+              socket
+            end
+
+          {:noreply, socket}
+
+        {:error, reason} when is_binary(reason) ->
+          {:noreply, put_flash(socket, :error, reason)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to add tag")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Scene not found")}
+    end
+  end
+
+  defp handle_archive_event("remove_tag", %{"scene_id" => scene_id_str, "tag" => tag}, socket) do
+    if socket.assigns.current_user.role == :dragon do
+      scene_id = String.to_integer(scene_id_str)
+      scene = Scenes.get_scene(scene_id)
+
+      if scene do
+        case Scenes.remove_tag_from_scene(scene, tag) do
+          {:ok, updated_scene} ->
+            archived_scenes =
+              Enum.map(socket.assigns.archived_scenes, fn s ->
+                if s.id == scene_id, do: updated_scene, else: s
+              end)
+
+            all_tags = Scenes.list_all_tags()
+
+            socket =
+              socket
+              |> assign(:archived_scenes, archived_scenes)
+              |> assign(:all_tags, all_tags)
+
+            socket =
+              if socket.assigns.selected_scene && socket.assigns.selected_scene.id == scene_id do
+                assign(socket, :selected_scene, updated_scene)
+              else
+                socket
+              end
+
+            # Clear tag filter if the filtered tag was just removed from all scenes
+            socket =
+              if MapSet.member?(socket.assigns.tag_filter, tag) && tag not in all_tags do
+                assign(socket, :tag_filter, MapSet.delete(socket.assigns.tag_filter, tag))
+              else
+                socket
+              end
+
+            {:noreply, socket}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to remove tag")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "Scene not found")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Only the Dragon can remove tags")}
+    end
+  end
+
+  defp handle_archive_event("filter_by_tag", %{"tag" => tag}, socket) do
+    current = socket.assigns.tag_filter
+    new_filter =
+      if MapSet.member?(current, tag),
+        do: MapSet.delete(current, tag),
+        else: MapSet.put(current, tag)
+    {:noreply, assign(socket, :tag_filter, new_filter)}
+  end
+
+  defp handle_archive_event("clear_tag_filter", _params, socket) do
+    {:noreply, assign(socket, :tag_filter, MapSet.new())}
+  end
+
+  defp handle_archive_event("show_add_tag", %{"scene_id" => scene_id_str}, socket) do
+    {:noreply, assign(socket, :adding_tag_to, String.to_integer(scene_id_str))}
+  end
+
+  defp handle_archive_event("hide_add_tag", _params, socket) do
+    {:noreply, assign(socket, :adding_tag_to, nil)}
   end
 
   defp handle_archive_event("show_lock_form", _params, socket) do
