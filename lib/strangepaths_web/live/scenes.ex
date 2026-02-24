@@ -430,12 +430,8 @@ defmodule StrangepathsWeb.Scenes do
       if scene && user.id in (Scenes.rhs_eligible(scene) |> Enum.map(& &1.id)) do
         author_name =
           if user.role == :dragon do
-            if socket.assigns.narrative_author_name != nil and
-                 socket.assigns.narrative_author_name != "" do
-              socket.assigns.narrative_author_name
-            else
-              user.nickname
-            end
+            trimmed = String.trim(socket.assigns.narrative_author_name || "")
+            if trimmed != "", do: trimmed, else: nil
           else
             nil
           end

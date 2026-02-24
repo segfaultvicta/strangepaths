@@ -116,7 +116,7 @@
                     "post-container-post #{color_classes}"
                 end}>
                   <!-- Post Header -->
-                  <%= if post.post_type not in [:narrative, :system] do %>
+                  <%= if post.post_type not in [:narrative, :system] && not (post.user && post.user.role == :dragon && post.narrative_author_name == nil) do %>
                     <div class="post-header-icecylee">
                       <%= if post.avatar do %>
                         <img
@@ -176,6 +176,8 @@
                             <% post.post_type == :system -> %>
 
                             <% post.post_type == :narrative -> %>
+
+                            <% post.user && post.user.role == :dragon && post.narrative_author_name == nil -> %>
 
                             <% post.narrative_author_name != nil -> %>
                               <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
