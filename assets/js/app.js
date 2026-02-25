@@ -49,11 +49,22 @@ Hooks.SceneFocusManager = {
             }
         };
         window.addEventListener("keydown", this._handleSceneKeys);
+
+        // Page Visibility API — notify server when tab is hidden/shown
+        this._handleVisibility = () => {
+            this.pushEvent("tab_visibility_changed", { visible: !document.hidden });
+        };
+        document.addEventListener("visibilitychange", this._handleVisibility);
+        // Push initial state so tabs opened in the background start correctly
+        this.pushEvent("tab_visibility_changed", { visible: !document.hidden });
     },
 
     destroyed() {
         if (this._handleSceneKeys) {
             window.removeEventListener("keydown", this._handleSceneKeys);
+        }
+        if (this._handleVisibility) {
+            document.removeEventListener("visibilitychange", this._handleVisibility);
         }
     }
 }

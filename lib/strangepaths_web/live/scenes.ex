@@ -53,6 +53,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
         |> assign(:filter_unread_scenes, false)
+        |> assign(:tab_visible, true)
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
         |> assign(:private_users, [])
@@ -669,6 +670,25 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_filter_unread", _params, socket) do
     {:noreply, assign(socket, :filter_unread_scenes, !socket.assigns.filter_unread_scenes)}
+  end
+
+  defp handle_scene_event("tab_visibility_changed", %{"visible" => visible}, socket) do
+    socket = assign(socket, :tab_visible, visible)
+
+    if visible && socket.assigns.current_scene do
+      scene_id = socket.assigns.current_scene.id
+      Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
+      unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
+      unread_count = calculate_total_unread(unread_counts)
+
+      {:noreply,
+       socket
+       |> assign(:unread_counts, unread_counts)
+       |> assign(:unread_count, unread_count)
+       |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp handle_scene_event("restore_pinned_scenes", %{"ids" => ids}, socket) do
@@ -1700,19 +1720,28 @@ defmodule StrangepathsWeb.Scenes do
     # If this is the current scene, add to posts list
     if socket.assigns.current_scene && socket.assigns.current_scene.id == scene_id do
       posts = [post | socket.assigns.posts]
-
-      # For chat layout: notify scroll manager about new post
       is_own_post = post.user_id == socket.assigns.current_user.id
-
-      # Advance read mark since we're viewing this post live
-      Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
 
       socket =
         socket
         |> assign(:posts, posts)
         |> push_event("new_post_received", %{is_own_post: is_own_post})
 
-      {:noreply, socket}
+      if socket.assigns.tab_visible do
+        # Tab is visible — advance read mark immediately
+        Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
+        {:noreply, socket}
+      else
+        # Tab is hidden — count this scene as unread
+        unread_counts = Map.update(socket.assigns.unread_counts, scene_id, 1, &(&1 + 1))
+        unread_count = calculate_total_unread(unread_counts)
+
+        {:noreply,
+         socket
+         |> assign(:unread_counts, unread_counts)
+         |> assign(:unread_count, unread_count)
+         |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
+      end
     else
       # Otherwise, increment unread count for this scene
       unread_counts = Map.update(socket.assigns.unread_counts, scene_id, 1, &(&1 + 1))
