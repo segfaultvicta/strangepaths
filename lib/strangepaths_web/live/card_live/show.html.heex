@@ -6,14 +6,14 @@
       <% else %>
         <span class="text-gray-400 px-4">←</span>
       <% end %>
-      Card Not Found
+      an empty space in the sky
       <%= if @next_card_id do %>
         <%= live_redirect "→", to: Routes.card_show_path(@socket, :show, @next_card_id), class: "hover:text-purple-500 px-4" %>
       <% else %>
         <span class="text-gray-400 px-4">→</span>
       <% end %>
     </h1>
-    <p class="text-gray-400">No card exists at this location.</p>
+    <p class="text-gray-400">there is no card here.</p>
     <a href={Routes.card_index_path(@socket, :index)} class="hover:text-purple-500">← Back to Cosmos</a>
   </div>
 <% else %>
