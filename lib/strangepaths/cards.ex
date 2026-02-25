@@ -22,6 +22,16 @@ defmodule Strangepaths.Cards do
     Repo.all(Card)
   end
 
+  def get_prev_existing_card_id(id) do
+    from(c in Card, where: c.id < ^id, order_by: [desc: c.id], limit: 1, select: c.id)
+    |> Repo.one()
+  end
+
+  def get_next_existing_card_id(id) do
+    from(c in Card, where: c.id > ^id, order_by: [asc: c.id], limit: 1, select: c.id)
+    |> Repo.one()
+  end
+
   def list_cards_for_cosmos() do
     cards =
       Card

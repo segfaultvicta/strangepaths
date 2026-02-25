@@ -10,6 +10,7 @@ defmodule StrangepathsWeb.CardLive.Show do
     socket =
       assign_defaults(session, socket)
       |> assign(:preview_image, nil)
+      |> assign(:not_found, false)
 
     # Subscribe to music broadcasts
     subscribe_to_music(socket)
@@ -69,75 +70,95 @@ defmodule StrangepathsWeb.CardLive.Show do
 
   @impl true
   def handle_params(%{"id" => id}, _, socket) do
-    {card, glory, foredit} = Cards.get_card_and_alt(id)
+    try do
+      {card, glory, foredit} = Cards.get_card_and_alt(id)
 
-    useful_type =
-      case card.type do
-        :Rite -> "Tellurian Rite"
-        :Grace -> "Grace"
-        :Status -> "Status"
-      end
+      useful_type =
+        case card.type do
+          :Rite -> "Tellurian Rite"
+          :Grace -> "Grace"
+          :Status -> "Status"
+        end
 
-    aspectline =
-      case card.aspect_id do
-        1 ->
-          "a " <> useful_type <> " of the Dragon's Fang"
+      aspectline =
+        case card.aspect_id do
+          1 ->
+            "a " <> useful_type <> " of the Dragon's Fang"
 
-        2 ->
-          "a " <> useful_type <> " of the Dragon's Claw"
+          2 ->
+            "a " <> useful_type <> " of the Dragon's Claw"
 
-        3 ->
-          "a " <> useful_type <> " of the Dragon's Scale"
+          3 ->
+            "a " <> useful_type <> " of the Dragon's Scale"
 
-        4 ->
-          "a " <> useful_type <> " of the Dragon's Breath"
+          4 ->
+            "a " <> useful_type <> " of the Dragon's Breath"
 
-        9 ->
-          "a Burning Sidereal Rite"
+          9 ->
+            "a Burning Sidereal Rite"
 
-        10 ->
-          "a Pellucid Sidereal Rite"
+          10 ->
+            "a Pellucid Sidereal Rite"
 
-        11 ->
-          "a Flourishing Sidereal Rite"
+          11 ->
+            "a Flourishing Sidereal Rite"
 
-        12 ->
-          "a Radiant Sidereal Rite"
+          12 ->
+            "a Radiant Sidereal Rite"
 
-        13 ->
-          "a Tenebrous Sidereal Rite"
+          13 ->
+            "a Tenebrous Sidereal Rite"
 
-        14 ->
-          "a Status Effect"
+          14 ->
+            "a Status Effect"
 
-        15 ->
-          "an Alethic " <>
-            if card.type == :Rite do
-              "Rite"
-            else
-              "Grace"
-            end
+          15 ->
+            "an Alethic " <>
+              if card.type == :Rite do
+                "Rite"
+              else
+                "Grace"
+              end
 
-        _ ->
-          "a Veiled " <> useful_type <> " of the " <> Cards.name_aspect(card.aspect_id)
-      end
+          _ ->
+            "a Veiled " <> useful_type <> " of the " <> Cards.name_aspect(card.aspect_id)
+        end
 
-    # Calculate prev/next card IDs based on glorified rite logic
-    prev_card_id = get_prev_card_id(card)
-    next_card_id = get_next_card_id(card)
+      prev_card_id = get_prev_card_id(card)
+      next_card_id = get_next_card_id(card)
 
-    {:noreply,
-     socket
-     |> assign(:page_title, page_title(socket.assigns.live_action, card.name))
-     |> assign(
-       card: card,
-       glory: glory,
-       foredit: foredit,
-       aspect: Cards.name_aspect(card.aspect_id),
-       aspectline: aspectline,
-       prev_card_id: prev_card_id,
-       next_card_id: next_card_id
-     )}
+      {:noreply,
+       socket
+       |> assign(:not_found, false)
+       |> assign(:page_title, page_title(socket.assigns.live_action, card.name))
+       |> assign(
+         card: card,
+         glory: glory,
+         foredit: foredit,
+         aspect: Cards.name_aspect(card.aspect_id),
+         aspectline: aspectline,
+         prev_card_id: prev_card_id,
+         next_card_id: next_card_id
+       )}
+    rescue
+      _ in [Ecto.NoResultsError, ArgumentError] ->
+        {prev_card_id, next_card_id} =
+          case Integer.parse(id) do
+            {int_id, ""} ->
+              {Cards.get_prev_existing_card_id(int_id),
+               Cards.get_next_existing_card_id(int_id)}
+
+            _ ->
+              {nil, nil}
+          end
+
+        {:noreply,
+         socket
+         |> assign(:not_found, true)
+         |> assign(:page_title, "Not Found")
+         |> assign(:prev_card_id, prev_card_id)
+         |> assign(:next_card_id, next_card_id)}
+    end
   end
 
   defp page_title(:show, name), do: name
@@ -145,32 +166,40 @@ defmodule StrangepathsWeb.CardLive.Show do
 
   # Navigation logic for prev/next cards
   defp get_prev_card_id(card) do
-    cond do
-      # If we're on a glorified Rite, go back 3 cards (skip the base version)
-      card.type == :Rite && card.glorified == true ->
-        if card.id - 3 >= 1, do: card.id - 3, else: nil
+    if card.id > 256 do
+      Cards.get_prev_existing_card_id(card.id)
+    else
+      cond do
+        # If we're on a glorified Rite, go back 3 cards (skip the base version)
+        card.type == :Rite && card.glorified == true ->
+          if card.id - 3 >= 1, do: card.id - 3, else: nil
 
-      card.type == :Glory ->
-        if card.id - 1 >= 1, do: card.id - 1, else: nil
+        card.type == :Glory ->
+          if card.id - 1 >= 1, do: card.id - 1, else: nil
 
-      # Otherwise, go back 2 card
-      card.type == :Rite && card.glorified == false ->
-        if card.id - 2 >= 1, do: card.id - 2, else: nil
+        # Otherwise, go back 2 cards
+        card.type == :Rite && card.glorified == false ->
+          if card.id - 2 >= 1, do: card.id - 2, else: nil
 
-      true ->
-        if card.id - 1 >= 1, do: card.id - 1, else: nil
+        true ->
+          if card.id - 1 >= 1, do: card.id - 1, else: nil
+      end
     end
   end
 
   defp get_next_card_id(card) do
-    cond do
-      # If we're on a base Rite (not glorified), skip forward 2 cards
-      card.type == :Rite && (card.glorified == false || card.glorified == nil) ->
-        card.id + 2
+    if card.id > 256 do
+      Cards.get_next_existing_card_id(card.id)
+    else
+      cond do
+        # If we're on a base Rite (not glorified), skip forward 2 cards
+        card.type == :Rite && (card.glorified == false || card.glorified == nil) ->
+          card.id + 2
 
-      # Otherwise, go forward 1 card
-      true ->
-        card.id + 1
+        # Otherwise, go forward 1 card
+        true ->
+          card.id + 1
+      end
     end
   end
 
