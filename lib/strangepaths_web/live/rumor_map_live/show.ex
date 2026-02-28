@@ -662,6 +662,47 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     {:noreply, assign(socket, :open_categories, new_open_categories)}
   end
 
+  defp handle_rumormap_event("edit_node_form_changed", %{"node" => node_params}, socket) do
+    selected_node = socket.assigns.selected_node
+
+    updated_node =
+      %{selected_node |
+        title: Map.get(node_params, "title", selected_node.title),
+        content: Map.get(node_params, "content", selected_node.content),
+        image_url: Map.get(node_params, "image_url", selected_node.image_url),
+        color_category: Map.get(node_params, "color_category", selected_node.color_category),
+        layer_id: case Map.get(node_params, "layer_id") do
+          nil -> selected_node.layer_id
+          id -> String.to_integer(id)
+        end,
+        scale: case Map.get(node_params, "scale") do
+          nil -> selected_node.scale
+          "" -> selected_node.scale
+          val ->
+            {f, _} = Float.parse(val)
+            f
+        end,
+        z_index: case Map.get(node_params, "z_index") do
+          nil -> selected_node.z_index
+          "" -> selected_node.z_index
+          val -> String.to_integer(val)
+        end,
+        x: case Map.get(node_params, "x") do
+          nil -> selected_node.x
+          "" -> selected_node.x
+          val -> String.to_integer(val)
+        end,
+        y: case Map.get(node_params, "y") do
+          nil -> selected_node.y
+          "" -> selected_node.y
+          val -> String.to_integer(val)
+        end,
+        is_anchor: Map.get(node_params, "is_anchor", to_string(selected_node.is_anchor)) == "true"
+      }
+
+    {:noreply, assign(socket, :selected_node, updated_node)}
+  end
+
   defp handle_rumormap_event("select_avatar", %{"avatar-id" => avatar_id}, socket) do
     # look up avatar by ID
     avatar_id = String.to_integer(avatar_id)

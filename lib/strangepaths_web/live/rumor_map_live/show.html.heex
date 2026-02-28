@@ -436,7 +436,7 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-6">
-          <.form for={:node} phx-submit="save_node" id="edit-node-form">
+          <.form for={:node} phx-submit="save_node" phx-change="edit_node_form_changed" id="edit-node-form">
             <div class="mb-4">
               <label class="block text-sm font-bold mb-2">Title</label>
               <input type="text"
