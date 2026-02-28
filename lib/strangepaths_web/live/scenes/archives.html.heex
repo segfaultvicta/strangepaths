@@ -150,6 +150,8 @@
 
                       <% post.narrative_author_name != nil -> %>
                         <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                      <% post.author_nickname -> %>
+                        <%= post.author_nickname %>
                       <% post.user -> %>
                         <%= post.user.nickname %>
                       <% true -> %>

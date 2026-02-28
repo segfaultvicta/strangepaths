@@ -12,6 +12,7 @@ defmodule Strangepaths.Scenes.Post do
     field(:color_category, :string, default: "redacted")
     field(:posted_at, :utc_datetime)
     field(:edited_at, :utc_datetime)
+    field(:author_nickname, :string)
 
     belongs_to(:scene, Strangepaths.Scenes.Scene)
     belongs_to(:user, Strangepaths.Accounts.User)
@@ -32,6 +33,7 @@ defmodule Strangepaths.Scenes.Post do
       :content,
       :ooc_content,
       :narrative_author_name,
+      :author_nickname,
       :color_category
     ])
     |> validate_required([:scene_id, :user_id, :content])
@@ -49,7 +51,7 @@ defmodule Strangepaths.Scenes.Post do
   """
   def narrative_changeset(post, attrs) do
     post
-    |> cast(attrs, [:scene_id, :user_id, :avatar_id, :content, :color_category])
+    |> cast(attrs, [:scene_id, :user_id, :avatar_id, :content, :author_nickname, :color_category])
     |> validate_required([:scene_id, :user_id, :content])
     |> validate_length(:content, min: 1, max: 10000)
     |> validate_length(:ooc_content, max: 2000)

@@ -16,6 +16,9 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:selected_avatar_filepath, nil)
       |> assign(:open_categories, [])
       |> assign(:editing_connection_id, nil)
+      |> assign(:archive_panel_open, false)
+      |> assign(:recent_changes, [])
+      |> assign(:recent_snapshots, [])
 
     subscribe_to_music(socket)
 
@@ -186,7 +189,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   end
 
   defp handle_rumormap_event("create_node", %{"x" => x, "y" => y}, socket) do
-    if socket.assigns.state == :viewing do
+    if socket.assigns.state == :viewing && socket.assigns.current_user do
       default_avatar = Strangepaths.Accounts.get_avatar_by_display_name("Question")
 
       attrs = %{
@@ -209,6 +212,12 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         {:ok, node} ->
           # Broadcast to other users
           StrangepathsWeb.Endpoint.broadcast("rumor_map", "node_created", %{node: node})
+
+          log_rumor_change(socket, "node_created", %{
+            node_id: node.id,
+            node_title: node.title,
+            details: %{"color_category" => node.color_category, "x" => node.x, "y" => node.y}
+          })
 
           {:noreply,
            socket
@@ -243,6 +252,18 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
             x: x,
             y: y
           })
+
+          # Only log moves that are more than trivial (>50px) to avoid click noise
+          dx = x - node.x
+          dy = y - node.y
+          distance = :math.sqrt(dx * dx + dy * dy)
+
+          if distance > 50 do
+            log_rumor_change(socket, "node_moved", %{
+              node_id: node_id,
+              node_title: updated_node.title
+            })
+          end
 
           # Update local state
           updated_nodes =
@@ -293,6 +314,14 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
               StrangepathsWeb.Endpoint.broadcast("rumor_map", "connection_created", %{
                 connection: connection
+              })
+
+              log_rumor_change(socket, "connection_created", %{
+                connection_id: connection.id,
+                details: %{
+                  "from" => connection.from_node.title,
+                  "to" => connection.to_node.title
+                }
               })
 
               {:noreply,
@@ -383,6 +412,24 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         # Broadcast update
         StrangepathsWeb.Endpoint.broadcast("rumor_map", "node_updated", %{
           node: updated_node
+        })
+
+        # Build a diff of what actually changed
+        changes =
+          %{
+            "title" => {node.title, updated_node.title},
+            "content" => {node.content, updated_node.content},
+            "color_category" => {node.color_category, updated_node.color_category},
+            "image_url" => {node.image_url, updated_node.image_url},
+            "avatar_id" => {node.avatar_id, updated_node.avatar_id}
+          }
+          |> Enum.reject(fn {_k, {old, new}} -> old == new end)
+          |> Enum.map(fn {k, {old, new}} -> %{"field" => k, "from" => inspect(old), "to" => inspect(new)} end)
+
+        log_rumor_change(socket, "node_updated", %{
+          node_id: updated_node.id,
+          node_title: node.title,
+          details: %{"changes" => changes}
         })
 
         # Update local state
@@ -489,6 +536,14 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
             connection_id: connection_id
           })
 
+          log_rumor_change(socket, "connection_deleted", %{
+            connection_id: connection_id,
+            details: %{
+              "from" => connection.from_node.title,
+              "to" => connection.to_node.title
+            }
+          })
+
           {:noreply,
            socket
            |> assign(
@@ -514,6 +569,11 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     if node do
       case Rumor.delete_node(node) do
         {:ok, _deleted_node} ->
+          log_rumor_change(socket, "node_deleted", %{
+            node_id: node_id,
+            node_title: node.title
+          })
+
           # Delete any connections to/from this node
           connections_to_delete =
             Enum.filter(socket.assigns.connections, fn conn ->
@@ -660,9 +720,34 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     case Rumor.update_connection(connection, attrs) do
       {:ok, updated_connection} ->
         # Broadcast the update
-
         StrangepathsWeb.Endpoint.broadcast("rumor_map", "connection_updated", %{
           connection: updated_connection
+        })
+
+        updated_connection = Strangepaths.Repo.preload(updated_connection, [:from_node, :to_node])
+
+        old_style = connection.line_style || %{}
+
+        conn_changes =
+          [
+            if(connection.label != params["label"],
+              do: %{"field" => "label", "from" => connection.label || "", "to" => params["label"] || ""}),
+            if(old_style["color"] != params["color"],
+              do: %{"field" => "color", "from" => old_style["color"] || "", "to" => params["color"]}),
+            if(old_style["size"] != String.to_integer(params["size"]),
+              do: %{"field" => "thickness", "from" => to_string(old_style["size"] || 2), "to" => params["size"]}),
+            if(old_style["dash"] != params["dash"],
+              do: %{"field" => "line style", "from" => old_style["dash"] || "solid", "to" => params["dash"]})
+          ]
+          |> Enum.reject(&is_nil/1)
+
+        log_rumor_change(socket, "connection_updated", %{
+          connection_id: updated_connection.id,
+          details: %{
+            "from" => updated_connection.from_node.title,
+            "to" => updated_connection.to_node.title,
+            "changes" => conn_changes
+          }
         })
 
         # Update local state
@@ -711,6 +796,14 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
           connection: connection
         })
 
+        log_rumor_change(socket, "connection_created", %{
+          connection_id: connection.id,
+          details: %{
+            "from" => connection.from_node.title,
+            "to" => connection.to_node.title
+          }
+        })
+
         {:noreply, socket}
 
       {:error, changeset} ->
@@ -724,6 +817,44 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
           end
 
         {:noreply, put_flash(socket, :error, error_msg)}
+    end
+  end
+
+  defp handle_rumormap_event("toggle_archive_panel", _params, socket) do
+    opening = !socket.assigns.archive_panel_open
+
+    socket =
+      if opening do
+        socket
+        |> assign(:archive_panel_open, true)
+        |> assign(:recent_changes, Rumor.list_recent_changes(15))
+        |> assign(:recent_snapshots, Rumor.list_snapshots() |> Enum.take(5))
+      else
+        assign(socket, :archive_panel_open, false)
+      end
+
+    {:noreply, socket}
+  end
+
+  defp handle_rumormap_event("take_snapshot", %{"label" => label}, socket) do
+    %{nodes: nodes_data, connections: connections_data} = Rumor.build_snapshot_data()
+
+    attrs = %{
+      label: if(label == "", do: nil, else: label),
+      taken_by_id: socket.assigns.current_user.id,
+      nodes_data: %{"nodes" => nodes_data},
+      connections_data: %{"connections" => connections_data}
+    }
+
+    case Rumor.create_snapshot(attrs) do
+      {:ok, _snapshot} ->
+        {:noreply,
+         socket
+         |> assign(:recent_snapshots, Rumor.list_snapshots() |> Enum.take(5))
+         |> put_flash(:info, "Snapshot saved")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to save snapshot")}
     end
   end
 
@@ -926,6 +1057,37 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   defp get_avatar_path(avatar_id) do
     avatar = Accounts.get_avatar!(avatar_id)
     avatar.filepath
+  end
+
+  defp log_rumor_change(socket, action, fields) do
+    user = socket.assigns.current_user
+
+    attrs =
+      Map.merge(fields, %{
+        action: action,
+        actor_id: if(user, do: user.id),
+        actor_nickname: if(user, do: user.nickname)
+      })
+
+    Task.start(fn ->
+      case Rumor.log_change(attrs) do
+        {:ok, _} -> :ok
+        {:error, changeset} -> IO.warn("Failed to log rumor change: #{inspect(changeset.errors)}")
+      end
+    end)
+  end
+
+  defp format_change_action(action) do
+    case action do
+      "node_created" -> "created node"
+      "node_updated" -> "updated node"
+      "node_moved" -> "moved node"
+      "node_deleted" -> "deleted node"
+      "connection_created" -> "connected"
+      "connection_updated" -> "updated connection"
+      "connection_deleted" -> "disconnected"
+      _ -> action
+    end
   end
 
   # Get available nodes for creating a connection from the given node

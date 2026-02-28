@@ -490,6 +490,7 @@ defmodule StrangepathsWeb.Scenes do
           avatar_id: socket.assigns.current_user.selected_avatar_id,
           content: String.trim(content),
           narrative_author_name: author_name,
+          author_nickname: user.nickname,
           ooc_content:
             if(String.trim(ooc_content) != "", do: String.trim(ooc_content), else: nil),
           color_category: color_category
@@ -543,7 +544,8 @@ defmodule StrangepathsWeb.Scenes do
           avatar_id: nil,
           content: "ꙮ " <> content,
           ooc_content: nil,
-          narrative_author_name: nil
+          narrative_author_name: nil,
+          author_nickname: user.nickname
         }
 
         case Scenes.create_narrative_post(post_attrs) do

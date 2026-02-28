@@ -59,6 +59,9 @@ defmodule StrangepathsWeb.Router do
     live("/ceremony/:id", CeremonyLive.Show, :show)
 
     live("/rumor", RumorMapLive.Show, :show)
+    live("/rumor/archive", RumorMapLive.Archive, :index)
+    live("/rumor/archive/snapshot/:id", RumorMapLive.Archive, :snapshot)
+    live("/rumor/snapshot/:id", RumorMapLive.Snapshot, :show)
   end
 
   # Other scopes may use custom stacks.

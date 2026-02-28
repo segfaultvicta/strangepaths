@@ -724,7 +724,7 @@ defmodule Strangepaths.Scenes do
       locked_to_users: s.locked_to_users,
       is_elsewhere: s.is_elsewhere,
       post_type: p.post_type,
-      user_nickname: u.nickname,
+      user_nickname: coalesce(p.author_nickname, u.nickname),
       narrative_author_name: p.narrative_author_name
     })
     |> Repo.all()

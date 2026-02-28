@@ -1,0 +1,195 @@
+<!-- Read-only Snapshot Banner -->
+<div class="bg-purple-900 border-b border-purple-500 px-4 py-2 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <i class="fa-solid fa-camera text-purple-400"></i>
+    <span class="text-purple-200 font-semibold">
+      Snapshot: <%= if @snapshot.label && @snapshot.label != "", do: @snapshot.label, else: "Untitled" %>
+    </span>
+    <span class="text-purple-400 text-sm">
+      <%= Calendar.strftime(@snapshot.inserted_at, "%b %d, %Y %H:%M") %>
+      <%= if @snapshot.taken_by, do: "by #{@snapshot.taken_by.nickname}" %>
+    </span>
+  </div>
+  <a href="/rumor/archive" class="text-purple-400 hover:text-purple-300 text-sm">
+    ← Back to Archive
+  </a>
+</div>
+
+<div class="w-full flex flex-col" style="height: 82vh;">
+  <!-- Header -->
+  <div class="text-sm text-gray-400">
+    Zoom: <%= Float.round(@zoom, 2) %>x | Read-only snapshot
+  </div>
+
+  <!-- Main viewport -->
+  <div id="rumor-map-viewport"
+       class="relative flex-1 overflow-hidden bg-black"
+       style="touch-action: none;"
+       phx-hook="RumorMapViewport">
+
+    <!-- Connection manager -->
+    <div id="rumor-map-connections" phx-hook="RumorMap" phx-update="ignore"></div>
+
+    <!-- The pannable/zoomable world container -->
+    <div id="rumor-map-world"
+         class="absolute transition-transform duration-300 ease-out"
+         style={"transform: translate3d(#{@pan_x}px, #{@pan_y}px, 0) scale(#{@zoom}); transform-origin: 0 0; pointer-events: none; width: 20000px; height: 20000px;"}>
+
+      <!-- Nodes container -->
+      <div id="nodes-container">
+        <%= for node <- @nodes do %>
+        <% node_id = Map.get(node, "id") %>
+        <% color_cat = Map.get(node, "color_category", "redacted") %>
+        <div id={"node-#{node_id}"}
+             data-node-id={node_id}
+             data-is-anchor="true"
+             phx-hook="RumorMapNode"
+             class={"absolute transition-transform"}
+             style={"font-family: #{get_font_family(color_cat)}; left: #{Map.get(node, "x")}px; top: #{Map.get(node, "y")}px; z-index: #{Map.get(node, "z_index", 0)}; transform: translate(-50%, -50%) scale(#{Map.get(node, "scale", 4.5)}); pointer-events: auto;"}>
+
+          <!-- Node visual -->
+          <%= if Map.get(node, "avatar_id") do %>
+            <div class="node-drag-handle"
+                 phx-click="node_clicked"
+                 phx-value-node-id={node_id}>
+              <img src={get_avatar_path(Map.get(node, "avatar_id"))}
+                   class="w-32 h-32 rounded-full pointer-events-none"
+                   alt={Map.get(node, "title")} />
+            </div>
+          <% else %>
+            <div class={"node-drag-handle cursor-pointer p-3 rounded-lg shadow-xl border-4 border-#{get_border_class(color_cat)} #{get_bg_class(color_cat)} min-w-[180px]"}
+                 phx-click="node_clicked"
+                 phx-value-node-id={node_id}>
+              <div class={"text-4xl font-bold text-center mb-1 " <> get_text_class(color_cat)}>
+                <%= Map.get(node, "title") %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- UI Controls -->
+    <div class="absolute top-4 right-4 flex flex-col gap-2">
+      <button phx-click="zoom_in"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded shadow-lg text-xl font-bold">
+        +
+      </button>
+      <button phx-click="zoom_out"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded shadow-lg text-xl font-bold">
+        −
+      </button>
+      <button phx-click="reset_view"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded shadow-lg text-sm">
+        ⌂
+      </button>
+    </div>
+
+    <!-- Read-only Node Detail Panel -->
+    <%= if @viewing_node_id && @selected_node do %>
+      <div id="rumor-detail-panel"
+           class="fixed inset-0 w-full h-full lg:w-[46rem] lg:right-0 lg:left-auto lg:top-0 pt-24 pb-24 lg:pt-20 bg-black shadow-2xl z-40 transform transition-transform duration-300 ease-in-out flex flex-col border-l-4 border-purple-500 overflow-x-hidden"
+           phx-window-keydown="close_detail_panel" phx-key="escape">
+
+        <!-- Mobile Close Button -->
+        <div class="lg:hidden flex justify-between items-center px-4 pb-2 border-b border-purple-500">
+          <h2 class="text-xl font-bold text-purple-400">Node Details</h2>
+          <button phx-click="close_detail_panel"
+                  class="text-white hover:text-purple-400 text-3xl leading-none p-2">
+            ×
+          </button>
+        </div>
+
+        <!-- Panel Content -->
+        <% color_cat = Map.get(@selected_node, "color_category", "redacted") %>
+        <div class={"flex-1 overflow-y-auto p-4 node-panel-" <> color_cat}>
+          <!-- Title -->
+          <div class="text-2xl font-bold text-center mb-2">
+            <span class={if color_cat == "black", do: "text-white", else: ""}><%= Map.get(@selected_node, "title") %></span>
+          </div>
+
+          <!-- Metadata -->
+          <div class="text-sm text-center mb-4 space-y-1">
+            <%= if Map.get(@selected_node, "is_anchor") do %>
+              <div>⚓</div>
+            <% end %>
+          </div>
+
+          <!-- Art Image -->
+          <% image_url = Map.get(@selected_node, "image_url") %>
+          <%= if image_url && image_url != "" do %>
+            <a href={image_url} target="_blank">
+              <img src={image_url} class="w-full mb-4" />
+            </a>
+          <% end %>
+
+          <!-- Content -->
+          <% content = Map.get(@selected_node, "content") %>
+          <%= if content && content != "" do %>
+            <div class={"rounded-lg p-4 mb-4 " <> get_bg_class(color_cat)}>
+              <div class={"whitespace-pre-wrap " <> if color_cat == "green" do "text-2xl" else "" end}><%= content %></div>
+            </div>
+          <% else %>
+            <div class="bg-gray-700 rounded-lg p-4 mb-4 text-gray-400 italic text-center">
+              No content
+            </div>
+          <% end %>
+
+          <!-- Connections -->
+          <div class="mb-4">
+            <% node_id = Map.get(@selected_node, "id") %>
+            <% outgoing = Enum.filter(@connections, fn c -> Map.get(c, "from_node_id") == node_id end) %>
+            <% incoming = Enum.filter(@connections, fn c -> Map.get(c, "to_node_id") == node_id end) %>
+
+            <%= if Enum.any?(outgoing) do %>
+              <div class="mb-2">
+                <div class="text-lg text-gray-100 mb-1">← Outgoing →</div>
+                <%= for conn <- outgoing do %>
+                  <div style={"color: #{get_in(conn, ["line_style", "color"]) || "#fff"}"}
+                       class="bg-black rounded px-3 py-2 mb-1 text-lg clickable-connection"
+                       phx-click="view_connected_node"
+                       phx-value-node-id={Map.get(conn, "to_node_id")}>
+                    <%= Map.get(conn, "to_node_title") %>
+                    <%= if Map.get(conn, "label") not in [nil, ""] do %>
+                      <span>(<%= Map.get(conn, "label") %>)</span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <%= if Enum.any?(incoming) do %>
+              <div>
+                <div class="text-lg text-gray-100 mb-1">→ Incoming ←</div>
+                <%= for conn <- incoming do %>
+                  <div style={"font-family: #{get_font_family(Map.get(conn, "from_node_color_category", "redacted"))}; color: #{get_in(conn, ["line_style", "color"]) || "#fff"}"}
+                       class="bg-black rounded px-3 py-2 mb-1 text-lg clickable-connection"
+                       phx-click="view_connected_node"
+                       phx-value-node-id={Map.get(conn, "from_node_id")}>
+                    <%= Map.get(conn, "from_node_title") %>
+                    <%= if Map.get(conn, "label") not in [nil, ""] do %>
+                      <span>(<%= Map.get(conn, "label") %>)</span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <%= if !Enum.any?(outgoing) && !Enum.any?(incoming) do %>
+              <div class="text-gray-400 italic text-sm">No connections</div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Panel Actions (read-only: just close) -->
+        <div class="p-4 border-t border-gray-700 flex gap-2">
+          <button phx-click="close_detail_panel"
+                  class="flex-1 bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded transition">
+            Close
+          </button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

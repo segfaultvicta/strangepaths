@@ -1,0 +1,131 @@
+<div class="max-w-4xl mx-auto px-4 py-8 pb-32">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-3xl font-bold text-purple-400">Rumor Map Archive</h1>
+    <a href="/rumor" class="text-purple-400 hover:text-purple-300">
+      ← Back to Map
+    </a>
+  </div>
+
+  <!-- Snapshot Detail -->
+  <%= if @viewing_snapshot do %>
+    <div class="bg-gray-800 rounded-lg p-6 mb-8 border border-purple-500">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold text-purple-300">
+          <%= if @viewing_snapshot.label && @viewing_snapshot.label != "", do: @viewing_snapshot.label, else: "Untitled Snapshot" %>
+        </h2>
+        <a href="/rumor/archive" class="text-sm text-gray-400 hover:text-gray-300">Close</a>
+      </div>
+      <div class="text-sm text-gray-400 mb-4">
+        Taken <%= Calendar.strftime(@viewing_snapshot.inserted_at, "%B %d, %Y at %H:%M") %>
+        <%= if @viewing_snapshot.taken_by, do: "by #{@viewing_snapshot.taken_by.nickname}" %>
+      </div>
+      <div class="flex gap-3">
+        <a href={"/rumor/snapshot/#{@viewing_snapshot.id}"}
+           class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded transition">
+          <i class="fa-solid fa-map mr-2"></i>View Map
+        </a>
+        <% nodes_count = length(Map.get(@viewing_snapshot.nodes_data, "nodes", [])) %>
+        <% conns_count = length(Map.get(@viewing_snapshot.connections_data, "connections", [])) %>
+        <span class="text-gray-400 self-center text-sm">
+          <%= nodes_count %> nodes, <%= conns_count %> connections
+        </span>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Snapshots Section -->
+  <div class="mb-12">
+    <h2 class="text-2xl font-bold text-gray-200 mb-4">Snapshots</h2>
+
+    <%= if Enum.any?(@snapshots) do %>
+      <div class="space-y-3">
+        <%= for snapshot <- @snapshots do %>
+          <div class="bg-gray-800 rounded-lg p-4 flex items-center justify-between">
+            <div>
+              <a href={"/rumor/archive/snapshot/#{snapshot.id}"}
+                 class="text-purple-300 hover:text-purple-200 font-semibold">
+                <%= if snapshot.label && snapshot.label != "", do: snapshot.label, else: "Untitled Snapshot" %>
+              </a>
+              <div class="text-sm text-gray-500">
+                <%= Calendar.strftime(snapshot.inserted_at, "%b %d, %Y %H:%M") %>
+                <%= if snapshot.taken_by, do: "by #{snapshot.taken_by.nickname}" %>
+              </div>
+            </div>
+            <div class="flex gap-2 items-center">
+              <a href={"/rumor/snapshot/#{snapshot.id}"}
+                 class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm transition">
+                <i class="fa-solid fa-map mr-1"></i>View Map
+              </a>
+              <%= if @current_user.role == :dragon do %>
+                <button phx-click="delete_snapshot"
+                        phx-value-id={snapshot.id}
+                        data-confirm="Delete this snapshot?"
+                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-gray-500 italic">No snapshots yet. Take one from the rumor map.</div>
+    <% end %>
+  </div>
+
+  <!-- Change Log Section -->
+  <div>
+    <h2 class="text-2xl font-bold text-gray-200 mb-4">Change Log</h2>
+
+    <%= if Enum.any?(@changes) do %>
+      <div class="bg-gray-800 rounded-lg overflow-hidden max-h-[60vh] overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-700 sticky top-0">
+            <tr>
+              <th class="text-left px-4 py-2 text-gray-300">When</th>
+              <th class="text-left px-4 py-2 text-gray-300">Who</th>
+              <th class="text-left px-4 py-2 text-gray-300">Action</th>
+              <th class="text-left px-4 py-2 text-gray-300">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for entry <- @changes do %>
+              <tr class="border-t border-gray-700 hover:bg-gray-750">
+                <td class="px-4 py-2 text-gray-400 whitespace-nowrap">
+                  <%= Calendar.strftime(entry.inserted_at, "%b %d %H:%M") %>
+                </td>
+                <td class="px-4 py-2 text-gray-300">
+                  <%= entry.actor_nickname || "System" %>
+                </td>
+                <td class="px-4 py-2 text-gray-300">
+                  <%= format_change_action(entry.action) %>
+                </td>
+                <td class="px-4 py-2 text-gray-400">
+                  <%= if entry.node_title do %>
+                    <span class="font-semibold text-gray-300"><%= entry.node_title %></span>
+                  <% end %>
+                  <%= if entry.details["from"] && !entry.details["changes"] do %>
+                    <span><%= entry.details["from"] %> → <%= entry.details["to"] %></span>
+                  <% end %>
+                  <%= if entry.details["changes"] do %>
+                    <div class="text-xs mt-1">
+                      <%= for change <- entry.details["changes"] do %>
+                        <div>
+                          <span class="text-gray-500"><%= change["field"] %>:</span>
+                          <span class="text-red-400 line-through"><%= change["from"] %></span>
+                          → <span class="text-green-400"><%= change["to"] %></span>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-gray-500 italic">No changes recorded yet.</div>
+    <% end %>
+  </div>
+</div>
