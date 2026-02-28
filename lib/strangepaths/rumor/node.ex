@@ -16,6 +16,7 @@ defmodule Strangepaths.Rumor.Node do
 
     field(:avatar_id, :id)
     belongs_to(:created_by, Strangepaths.Accounts.User)
+    belongs_to(:layer, Strangepaths.Rumor.Layer)
 
     has_many(:connections_from, Strangepaths.Rumor.Connection, foreign_key: :from_node_id)
     has_many(:connections_to, Strangepaths.Rumor.Connection, foreign_key: :to_node_id)
@@ -38,7 +39,8 @@ defmodule Strangepaths.Rumor.Node do
       :is_anchor,
       :avatar_only,
       :avatar_id,
-      :created_by_id
+      :created_by_id,
+      :layer_id
     ])
     |> validate_required([:x, :y, :title, :color_category])
     |> validate_inclusion(:color_category, ["red", "blue", "green", "white", "black", "redacted"])

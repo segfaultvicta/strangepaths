@@ -10,6 +10,45 @@ defmodule Strangepaths.Rumor do
   alias Strangepaths.Rumor.Connection
   alias Strangepaths.Rumor.ChangeLogEntry
   alias Strangepaths.Rumor.Snapshot
+  alias Strangepaths.Rumor.Layer
+
+  ## Layers
+
+  def list_layers do
+    Repo.all(from(l in Layer, order_by: [asc: l.sort_order, asc: l.name]))
+  end
+
+  def get_layer!(id), do: Repo.get!(Layer, id)
+
+  def create_layer(attrs \\ %{}) do
+    %Layer{}
+    |> Layer.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_layer(%Layer{} = layer, attrs) do
+    layer
+    |> Layer.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_layer(%Layer{} = layer) do
+    # Reassign nodes to the Default layer before deleting
+    default_layer = Repo.one(from(l in Layer, where: l.name == "Default", limit: 1))
+
+    if default_layer && default_layer.id != layer.id do
+      from(n in Node, where: n.layer_id == ^layer.id)
+      |> Repo.update_all(set: [layer_id: default_layer.id])
+
+      Repo.delete(layer)
+    else
+      {:error, "Cannot delete the Default layer"}
+    end
+  end
+
+  def get_default_layer do
+    Repo.one(from(l in Layer, where: l.name == "Default", limit: 1))
+  end
 
   ## Nodes
 
@@ -221,7 +260,8 @@ defmodule Strangepaths.Rumor do
           "image_url" => n.image_url,
           "color_category" => n.color_category,
           "is_anchor" => n.is_anchor,
-          "avatar_id" => n.avatar_id
+          "avatar_id" => n.avatar_id,
+          "layer_id" => n.layer_id
         }
       end)
 

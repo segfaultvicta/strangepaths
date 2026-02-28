@@ -19,6 +19,10 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:archive_panel_open, false)
       |> assign(:recent_changes, [])
       |> assign(:recent_snapshots, [])
+      |> assign(:layers, [])
+      |> assign(:visible_layer_ids, MapSet.new())
+      |> assign(:layer_panel_open, false)
+      |> assign(:creating_layer, false)
 
     subscribe_to_music(socket)
 
@@ -34,8 +38,10 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       end
     end
 
+    layers = Rumor.list_layers()
     nodes = Rumor.list_nodes()
     connections = Rumor.list_connections()
+    visible_layer_ids = layers |> Enum.map(& &1.id) |> MapSet.new()
 
     # Initial zoom level
     initial_zoom = 0.09
@@ -57,6 +63,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
     socket =
       socket
+      |> assign(:layers, layers)
+      |> assign(:visible_layer_ids, visible_layer_ids)
       |> assign(:nodes, nodes)
       |> assign(:connections, connections)
       |> assign(:pan_x, initial_pan_x)
@@ -71,10 +79,15 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:viewport_height, nil)
 
     # Draw existing connections on mount (for connected clients only)
+    # Only draw connections where both endpoint nodes are on visible layers
     socket =
       if connected?(socket) do
         Enum.reduce(connections, socket, fn conn, acc ->
-          push_event(acc, "draw_connection", connection_to_event(conn))
+          if connection_visible?(conn, nodes, visible_layer_ids) do
+            push_event(acc, "draw_connection", connection_to_event(conn))
+          else
+            acc
+          end
         end)
       else
         socket
@@ -192,6 +205,16 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     if socket.assigns.state == :viewing && socket.assigns.current_user do
       default_avatar = Strangepaths.Accounts.get_avatar_by_display_name("Question")
 
+      # Pick the first visible layer, or the default layer
+      default_layer_id =
+        case Enum.find(socket.assigns.layers, fn l -> MapSet.member?(socket.assigns.visible_layer_ids, l.id) end) do
+          nil -> case Rumor.get_default_layer() do
+                   nil -> nil
+                   layer -> layer.id
+                 end
+          layer -> layer.id
+        end
+
       attrs = %{
         x: trunc(x),
         y: trunc(y),
@@ -205,7 +228,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
           end,
         scale: 4.5,
         color_category: "redacted",
-        created_by_id: socket.assigns.current_user.id
+        created_by_id: socket.assigns.current_user.id,
+        layer_id: default_layer_id
       }
 
       case Rumor.create_node(attrs) do
@@ -401,7 +425,9 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   defp handle_rumormap_event("save_node", %{"node" => node_params}, socket) do
     node = Rumor.get_node!(socket.assigns.editing_node_id)
 
-    node_params = Map.put(node_params, "avatar_id", socket.assigns.selected_avatar_id)
+    node_params =
+      node_params
+      |> Map.put("avatar_id", socket.assigns.selected_avatar_id)
 
     case Rumor.update_node(node, node_params) do
       {:ok, updated_node} ->
@@ -820,6 +846,137 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
   end
 
+  defp handle_rumormap_event("toggle_layer_panel", _params, socket) do
+    {:noreply, assign(socket, :layer_panel_open, !socket.assigns.layer_panel_open)}
+  end
+
+  defp handle_rumormap_event("toggle_layer", %{"layer-id" => layer_id_str}, socket) do
+    layer_id = String.to_integer(layer_id_str)
+    visible = socket.assigns.visible_layer_ids
+
+    new_visible =
+      if MapSet.member?(visible, layer_id) do
+        MapSet.delete(visible, layer_id)
+      else
+        MapSet.put(visible, layer_id)
+      end
+
+    socket =
+      socket
+      |> assign(:visible_layer_ids, new_visible)
+      |> sync_connection_visibility(visible, new_visible)
+
+    {:noreply, socket}
+  end
+
+  defp handle_rumormap_event("show_all_layers", _params, socket) do
+    old_visible = socket.assigns.visible_layer_ids
+    new_visible = socket.assigns.layers |> Enum.map(& &1.id) |> MapSet.new()
+
+    socket =
+      socket
+      |> assign(:visible_layer_ids, new_visible)
+      |> sync_connection_visibility(old_visible, new_visible)
+
+    {:noreply, socket}
+  end
+
+  defp handle_rumormap_event("hide_all_layers", _params, socket) do
+    old_visible = socket.assigns.visible_layer_ids
+    new_visible = MapSet.new()
+
+    socket =
+      socket
+      |> assign(:visible_layer_ids, new_visible)
+      |> sync_connection_visibility(old_visible, new_visible)
+
+    {:noreply, socket}
+  end
+
+  defp handle_rumormap_event("start_creating_layer", _params, socket) do
+    {:noreply, assign(socket, :creating_layer, true)}
+  end
+
+  defp handle_rumormap_event("cancel_creating_layer", _params, socket) do
+    {:noreply, assign(socket, :creating_layer, false)}
+  end
+
+  defp handle_rumormap_event("create_layer", %{"name" => name}, socket) do
+    if socket.assigns.current_user && String.trim(name) != "" do
+      attrs = %{
+        name: String.trim(name),
+        sort_order: length(socket.assigns.layers),
+        created_by_id: socket.assigns.current_user.id
+      }
+
+      case Rumor.create_layer(attrs) do
+        {:ok, layer} ->
+          StrangepathsWeb.Endpoint.broadcast("rumor_map", "layer_created", %{layer: layer})
+
+          {:noreply,
+           socket
+           |> assign(:layers, socket.assigns.layers ++ [layer])
+           |> assign(:visible_layer_ids, MapSet.put(socket.assigns.visible_layer_ids, layer.id))
+           |> assign(:creating_layer, false)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to create layer")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_rumormap_event("rename_layer", %{"layer-id" => layer_id_str, "name" => name}, socket) do
+    layer_id = String.to_integer(layer_id_str)
+    layer = Rumor.get_layer!(layer_id)
+
+    if can_manage_layer?(socket, layer) && String.trim(name) != "" do
+      case Rumor.update_layer(layer, %{name: String.trim(name)}) do
+        {:ok, updated_layer} ->
+          StrangepathsWeb.Endpoint.broadcast("rumor_map", "layer_updated", %{layer: updated_layer})
+
+          updated_layers =
+            Enum.map(socket.assigns.layers, fn l ->
+              if l.id == updated_layer.id, do: updated_layer, else: l
+            end)
+
+          {:noreply, assign(socket, :layers, updated_layers)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to rename layer")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized")}
+    end
+  end
+
+  defp handle_rumormap_event("delete_layer", %{"layer-id" => layer_id_str}, socket) do
+    layer_id = String.to_integer(layer_id_str)
+    layer = Rumor.get_layer!(layer_id)
+
+    if can_manage_layer?(socket, layer) do
+      case Rumor.delete_layer(layer) do
+        {:ok, _} ->
+          StrangepathsWeb.Endpoint.broadcast("rumor_map", "layer_deleted", %{layer_id: layer_id})
+
+          # Reload nodes since they may have been reassigned
+          nodes = Rumor.list_nodes()
+
+          {:noreply,
+           socket
+           |> assign(:layers, Enum.reject(socket.assigns.layers, &(&1.id == layer_id)))
+           |> assign(:visible_layer_ids, MapSet.delete(socket.assigns.visible_layer_ids, layer_id))
+           |> assign(:nodes, nodes)}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, reason)}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized")}
+    end
+  end
+
   defp handle_rumormap_event("toggle_archive_panel", _params, socket) do
     opening = !socket.assigns.archive_panel_open
 
@@ -965,6 +1122,37 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
      |> push_event("update_connection", connection_to_event(updated_connection))}
   end
 
+  defp handle_rumormap_info(%{event: "layer_created", payload: %{layer: layer}}, socket) do
+    if Enum.any?(socket.assigns.layers, &(&1.id == layer.id)) do
+      {:noreply, socket}
+    else
+      {:noreply,
+       socket
+       |> assign(:layers, socket.assigns.layers ++ [layer])
+       |> assign(:visible_layer_ids, MapSet.put(socket.assigns.visible_layer_ids, layer.id))}
+    end
+  end
+
+  defp handle_rumormap_info(%{event: "layer_updated", payload: %{layer: updated_layer}}, socket) do
+    updated_layers =
+      Enum.map(socket.assigns.layers, fn l ->
+        if l.id == updated_layer.id, do: updated_layer, else: l
+      end)
+
+    {:noreply, assign(socket, :layers, updated_layers)}
+  end
+
+  defp handle_rumormap_info(%{event: "layer_deleted", payload: %{layer_id: layer_id}}, socket) do
+    # Reload nodes since they may have been reassigned to Default
+    nodes = Rumor.list_nodes()
+
+    {:noreply,
+     socket
+     |> assign(:layers, Enum.reject(socket.assigns.layers, &(&1.id == layer_id)))
+     |> assign(:visible_layer_ids, MapSet.delete(socket.assigns.visible_layer_ids, layer_id))
+     |> assign(:nodes, nodes)}
+  end
+
   defp handle_rumormap_info(
          %{event: "presence_diff", payload: %{joins: _joins, leaves: _leaves}},
          socket
@@ -1088,6 +1276,53 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       "connection_deleted" -> "disconnected"
       _ -> action
     end
+  end
+
+  defp node_visible?(node, visible_layer_ids) do
+    MapSet.member?(visible_layer_ids, node.layer_id)
+  end
+
+  defp connection_visible?(conn, nodes, visible_layer_ids) do
+    from_node = Enum.find(nodes, &(&1.id == conn.from_node_id))
+    to_node = Enum.find(nodes, &(&1.id == conn.to_node_id))
+
+    from_node && to_node &&
+      node_visible?(from_node, visible_layer_ids) &&
+      node_visible?(to_node, visible_layer_ids)
+  end
+
+  defp sync_connection_visibility(socket, old_visible, new_visible) do
+    if old_visible == new_visible do
+      socket
+    else
+      nodes = socket.assigns.nodes
+
+      Enum.reduce(socket.assigns.connections, socket, fn conn, acc ->
+        was_visible = connection_visible?(conn, nodes, old_visible)
+        now_visible = connection_visible?(conn, nodes, new_visible)
+
+        cond do
+          was_visible && !now_visible ->
+            push_event(acc, "remove_connection", %{connection_id: conn.id})
+
+          !was_visible && now_visible ->
+            push_event(acc, "draw_connection", connection_to_event(conn))
+
+          true ->
+            acc
+        end
+      end)
+    end
+  end
+
+  defp can_manage_layer?(socket, layer) do
+    user = socket.assigns.current_user
+
+    user && (user.role == :dragon || layer.created_by_id == user.id)
+  end
+
+  defp layer_node_count(layer, nodes) do
+    Enum.count(nodes, &(&1.layer_id == layer.id))
   end
 
   # Get available nodes for creating a connection from the given node
