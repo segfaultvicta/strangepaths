@@ -17,7 +17,7 @@
     <a href={Routes.card_index_path(@socket, :index)} class="hover:text-purple-500">← Back to Cosmos</a>
   </div>
 <% else %>
-<%= if @aspect == "Alethic" and @role != :dragon do %>
+<%= if !@aspect_unlocked and @role != :dragon do %>
 
 <div class="container mx-auto flex flex-col items-center mt-36 lyrics-alternate-font">
   <h1>

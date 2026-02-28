@@ -124,8 +124,10 @@ defmodule StrangepathsWeb.CardLive.Show do
             "a Veiled " <> useful_type <> " of the " <> Cards.name_aspect(card.aspect_id)
         end
 
-      prev_card_id = get_prev_card_id(card)
-      next_card_id = get_next_card_id(card)
+      role = socket.assigns.role
+      aspect_record = Cards.get_aspect_with_parent(card.aspect_id)
+      prev_card_id = get_prev_card_id(card, role)
+      next_card_id = get_next_card_id(card, role)
 
       {:noreply,
        socket
@@ -136,17 +138,19 @@ defmodule StrangepathsWeb.CardLive.Show do
          glory: glory,
          foredit: foredit,
          aspect: Cards.name_aspect(card.aspect_id),
+         aspect_unlocked: aspect_record.unlocked,
          aspectline: aspectline,
          prev_card_id: prev_card_id,
          next_card_id: next_card_id
        )}
     rescue
       _ in [Ecto.NoResultsError, ArgumentError] ->
+        role = socket.assigns.role
         {prev_card_id, next_card_id} =
           case Integer.parse(id) do
             {int_id, ""} ->
-              {Cards.get_prev_existing_card_id(int_id),
-               Cards.get_next_existing_card_id(int_id)}
+              {Cards.get_prev_existing_card_id(int_id, role),
+               Cards.get_next_existing_card_id(int_id, role)}
 
             _ ->
               {nil, nil}
@@ -165,9 +169,9 @@ defmodule StrangepathsWeb.CardLive.Show do
   defp page_title(:edit, name), do: "Editing " <> name
 
   # Navigation logic for prev/next cards
-  defp get_prev_card_id(card) do
+  defp get_prev_card_id(card, role) do
     if card.id > 256 do
-      Cards.get_prev_existing_card_id(card.id)
+      Cards.get_prev_existing_card_id(card.id, role)
     else
       cond do
         # If we're on a glorified Rite, go back 3 cards (skip the base version)
@@ -187,9 +191,9 @@ defmodule StrangepathsWeb.CardLive.Show do
     end
   end
 
-  defp get_next_card_id(card) do
+  defp get_next_card_id(card, role) do
     if card.id > 256 do
-      Cards.get_next_existing_card_id(card.id)
+      Cards.get_next_existing_card_id(card.id, role)
     else
       cond do
         # If we're on a base Rite (not glorified), skip forward 2 cards

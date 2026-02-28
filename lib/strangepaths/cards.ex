@@ -22,14 +22,26 @@ defmodule Strangepaths.Cards do
     Repo.all(Card)
   end
 
-  def get_prev_existing_card_id(id) do
+  def get_prev_existing_card_id(id, role \\ :dragon) do
     from(c in Card, where: c.id < ^id, order_by: [desc: c.id], limit: 1, select: c.id)
+    |> filter_by_unlocked_aspect(role)
     |> Repo.one()
   end
 
-  def get_next_existing_card_id(id) do
+  def get_next_existing_card_id(id, role \\ :dragon) do
     from(c in Card, where: c.id > ^id, order_by: [asc: c.id], limit: 1, select: c.id)
+    |> filter_by_unlocked_aspect(role)
     |> Repo.one()
+  end
+
+  defp filter_by_unlocked_aspect(query, :dragon), do: query
+
+  defp filter_by_unlocked_aspect(query, _role) do
+    from(c in query,
+      join: a in Aspect,
+      on: a.id == c.aspect_id,
+      where: a.unlocked == true and c.unlocked == true
+    )
   end
 
   def list_cards_for_cosmos() do
