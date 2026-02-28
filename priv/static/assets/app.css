@@ -3824,6 +3824,119 @@ body {
   font-family: "Tenebrous Gnosis", serif;
 }
 
+/* Inline glyph color classes */
+
+.inline-burning-gnosis {
+  color: #7f1d1d;
+  font-family: "Burning Gnosis", serif;
+}
+
+.dark .inline-burning-gnosis {
+  color: #fecaca;
+}
+
+.inline-flourishing-gnosis {
+  color: #064e3b;
+  font-family: "Flourishing Gnosis", serif;
+  font-size: 1.25em;
+}
+
+.dark .inline-flourishing-gnosis {
+  color: #a7f3d0;
+}
+
+.inline-pellucid-gnosis {
+  color: #1e3a8a;
+  font-family: "Pellucid Gnosis", serif;
+}
+
+.dark .inline-pellucid-gnosis {
+  color: #aaccff;
+}
+
+.inline-radiant-gnosis {
+  color: #78350f;
+  font-family: "Radiant Gnosis", serif;
+}
+
+.dark .inline-radiant-gnosis {
+  color: #fef3c7;
+}
+
+.inline-tenebrous-gnosis {
+  color: #000000;
+  font-family: "Tenebrous Gnosis", serif;
+}
+
+.dark .inline-tenebrous-gnosis {
+  color: #ffffff;
+}
+
+/* Liminal - purple with shimmer */
+
+.inline-liminal {
+  color: #7e22ce;
+  -webkit-animation: liminal-shimmer 4s ease-in-out infinite;
+          animation: liminal-shimmer 4s ease-in-out infinite;
+}
+
+.dark .inline-liminal {
+  color: #c084fc;
+}
+
+@-webkit-keyframes liminal-shimmer {
+  0%, 100% {
+    color: #7e22ce;
+    text-shadow: 0 0 4px rgba(147, 51, 234, 0.3);
+  }
+
+  50% {
+    color: #a855f7;
+    text-shadow: 0 0 14px rgba(147, 51, 234, 0.9), 0 0 32px rgba(192, 132, 252, 0.5), 0 0 56px rgba(147, 51, 234, 0.25);
+  }
+}
+
+@keyframes liminal-shimmer {
+  0%, 100% {
+    color: #7e22ce;
+    text-shadow: 0 0 4px rgba(147, 51, 234, 0.3);
+  }
+
+  50% {
+    color: #a855f7;
+    text-shadow: 0 0 14px rgba(147, 51, 234, 0.9), 0 0 32px rgba(192, 132, 252, 0.5), 0 0 56px rgba(147, 51, 234, 0.25);
+  }
+}
+
+.dark .inline-liminal {
+  -webkit-animation: liminal-shimmer-dark 4s ease-in-out infinite;
+          animation: liminal-shimmer-dark 4s ease-in-out infinite;
+}
+
+@-webkit-keyframes liminal-shimmer-dark {
+  0%, 100% {
+    color: #c084fc;
+    text-shadow: 0 0 4px rgba(192, 132, 252, 0.3);
+  }
+
+  50% {
+    color: #e9d5ff;
+    text-shadow: 0 0 14px rgba(192, 132, 252, 0.9), 0 0 32px rgba(233, 213, 255, 0.5), 0 0 56px rgba(192, 132, 252, 0.25);
+  }
+}
+
+@keyframes liminal-shimmer-dark {
+  0%, 100% {
+    color: #c084fc;
+    text-shadow: 0 0 4px rgba(192, 132, 252, 0.3);
+  }
+
+  50% {
+    color: #e9d5ff;
+    text-shadow: 0 0 14px rgba(192, 132, 252, 0.9), 0 0 32px rgba(233, 213, 255, 0.5), 0 0 56px rgba(192, 132, 252, 0.25);
+  }
+}
+
 /* Alethic card back placeholder for Ceremony */
 
 .card-back-placeholder {

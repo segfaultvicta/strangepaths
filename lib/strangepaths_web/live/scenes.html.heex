@@ -189,7 +189,7 @@
                               Unknown
                           <% end %>
                         </span>
-                          <%= raw Earmark.as_html!(post.content, sub_sup: true) %>
+                          <%= raw process_inline_glyphs(Earmark.as_html!(post.content, sub_sup: true)) %>
                         <%= if post.edited_at do %>
                           <span class="text-xs italic text-gray-400 ml-1">(edited)</span>
                         <% end %>

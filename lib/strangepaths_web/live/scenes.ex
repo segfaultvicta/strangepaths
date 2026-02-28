@@ -11,6 +11,15 @@ defmodule StrangepathsWeb.Scenes do
 
   alias StrangepathsWeb.Endpoint, as: E
 
+  @glyph_styles %{
+    "⚗" => "inline-burning-gnosis",
+    "ⵣ" => "inline-flourishing-gnosis",
+    "⌬" => "inline-pellucid-gnosis",
+    "☉" => "inline-radiant-gnosis",
+    "ᛝ" => "inline-tenebrous-gnosis",
+    "ꙮ" => "inline-liminal"
+  }
+
   @impl true
   def mount(_params, session, socket) do
     socket = assign_defaults(session, socket)
@@ -1968,4 +1977,11 @@ defmodule StrangepathsWeb.Scenes do
   # Derive the base title from current_scene (without any unread prefix)
   defp base_title(%{assigns: %{current_scene: nil}}), do: "Stillness"
   defp base_title(%{assigns: %{current_scene: scene}}), do: scene.name
+
+  defp process_inline_glyphs(html) do
+    Enum.reduce(@glyph_styles, html, fn {glyph, class}, acc ->
+      Regex.replace(~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s, acc,
+        "<span class=\"#{class}\">\\1</span>")
+    end)
+  end
 end

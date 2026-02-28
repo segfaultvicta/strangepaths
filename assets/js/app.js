@@ -1408,6 +1408,15 @@ Hooks.RumorDetailPanel = {
     }
 };
 
+Hooks.RumorHistoryPanel = {
+    mounted() {
+        // Prevent wheel events from bubbling up to viewport zoom handler
+        this.el.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+    }
+};
+
 Hooks.EditNodeModal = {
     mounted() {
         // Prevent wheel events from bubbling up to viewport zoom handler
