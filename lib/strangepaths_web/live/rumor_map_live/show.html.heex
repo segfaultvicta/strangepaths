@@ -168,7 +168,7 @@
               <span class={"flex-1 text-sm truncate " <> if MapSet.member?(@visible_layer_ids, layer.id), do: "text-gray-200", else: "text-gray-500"}>
                 <%= layer.name %>
               </span>
-              <span class="text-xs text-gray-600"><%= layer_node_count(layer, @nodes) %></span>
+              <span class="text-xs text-gray-400"><%= layer_node_count(layer, @nodes) %></span>
               <%= if @current_user && (@current_user.role == :dragon || layer.created_by_id == @current_user.id) && layer.name != "Default" do %>
                 <button phx-click="delete_layer"
                         phx-value-layer-id={layer.id}
