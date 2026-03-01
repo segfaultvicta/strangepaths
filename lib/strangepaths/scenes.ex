@@ -576,7 +576,6 @@ defmodule Strangepaths.Scenes do
       Date.add(posted_date, -days_to_subtract)
     end)
     |> Enum.sort_by(fn {week_start, _posts} -> week_start end, {:desc, Date})
-    |> Enum.into(%{})
   end
 
   @doc """

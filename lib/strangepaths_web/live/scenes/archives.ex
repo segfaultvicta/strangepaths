@@ -23,7 +23,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
         if elsewhere_scene do
           Scenes.group_elsewhere_posts_by_week(elsewhere_scene.id)
         else
-          %{}
+          []
         end
 
       all_users = Accounts.list_users()
@@ -316,17 +316,17 @@ defmodule StrangepathsWeb.Scenes.Archives do
   defp handle_archive_event("view_elsewhere_week", %{"week" => week_str}, socket) do
     week_date = Date.from_iso8601!(week_str)
 
-    if socket.assigns.elsewhere_weeks[week_date] do
-      posts = socket.assigns.elsewhere_weeks[week_date]
+    case List.keyfind(socket.assigns.elsewhere_weeks, week_date, 0) do
+      {_, posts} ->
+        {:noreply,
+         socket
+         |> assign(:selected_week, week_date)
+         |> assign(:posts, posts)
+         |> assign(:viewing_elsewhere, true)
+         |> assign(:selected_scene, nil)}
 
-      {:noreply,
-       socket
-       |> assign(:selected_week, week_date)
-       |> assign(:posts, posts)
-       |> assign(:viewing_elsewhere, true)
-       |> assign(:selected_scene, nil)}
-    else
-      {:noreply, put_flash(socket, :error, "Week not found")}
+      nil ->
+        {:noreply, put_flash(socket, :error, "Week not found")}
     end
   end
 
