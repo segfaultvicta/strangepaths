@@ -950,6 +950,28 @@ input[type="range"].slider-purple {
     }
 }
 
+/* Card reference links in scene posts */
+.card-reference {
+    color: #d97706;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    &:hover {
+        color: #f59e0b;
+    }
+}
+.dark .card-reference {
+    color: #f59e0b;
+    &:hover {
+        color: #fbbf24;
+    }
+}
+.card-reference-tooltip-img {
+    max-width: 250px;
+    border-radius: 6px;
+}
+
 /* Resizable column drag handles */
 .cursor-col-resize {
     cursor: col-resize !important;

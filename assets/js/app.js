@@ -351,6 +351,27 @@ Hooks.TooltipUpdater = {
     }
 }
 
+Hooks.CardReferenceTooltip = {
+    _initTooltips() {
+        const links = this.el.querySelectorAll('a.card-reference[data-card-img]');
+        links.forEach(link => {
+            if (link._tippy) return;
+            const imgSrc = link.getAttribute('data-card-img');
+            if (imgSrc && window.tippy) {
+                window.tippy(link, {
+                    content: `<img src="${imgSrc}" class="card-reference-tooltip-img" />`,
+                    allowHTML: true,
+                    placement: 'top',
+                    delay: [200, 0],
+                    theme: 'light-border'
+                });
+            }
+        });
+    },
+    mounted() { this._initTooltips(); },
+    updated() { this._initTooltips(); }
+}
+
 Hooks.MusicPlayer = {
     mounted() {
         const MP = "[MusicPlayer]";

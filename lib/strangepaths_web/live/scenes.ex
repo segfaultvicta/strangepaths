@@ -7,6 +7,7 @@ defmodule StrangepathsWeb.Scenes do
   alias Strangepaths.Scenes
   alias Strangepaths.Scenes.SceneServer
   alias Strangepaths.Accounts
+  alias Strangepaths.Cards
   alias Strangepaths.Presence
 
   alias StrangepathsWeb.Endpoint, as: E
@@ -96,6 +97,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:unread_count, 0)
         |> assign(:dragon_selections, %{})
         |> assign(:pinned_scene_ids, MapSet.new())
+        |> assign(:card_lookup, build_card_lookup())
 
       # Only load data and subscribe when connected (WebSocket established)
       if connected?(socket) do
@@ -1982,6 +1984,50 @@ defmodule StrangepathsWeb.Scenes do
     Enum.reduce(@glyph_styles, html, fn {glyph, class}, acc ->
       Regex.replace(~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s, acc,
         "<span class=\"#{class}\">\\1</span>")
+    end)
+  end
+
+  defp build_card_lookup do
+    import Ecto.Query, warn: false
+
+    from(c in Cards.Card,
+      where: c.glorified != true or is_nil(c.glorified),
+      select: %{id: c.id, name: c.name, name_downcased: fragment("lower(?)", c.name), img: c.img, type: c.type}
+    )
+    |> Strangepaths.Repo.all()
+  end
+
+  defp find_matching_card(text, card_lookup) do
+    downcased = String.downcase(text)
+
+    # Try exact case-insensitive match first
+    exact = Enum.find(card_lookup, fn card -> card.name_downcased == downcased end)
+
+    if exact do
+      exact
+    else
+      # Fall back to Jaro distance fuzzy match
+      card_lookup
+      |> Enum.map(fn card -> {card, String.jaro_distance(downcased, card.name_downcased)} end)
+      |> Enum.filter(fn {_card, score} -> score >= 0.85 end)
+      |> Enum.max_by(fn {_card, score} -> score end, fn -> nil end)
+      |> case do
+        {card, _score} -> card
+        nil -> nil
+      end
+    end
+  end
+
+  defp process_card_references(html, card_lookup) do
+    Regex.replace(~r/\[([^\[\]]+)\]/, html, fn full_match, inner ->
+      case find_matching_card(inner, card_lookup) do
+        nil ->
+          full_match
+
+        card ->
+          escaped_name = Phoenix.HTML.html_escape(inner) |> Phoenix.HTML.safe_to_string()
+          "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"#{card.img}\">#{escaped_name}</a>"
+      end
     end)
   end
 end

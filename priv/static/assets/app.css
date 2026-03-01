@@ -4628,6 +4628,34 @@ input[type=range].slider-purple::-moz-range-progress {
   border-radius: 4px;
 }
 
+/* Card reference links in scene posts */
+
+.card-reference {
+  color: #d97706;
+  text-decoration: underline;
+  -webkit-text-decoration-style: dotted;
+          text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.card-reference:hover {
+  color: #f59e0b;
+}
+
+.dark .card-reference {
+  color: #f59e0b;
+}
+
+.dark .card-reference:hover {
+  color: #fbbf24;
+}
+
+.card-reference-tooltip-img {
+  max-width: 250px;
+  border-radius: 6px;
+}
+
 /* Resizable column drag handles */
 
 .cursor-col-resize {

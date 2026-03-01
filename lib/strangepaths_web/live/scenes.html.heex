@@ -170,6 +170,7 @@
                       </form>
                     <% else %>
                       <!-- View Mode -->
+                      <div id={"post-content-#{post.id}"} phx-hook="CardReferenceTooltip">
                       <div class="post-ic-content-icecylee">
                         <span class="post-ic-authorspan">
                           <%= cond do %>
@@ -189,7 +190,7 @@
                               Unknown
                           <% end %>
                         </span>
-                          <%= raw process_inline_glyphs(Earmark.as_html!(post.content, sub_sup: true)) %>
+                          <%= raw process_card_references(process_inline_glyphs(Earmark.as_html!(post.content, sub_sup: true)), @card_lookup) %>
                         <%= if post.edited_at do %>
                           <span class="text-xs italic text-gray-400 ml-1">(edited)</span>
                         <% end %>
@@ -199,9 +200,10 @@
                       <%= if post.ooc_content do %>
                         <div class="post-ooc-container">
                           <hr class="post-ooc-divider-icecylee">
-                            <span class="post-ooc-content-icecylee"><%= post.ooc_content %></span>
+                            <span class="post-ooc-content-icecylee"><%= raw process_card_references(Phoenix.HTML.html_escape(post.ooc_content) |> Phoenix.HTML.safe_to_string(), @card_lookup) %></span>
                         </div>
                       <% end %>
+                      </div>
 
                     <% end %>
                   </div>
