@@ -968,8 +968,19 @@ input[type="range"].slider-purple {
     }
 }
 .card-reference-tooltip-img {
-    max-width: 250px;
+    max-width: 400px;
     border-radius: 6px;
+}
+.tippy-box[data-theme~='card-reference'] {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    .tippy-content {
+        padding: 0;
+    }
+    .tippy-arrow {
+        display: none;
+    }
 }
 
 /* Resizable column drag handles */

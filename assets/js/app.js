@@ -355,7 +355,9 @@ Hooks.CardReferenceTooltip = {
     _initTooltips() {
         const links = this.el.querySelectorAll('a.card-reference[data-card-img]');
         links.forEach(link => {
-            if (link._tippy) return;
+            if (link._cardRefInit) return;
+            link._cardRefInit = true;
+            link.addEventListener('click', e => e.stopPropagation());
             const imgSrc = link.getAttribute('data-card-img');
             if (imgSrc && window.tippy) {
                 window.tippy(link, {
@@ -363,7 +365,7 @@ Hooks.CardReferenceTooltip = {
                     allowHTML: true,
                     placement: 'top',
                     delay: [200, 0],
-                    theme: 'light-border'
+                    theme: 'card-reference'
                 });
             }
         });

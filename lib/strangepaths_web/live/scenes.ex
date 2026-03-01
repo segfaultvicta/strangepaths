@@ -2026,7 +2026,7 @@ defmodule StrangepathsWeb.Scenes do
 
         card ->
           escaped_name = Phoenix.HTML.html_escape(inner) |> Phoenix.HTML.safe_to_string()
-          "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"#{card.img}\">#{escaped_name}</a>"
+          "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"/uploads/card#{card.img}\">#{escaped_name}</a>"
       end
     end)
   end
