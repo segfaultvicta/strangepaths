@@ -62,7 +62,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:lightbox_avatar, nil)
         |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
-        |> assign(:filter_unread_scenes, true)
+        |> assign(:filter_unread_scenes, socket.assigns.current_user.role == :dragon)
         |> assign(:tab_visible, true)
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
