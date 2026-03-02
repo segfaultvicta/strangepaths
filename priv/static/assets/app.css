@@ -1432,6 +1432,12 @@ a:hover {
   touch-action: manipulation;
 }
 
+.select-none {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
 .resize-none {
   resize: none;
 }
@@ -2694,6 +2700,11 @@ a:hover {
   color: rgb(129 140 248 / var(--tw-text-opacity));
 }
 
+.text-yellow-300 {
+  --tw-text-opacity: 1;
+  color: rgb(253 224 71 / var(--tw-text-opacity));
+}
+
 .underline {
   -webkit-text-decoration-line: underline;
           text-decoration-line: underline;
@@ -2737,6 +2748,10 @@ a:hover {
 .placeholder-gray-400::placeholder {
   --tw-placeholder-opacity: 1;
   color: rgb(156 163 175 / var(--tw-placeholder-opacity));
+}
+
+.accent-yellow-400 {
+  accent-color: #facc15;
 }
 
 .opacity-0 {

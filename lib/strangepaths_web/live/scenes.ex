@@ -62,7 +62,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:lightbox_avatar, nil)
         |> assign(:color_category, "redacted")
         |> assign(:drawer_open, false)
-        |> assign(:filter_unread_scenes, false)
+        |> assign(:filter_unread_scenes, true)
         |> assign(:tab_visible, true)
         |> assign(:all_users, [])
         |> assign(:ascended_users, [])
@@ -71,7 +71,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:collapse_manage_users, true)
         |> assign(:collapse_userlist, false)
         |> assign(:collapse_private_users, true)
-        |> assign(:collapse_rhs_controls, false)
+        |> assign(:collapse_rhs_controls, true)
         |> assign(:arete_expenditure, 0)
         |> assign(:crimes, System.unique_integer())
         |> assign(:collapse_new_techne, true)
@@ -80,7 +80,8 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:selected_techne_name, "")
         |> assign(:selected_techne_desc, "")
         |> assign(:selected_gnosis_color, nil)
-        |> assign(:collapse_gm_controls, false)
+        |> assign(:starlit, false)
+        |> assign(:collapse_gm_controls, true)
         |> assign(:character_presets, [])
         |> assign(:collapse_presets, true)
         |> assign(:new_preset_name, "")
@@ -748,6 +749,10 @@ defmodule StrangepathsWeb.Scenes do
     {:noreply, assign(socket, :collapse_rhs_controls, !socket.assigns.collapse_rhs_controls)}
   end
 
+  defp handle_scene_event("toggle_starlit", _params, socket) do
+    {:noreply, assign(socket, :starlit, !socket.assigns.starlit)}
+  end
+
   defp handle_scene_event("toggle_gm_controls", _params, socket) do
     {:noreply, assign(socket, :collapse_gm_controls, !socket.assigns.collapse_gm_controls)}
   end
@@ -1227,7 +1232,7 @@ defmodule StrangepathsWeb.Scenes do
       if socket.assigns.gm_alethic do
         roll1 = Enum.random(1..socket.assigns.roll_rank)
         roll2 = Enum.random(1..socket.assigns.roll_rank)
-        {:alethic, socket.assigns.roll_rank, max(roll1, roll2), roll1, roll2}
+        {:alethic, socket.assigns.roll_rank, max(roll1, roll2), [roll1, roll2], false}
       else
         result = Enum.random(1..socket.assigns.roll_rank)
         {:mundane, socket.assigns.roll_rank, result}
@@ -1402,14 +1407,24 @@ defmodule StrangepathsWeb.Scenes do
           primary = Map.get(user, String.to_atom("primary_#{color}"))
           alethic = Map.get(user, String.to_atom("alethic_#{color}"))
 
+          starlit = socket.assigns.starlit
+
           roll =
             if alethic > 0 and alethic >= primary do
-              roll1 = Enum.random(1..primary)
-              roll2 = Enum.random(1..primary)
-              {:alethic, alethic, max(roll1, roll2), roll1, roll2}
+              # Alethic: roll 2 pick best, starlit doubles to roll 4 pick best
+              rolls = if starlit, do: 4, else: 2
+              results = for _ <- 1..rolls, do: Enum.random(1..primary)
+              {:alethic, alethic, Enum.max(results), results, starlit}
             else
-              result = Enum.random(1..primary)
-              {:mundane, primary, result}
+              # Mundane: roll 1, starlit doubles to roll 2 pick best
+              if starlit do
+                roll1 = Enum.random(1..primary)
+                roll2 = Enum.random(1..primary)
+                {:starlit, primary, max(roll1, roll2), roll1, roll2}
+              else
+                result = Enum.random(1..primary)
+                {:mundane, primary, result}
+              end
             end
 
           roll_message(user.nickname, color, roll) <> "\n\n"
@@ -1469,6 +1484,7 @@ defmodule StrangepathsWeb.Scenes do
        |> assign(:crimes, System.unique_integer())
        |> assign(:toggle_new_techne, false)
        |> assign(:selected_gnosis_color, nil)
+       |> assign(:starlit, false)
        |> assign(:selected_techne_name, "")
        |> assign(:selected_techne_desc, "")
        |> assign(:new_techne_name, "")
@@ -1949,19 +1965,19 @@ defmodule StrangepathsWeb.Scenes do
 
   defp roll_message(nickname, color, roll) do
     case roll do
-      {:alethic, stat, outcome, r1, r2} ->
-        if outcome == stat do
-          "- **#{nickname}** invoked their Alethic #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***! It ✨explodes!"
-        else
-          "- **#{nickname}** invoked their Alethic #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***."
-        end
+      {:alethic, stat, outcome, results, starlit} when is_list(results) ->
+        rolls_str = results |> Enum.map_join(", ", &to_string/1)
+        explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
+        prefix = if starlit, do: "⭐Starlit Alethic", else: "Alethic"
+        "- **#{nickname}** invoked their #{prefix} #{color_lookup(color)} gnosis [d#{stat}: (#{rolls_str})] -> ***#{outcome}***#{explodes}"
+
+      {:starlit, stat, outcome, r1, r2} ->
+        explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
+        "- **#{nickname}** invoked their ⭐Starlit #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***#{explodes}"
 
       {:mundane, stat, outcome} ->
-        if outcome == stat do
-          "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***! It ✨explodes!"
-        else
-          "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***."
-        end
+        explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
+        "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***#{explodes}"
     end
   end
 

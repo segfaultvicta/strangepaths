@@ -1013,9 +1013,15 @@
         </button>
         <%= if !@collapse_rhs_controls do %>
           <div class="bg-indigo-100 dark:bg-gray-900 rounded p-4">
-            <button type="button" class="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white y-2 px-4 rounded transition" phx-click="user_ascension_action">
-              THUS!
-            </button>
+            <div class="flex flex-row items-center gap-2 mt-2">
+              <button type="button" class="flex-grow bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition" phx-click="user_ascension_action">
+                THUS!
+              </button>
+              <label class={"flex items-center gap-1 text-sm cursor-pointer select-none " <> if @starlit, do: "text-yellow-300", else: "text-gray-400"}>
+                <input type="checkbox" checked={@starlit} phx-click="toggle_starlit" class="accent-yellow-400" />
+                ⭐
+              </label>
+            </div>
 
             <div class="flex flex-row justify-between w-full">
               <div id="current-arete" class="text-2xl mt-2">Arete: <%= @current_user.arete %></div>
