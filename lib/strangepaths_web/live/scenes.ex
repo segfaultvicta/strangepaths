@@ -71,7 +71,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:collapse_manage_users, true)
         |> assign(:collapse_userlist, false)
         |> assign(:collapse_private_users, true)
-        |> assign(:collapse_rhs_controls, true)
+        |> assign(:collapse_rhs_controls, socket.assigns.current_user.role == :dragon)
         |> assign(:arete_expenditure, 0)
         |> assign(:crimes, System.unique_integer())
         |> assign(:collapse_new_techne, true)
@@ -1969,14 +1969,17 @@ defmodule StrangepathsWeb.Scenes do
         rolls_str = results |> Enum.map_join(", ", &to_string/1)
         explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
         prefix = if starlit, do: "⭐Starlit Alethic", else: "Alethic"
+
         "- **#{nickname}** invoked their #{prefix} #{color_lookup(color)} gnosis [d#{stat}: (#{rolls_str})] -> ***#{outcome}***#{explodes}"
 
       {:starlit, stat, outcome, r1, r2} ->
         explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
+
         "- **#{nickname}** invoked their ⭐Starlit #{color_lookup(color)} gnosis [d#{stat}: (#{r1}, #{r2})] -> ***#{outcome}***#{explodes}"
 
       {:mundane, stat, outcome} ->
         explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
+
         "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***#{explodes}"
     end
   end
@@ -1998,8 +2001,11 @@ defmodule StrangepathsWeb.Scenes do
 
   defp process_inline_glyphs(html) do
     Enum.reduce(@glyph_styles, html, fn {glyph, class}, acc ->
-      Regex.replace(~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s, acc,
-        "<span class=\"#{class}\">\\1</span>")
+      Regex.replace(
+        ~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s,
+        acc,
+        "<span class=\"#{class}\">\\1</span>"
+      )
     end)
   end
 
@@ -2008,7 +2014,13 @@ defmodule StrangepathsWeb.Scenes do
 
     from(c in Cards.Card,
       where: c.glorified != true or is_nil(c.glorified),
-      select: %{id: c.id, name: c.name, name_downcased: fragment("lower(?)", c.name), img: c.img, type: c.type}
+      select: %{
+        id: c.id,
+        name: c.name,
+        name_downcased: fragment("lower(?)", c.name),
+        img: c.img,
+        type: c.type
+      }
     )
     |> Strangepaths.Repo.all()
   end
@@ -2042,6 +2054,7 @@ defmodule StrangepathsWeb.Scenes do
 
         card ->
           escaped_name = Phoenix.HTML.html_escape(inner) |> Phoenix.HTML.safe_to_string()
+
           "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"/uploads/card#{card.img}\">#{escaped_name}</a>"
       end
     end)
