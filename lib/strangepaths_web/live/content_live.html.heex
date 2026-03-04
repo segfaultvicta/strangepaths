@@ -32,6 +32,13 @@
   <%= if @editing do %>
     <div class="mb-4">
       <form phx-submit="save">
+        <div class="mb-3">
+          <label class="text-sm text-gray-400 mr-2">Render mode:</label>
+          <select name="render_mode" class="bg-gray-700 text-gray-100 border border-gray-600 rounded px-2 py-1 text-sm">
+            <option value="markdown" selected={@page.render_mode == "markdown"}>Markdown</option>
+            <option value="html" selected={@page.render_mode == "html"}>HTML</option>
+          </select>
+        </div>
         <textarea
           name="body"
           rows="20"
@@ -50,7 +57,11 @@
     </div>
   <% else %>
     <div id="content-body" class="prose prose-invert prose-lg max-w-none">
-      <%= raw Earmark.as_html!(@page.body) %>
+      <%= if @page.render_mode == "html" do %>
+        <%= raw @page.body %>
+      <% else %>
+        <%= raw Earmark.as_html!(@page.body) %>
+      <% end %>
     </div>
   <% end %>
 </div>

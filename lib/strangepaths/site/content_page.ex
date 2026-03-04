@@ -9,15 +9,17 @@ defmodule Strangepaths.Site.ContentPage do
     field(:title_stripped, :string)
     field(:body_stripped, :string)
     field(:published, :boolean, default: false)
+    field(:render_mode, :string, default: "markdown")
 
     timestamps()
   end
 
   def changeset(page, attrs) do
     page
-    |> cast(attrs, [:title, :slug, :body, :published])
+    |> cast(attrs, [:title, :slug, :body, :published, :render_mode])
     |> maybe_generate_slug()
     |> validate_required([:title, :slug, :body])
+    |> validate_inclusion(:render_mode, ["markdown", "html"])
     |> unique_constraint(:slug)
   end
 

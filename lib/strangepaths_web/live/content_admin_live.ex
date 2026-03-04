@@ -66,6 +66,14 @@ defmodule StrangepathsWeb.ContentAdminLive do
     {:noreply, assign(socket, :pages, Site.list_content_pages())}
   end
 
+  defp handle_contentadmin_event("toggle_render_mode", %{"id" => id}, socket) do
+    page = Site.get_content_page!(id)
+    new_mode = if page.render_mode == "markdown", do: "html", else: "markdown"
+    Site.update_content_page(page, %{render_mode: new_mode})
+
+    {:noreply, assign(socket, :pages, Site.list_content_pages())}
+  end
+
   defp handle_contentadmin_event("delete", %{"id" => id}, socket) do
     page = Site.get_content_page!(id)
     Site.delete_content_page(page)

@@ -1059,6 +1059,10 @@ a:hover {
   margin-left: 0.5rem;
 }
 
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
 .ml-auto {
   margin-left: auto;
 }
@@ -1069,10 +1073,6 @@ a:hover {
 
 .mb-24 {
   margin-bottom: 6rem;
-}
-
-.mr-2 {
-  margin-right: 0.5rem;
 }
 
 .mt-3 {
@@ -1847,6 +1847,11 @@ a:hover {
   background-color: rgb(17 24 39 / var(--tw-bg-opacity));
 }
 
+.bg-blue-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(37 99 235 / var(--tw-bg-opacity));
+}
+
 .bg-purple-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(147 51 234 / var(--tw-bg-opacity));
@@ -1913,11 +1918,6 @@ a:hover {
 .bg-blue-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(59 130 246 / var(--tw-bg-opacity));
-}
-
-.bg-blue-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(37 99 235 / var(--tw-bg-opacity));
 }
 
 .bg-red-900 {
@@ -4838,6 +4838,11 @@ input[type=range].slider-purple::-moz-range-progress {
 .hover\:bg-red-500:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(239 68 68 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-blue-500:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(59 130 246 / var(--tw-bg-opacity));
 }
 
 .hover\:bg-purple-500:hover {

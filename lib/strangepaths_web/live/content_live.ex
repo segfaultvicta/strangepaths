@@ -60,8 +60,11 @@ defmodule StrangepathsWeb.ContentLive do
     {:noreply, assign(socket, :editing, false)}
   end
 
-  defp handle_content_event("save", %{"body" => body}, socket) do
-    case Site.update_content_page(socket.assigns.page, %{body: body}) do
+  defp handle_content_event("save", %{"body" => body} = params, socket) do
+    attrs = %{body: body}
+    attrs = if params["render_mode"], do: Map.put(attrs, :render_mode, params["render_mode"]), else: attrs
+
+    case Site.update_content_page(socket.assigns.page, attrs) do
       {:ok, updated_page} ->
         {:noreply,
          socket
