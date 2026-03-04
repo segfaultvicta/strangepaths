@@ -1,21 +1,58 @@
 <div class="container mx-auto px-4 py-6">
-  <div class="flex justify-between items-center mb-6">
+  <div class="flex justify-between items-center mb-4">
     <h1 class="text-3xl font-bold">Codex</h1>
-    <%= if @is_admin do %>
-      <%= live_redirect to: "/content/admin", class: "px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded" do %>
-        <i class="fa-solid fa-cog"></i> Manage Content
-      <% end %>
-    <% else %>
-      <%= if !@creating do %>
-        <button phx-click="start_create" class="px-4 py-2 bg-green-600 hover:bg-green-500 dark:bg-green-200 dark:hover:bg-purple-300 rounded">
-          New Page
-        </button>
-      <% end %>
-    <% end %>
   </div>
 
+  <%!-- Breadcrumbs --%>
+  <nav class="flex items-center gap-1 text-sm mb-4 text-purple-400">
+    <%= if @current_folder_id do %>
+      <%= live_patch "Root", to: "/content", class: "hover:text-purple-300" %>
+      <%= for crumb <- @breadcrumbs do %>
+        <span class="mx-1">/</span>
+        <%= if crumb.id == @current_folder_id do %>
+          <span class="text-purple-200"><%= crumb.name %></span>
+        <% else %>
+          <%= live_patch crumb.name, to: "/content?folder=#{crumb.id}", class: "hover:text-purple-300" %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </nav>
+
+  <%!-- Action bar --%>
+  <%= if @logged_in and !@creating and !@creating_folder do %>
+    <div class="flex gap-2 mb-4">
+      <button phx-click="start_create_folder" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-sm">
+        <i class="fa-solid fa-folder-plus"></i> New Folder
+      </button>
+      <button phx-click="start_create" class="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-sm">
+        <i class="fa-solid fa-plus"></i> New Page
+      </button>
+    </div>
+  <% end %>
+
+  <%!-- Create folder form --%>
+  <%= if @creating_folder do %>
+    <form phx-submit="create_folder" class="mb-4 p-4 bg-indigo-200 dark:bg-gray-800 rounded">
+      <label class="block mb-2">
+        <span class="text-indigo-700 dark:text-gray-300">Folder Name:</span>
+        <input
+          type="text"
+          name="name"
+          placeholder="e.g., Lore"
+          class="w-full mt-1 bg-indigo-50 text-indigo-900 dark:bg-gray-700 dark:text-gray-100 border border-gray-600 rounded px-3 py-2"
+          autofocus
+        />
+      </label>
+      <div class="flex gap-2 mt-3">
+        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded">Create</button>
+        <button type="button" phx-click="cancel_create_folder" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded">Cancel</button>
+      </div>
+    </form>
+  <% end %>
+
+  <%!-- Create page form --%>
   <%= if @creating do %>
-    <form phx-submit="create" class="mb-6 p-4 bg-indigo-200 dark:bg-gray-800 rounded">
+    <form phx-submit="create" class="mb-4 p-4 bg-indigo-200 dark:bg-gray-800 rounded">
       <label class="block mb-2">
         <span class="text-indigo-700 dark:text-gray-300">Page Title:</span>
         <input
@@ -26,35 +63,126 @@
           autofocus
         />
       </label>
-      <div class="flex gap-2 mt-4">
-        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded">
-          Create
-        </button>
-        <button type="button" phx-click="cancel_create" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded">
-          Cancel
-        </button>
+      <div class="flex gap-2 mt-3">
+        <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded">Create</button>
+        <button type="button" phx-click="cancel_create" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded">Cancel</button>
       </div>
     </form>
-  <% else %>
-    <div class="grid gap-2 max-w-2xl">
-      <%= for page <- @pages do %>
-        <div class="bg-indigo-200 dark:bg-gray-800 rounded-lg hover:bg-indigo-300 hover:dark:bg-gray-900 transition">
-          <%= live_redirect to: "/content/#{page.slug}", class: "block" do %>
-            <h3 class="text-xl mx-4 dark:text-purple-300 dark:hover:text-purple-200">
-              <%= page.title %>
-            </h3>
-            <%= if @is_admin and not page.published do %>
-              <span class="inline-block mt-2 px-2 py-0.5 bg-gray-600 text-white text-xs rounded">Draft</span>
-            <% end %>
-          <% end %>
-        </div>
-      <% end %>
-
-      <%= if @pages == [] do %>
-        <div class="text-center text-gray-400 py-12">
-          The Dragon hasn't written anything yet. Check back later.
-        </div>
-      <% end %>
-    </div>
   <% end %>
+
+  <%!-- Content list --%>
+  <div id="content-list" class="grid gap-2 max-w-2xl" phx-hook={if @logged_in, do: "ContentDragDrop"} phx-update="replace">
+    <%!-- Parent folder drop zone (only inside a subfolder, only for logged-in users) --%>
+    <%= if @current_folder_id && @logged_in do %>
+      <div data-drop-parent
+           class="rounded-lg border-2 border-dashed border-gray-400 dark:border-gray-600 text-center py-2 text-sm text-gray-500 dark:text-gray-400 transition">
+        <i class="fa-solid fa-arrow-up mr-1"></i> Drop here to move to parent folder
+      </div>
+    <% end %>
+
+    <%!-- Folders --%>
+    <%= for folder <- @folders do %>
+      <div class="content-item bg-indigo-200 dark:bg-gray-800 rounded-lg hover:bg-indigo-300 hover:dark:bg-gray-900 transition flex items-center"
+           data-id={folder.id} data-type="folder"
+           data-draggable={if @logged_in, do: "true"}
+           data-drop-folder={if @logged_in, do: folder.id}>
+        <%= live_patch to: "/content?folder=#{folder.id}", class: "flex-1 block px-3 py-2" do %>
+          <span class="text-xl dark:text-purple-300 dark:hover:text-purple-200">
+            <i class="fa-solid fa-folder text-indigo-400 dark:text-indigo-300 mr-2"></i><%= folder.name %>
+          </span>
+        <% end %>
+        <%= if @is_dragon do %>
+          <div class="flex gap-1 pr-3 items-center">
+            <%= if @renaming_folder == folder.id do %>
+              <form phx-submit="rename_folder" class="flex gap-1">
+                <input type="hidden" name="id" value={folder.id} />
+                <input type="text" name="name" value={folder.name}
+                  class="bg-gray-700 text-gray-100 border border-gray-600 rounded px-2 py-0.5 text-sm w-32"
+                  autofocus />
+                <button type="submit" class="px-2 py-0.5 bg-green-600 hover:bg-green-500 rounded text-xs">Save</button>
+                <button type="button" phx-click="cancel_rename_folder" class="px-2 py-0.5 bg-gray-600 hover:bg-gray-500 rounded text-xs">Cancel</button>
+              </form>
+            <% else %>
+              <button phx-click="start_rename_folder" phx-value-id={folder.id} class="px-2 py-0.5 bg-yellow-600 hover:bg-yellow-500 rounded text-xs" title="Rename">
+                <i class="fa-solid fa-pencil"></i>
+              </button>
+              <button phx-click="delete_folder" phx-value-id={folder.id}
+                data-confirm="Delete this empty folder?"
+                class="px-2 py-0.5 bg-red-600 hover:bg-red-500 rounded text-xs" title="Delete folder">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%!-- Pages --%>
+    <%= for page <- @pages do %>
+      <div class="content-item bg-indigo-200 dark:bg-gray-800 rounded-lg hover:bg-indigo-300 hover:dark:bg-gray-900 transition flex items-center"
+           data-id={page.id} data-type="page"
+           data-draggable={if @logged_in, do: "true"}>
+        <div class="flex-1 px-3 py-2">
+          <%= live_redirect to: "/content/#{page.slug}", class: "block" do %>
+            <span class="text-xl dark:text-purple-300 dark:hover:text-purple-200"><%= page.title %></span>
+          <% end %>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            /content/<%= page.slug %>
+            <%= if @is_dragon do %>
+              <%= if page.published do %>
+                <span class="ml-1 px-1.5 py-0.5 bg-green-600 text-white rounded">Published</span>
+              <% else %>
+                <span class="ml-1 px-1.5 py-0.5 bg-gray-600 text-white rounded">Draft</span>
+              <% end %>
+              <%= if page.render_mode == "html" do %>
+                <span class="ml-1 px-1.5 py-0.5 bg-blue-600 text-white rounded">HTML</span>
+              <% else %>
+                <span class="ml-1 px-1.5 py-0.5 bg-purple-600 text-white rounded">MD</span>
+              <% end %>
+            <% else %>
+              <%= if not page.published do %>
+                <span class="ml-1 px-1.5 py-0.5 bg-gray-600 text-white rounded">Draft</span>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+        <%= if @is_dragon do %>
+          <div class="flex gap-1 pr-3 items-center">
+            <button phx-click="toggle_render_mode" phx-value-id={page.id}
+              class="px-2 py-0.5 bg-blue-600 hover:bg-blue-500 rounded text-xs"
+              title={"Switch to #{if page.render_mode == "markdown", do: "HTML", else: "Markdown"}"}>
+              <%= if page.render_mode == "html" do %>
+                → MD
+              <% else %>
+                → HTML
+              <% end %>
+            </button>
+            <button phx-click="toggle_published" phx-value-id={page.id}
+              class={"px-2 py-0.5 rounded text-xs #{if page.published, do: "bg-yellow-600 hover:bg-yellow-500", else: "bg-green-600 hover:bg-green-500"}"}>
+              <%= if page.published do %>
+                <i class="fa-solid fa-eye-slash"></i> Hide
+              <% else %>
+                <i class="fa-solid fa-eye"></i> Publish
+              <% end %>
+            </button>
+            <button phx-click="delete" phx-value-id={page.id}
+              data-confirm="Are you sure you want to delete this page?"
+              class="px-2 py-0.5 bg-red-600 hover:bg-red-500 rounded text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%= if @folders == [] and @pages == [] do %>
+      <div class="text-center text-gray-400 py-12">
+        <%= if @current_folder_id do %>
+          This folder is empty.
+        <% else %>
+          The Dragon hasn't written anything yet. Check back later.
+        <% end %>
+      </div>
+    <% end %>
+  </div>
 </div>

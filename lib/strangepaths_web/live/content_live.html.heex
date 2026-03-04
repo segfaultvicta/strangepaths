@@ -1,33 +1,20 @@
 <div class="container mx-auto px-4 py-6 pb-36 max-w-4xl">
-  <div class="mb-2">
-    <%= live_redirect to: "/content", class: "text-sm text-purple-400 hover:text-purple-300" do %>
-      <i class="fa-solid fa-arrow-left"></i> Back to Codex
+  <nav class="flex items-center gap-1 text-sm mb-2 text-purple-400">
+    <%= live_redirect "Codex", to: "/content", class: "hover:text-purple-300" %>
+    <%= for crumb <- @breadcrumbs do %>
+      <span class="mx-1">/</span>
+      <%= live_redirect crumb.name, to: "/content?folder=#{crumb.id}", class: "hover:text-purple-300" %>
+    <% end %>
+  </nav>
+
+  <div class="mb-4 flex justify-between items-center">
+    <h1 class="text-3xl uppercase"><%= @page.title %></h1>
+    <%= if @can_edit and not @editing do %>
+      <button phx-click="start_edit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded">
+        <i class="fa-solid fa-pencil"></i> Edit
+      </button>
     <% end %>
   </div>
-  <%= if @can_edit do %>
-    <div class="mb-2">
-      <%= live_redirect to: "/content/admin", class: "text-sm text-purple-400 hover:text-purple-300" do %>
-        Content Admin<i class="fa-solid fa-arrow-right"></i>
-      <% end %>
-    </div>
-    <div class="mb-4 flex justify-between items-center">
-      <h1 class="text-3xl uppercase"><%= @page.title %></h1>
-      <%= if not @editing do %>
-        <button phx-click="start_edit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded">
-          <i class="fa-solid fa-pencil"></i> Edit
-        </button>
-      <% end %>
-    </div>
-  <% else %>
-    <div class="mb-4 flex justify-between items-center">
-      <h1 class="text-3xl uppercase"><%= @page.title %></h1>
-      <%= if not @editing do %>
-        <button phx-click="start_edit" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 rounded">
-          <i class="fa-solid fa-pencil"></i> Edit
-        </button>
-      <% end %>
-    </div>
-  <% end %>
 
   <%= if @editing do %>
     <div class="mb-4">

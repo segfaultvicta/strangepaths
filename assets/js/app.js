@@ -311,6 +311,114 @@ Hooks.Sortable = {
     }
 }
 
+Hooks.ContentDragDrop = {
+    mounted() {
+        this.setupDragDrop();
+    },
+    updated() {
+        this.setupDragDrop();
+    },
+    setupDragDrop() {
+        const hook = this;
+        const container = this.el;
+
+        // Make draggable items work
+        container.querySelectorAll("[data-draggable]").forEach(item => {
+            item.setAttribute("draggable", "true");
+
+            item.ondragstart = (e) => {
+                e.dataTransfer.setData("text/plain", JSON.stringify({
+                    id: item.dataset.id,
+                    type: item.dataset.type
+                }));
+                e.dataTransfer.effectAllowed = "move";
+                item.classList.add("opacity-50");
+            };
+
+            item.ondragend = () => {
+                item.classList.remove("opacity-50");
+                // Clean up any lingering drop highlights
+                container.querySelectorAll(".drop-highlight").forEach(el => {
+                    el.classList.remove("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+                });
+            };
+        });
+
+        // Make folder cards into drop targets
+        container.querySelectorAll("[data-drop-folder]").forEach(folder => {
+            folder.ondragover = (e) => {
+                // Don't allow dropping a folder on itself
+                const raw = e.dataTransfer.types.includes("text/plain");
+                if (!raw) return;
+
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                folder.classList.add("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+            };
+
+            folder.ondragleave = (e) => {
+                // Only remove highlight if we actually left this element
+                if (!folder.contains(e.relatedTarget)) {
+                    folder.classList.remove("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+                }
+            };
+
+            folder.ondrop = (e) => {
+                e.preventDefault();
+                folder.classList.remove("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+
+                let data;
+                try {
+                    data = JSON.parse(e.dataTransfer.getData("text/plain"));
+                } catch { return; }
+
+                const targetFolderId = folder.dataset.dropFolder;
+
+                // Don't drop a folder into itself
+                if (data.type === "folder" && data.id === targetFolderId) return;
+
+                hook.pushEvent("drop_into_folder", {
+                    item_id: data.id,
+                    item_type: data.type,
+                    folder_id: targetFolderId
+                });
+            };
+        });
+
+        // Parent folder drop zone
+        const parentZone = container.querySelector("[data-drop-parent]");
+        if (parentZone) {
+            parentZone.ondragover = (e) => {
+                if (!e.dataTransfer.types.includes("text/plain")) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                parentZone.classList.add("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+            };
+
+            parentZone.ondragleave = (e) => {
+                if (!parentZone.contains(e.relatedTarget)) {
+                    parentZone.classList.remove("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+                }
+            };
+
+            parentZone.ondrop = (e) => {
+                e.preventDefault();
+                parentZone.classList.remove("drop-highlight", "ring-2", "ring-purple-400", "bg-purple-900/20");
+
+                let data;
+                try {
+                    data = JSON.parse(e.dataTransfer.getData("text/plain"));
+                } catch { return; }
+
+                hook.pushEvent("drop_into_parent", {
+                    item_id: data.id,
+                    item_type: data.type
+                });
+            };
+        }
+    }
+}
+
 Hooks.TooltipUpdater = {
     mounted() {
         const templateId = this.el.dataset.tooltipTemplate;

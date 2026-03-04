@@ -35,7 +35,6 @@ defmodule StrangepathsWeb.Router do
     live("/scenes/archives/:slug", Scenes.Archives)
 
     live("/content", ContentIndexLive)
-    live("/content/admin", ContentAdminLive)
     live("/content/:slug", ContentLive)
 
     live("/avatars/admin", AvatarAdminLive)

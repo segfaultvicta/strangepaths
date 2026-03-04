@@ -10,13 +10,16 @@ defmodule Strangepaths.Site.ContentPage do
     field(:body_stripped, :string)
     field(:published, :boolean, default: false)
     field(:render_mode, :string, default: "markdown")
+    field(:sort_order, :integer, default: 0)
+
+    belongs_to(:folder, Strangepaths.Site.ContentFolder, foreign_key: :folder_id)
 
     timestamps()
   end
 
   def changeset(page, attrs) do
     page
-    |> cast(attrs, [:title, :slug, :body, :published, :render_mode])
+    |> cast(attrs, [:title, :slug, :body, :published, :render_mode, :sort_order, :folder_id])
     |> maybe_generate_slug()
     |> validate_required([:title, :slug, :body])
     |> validate_inclusion(:render_mode, ["markdown", "html"])

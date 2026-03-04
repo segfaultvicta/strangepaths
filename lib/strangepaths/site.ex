@@ -9,6 +9,7 @@ defmodule Strangepaths.Site do
   alias Strangepaths.Site.MusicQueue
   alias Strangepaths.Site.Song
   alias Strangepaths.Site.ContentPage
+  alias Strangepaths.Site.ContentFolder
 
   @doc """
   Returns the list of songs.
@@ -280,6 +281,200 @@ defmodule Strangepaths.Site do
 
   def delete_content_page(page) do
     Repo.delete(page)
+  end
+
+  # --- Content Folders ---
+
+  def get_folder!(id), do: Repo.get!(ContentFolder, id)
+
+  def create_folder(attrs) do
+    %ContentFolder{}
+    |> ContentFolder.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_folder(%ContentFolder{} = folder, attrs) do
+    folder
+    |> ContentFolder.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_folder(%ContentFolder{} = folder) do
+    has_subfolders =
+      ContentFolder
+      |> where(parent_id: ^folder.id)
+      |> Repo.exists?()
+
+    has_pages =
+      ContentPage
+      |> where(folder_id: ^folder.id)
+      |> Repo.exists?()
+
+    if has_subfolders or has_pages do
+      {:error, :not_empty}
+    else
+      Repo.delete(folder)
+    end
+  end
+
+  def list_folder_contents(folder_id, opts \\ []) do
+    published_only = Keyword.get(opts, :published_only, false)
+
+    folders =
+      ContentFolder
+      |> where(parent_id: ^folder_id)
+      |> order_by(:name)
+      |> Repo.all()
+
+    pages_query =
+      ContentPage
+      |> where(folder_id: ^folder_id)
+      |> order_by(:title)
+
+    pages_query =
+      if published_only do
+        pages_query |> where(published: true)
+      else
+        pages_query
+      end
+
+    pages = Repo.all(pages_query)
+
+    %{folders: folders, pages: pages}
+  end
+
+  def list_root_folder_contents(opts \\ []) do
+    published_only = Keyword.get(opts, :published_only, false)
+
+    folders =
+      ContentFolder
+      |> where([f], is_nil(f.parent_id))
+      |> order_by(:name)
+      |> Repo.all()
+
+    pages_query =
+      ContentPage
+      |> where([p], is_nil(p.folder_id))
+      |> order_by(:title)
+
+    pages_query =
+      if published_only do
+        pages_query |> where(published: true)
+      else
+        pages_query
+      end
+
+    pages = Repo.all(pages_query)
+
+    %{folders: folders, pages: pages}
+  end
+
+  def list_all_folders do
+    ContentFolder
+    |> order_by(:name)
+    |> Repo.all()
+    |> Enum.map(fn folder ->
+      path = get_folder_breadcrumbs(folder.id) |> Enum.map(& &1.name) |> Enum.join(" / ")
+      %{id: folder.id, name: folder.name, path: path}
+    end)
+  end
+
+  def get_folder_breadcrumbs(nil), do: []
+
+  def get_folder_breadcrumbs(folder_id) do
+    folder = Repo.get!(ContentFolder, folder_id)
+    build_breadcrumbs(folder, [])
+  end
+
+  defp build_breadcrumbs(%ContentFolder{parent_id: nil} = folder, acc) do
+    [folder | acc]
+  end
+
+  defp build_breadcrumbs(%ContentFolder{parent_id: parent_id} = folder, acc) do
+    parent = Repo.get!(ContentFolder, parent_id)
+    build_breadcrumbs(parent, [folder | acc])
+  end
+
+  def reorder_folder_contents(_folder_id, ordered_folder_ids, ordered_page_ids) do
+    Repo.transaction(fn ->
+      ordered_folder_ids
+      |> Enum.with_index()
+      |> Enum.each(fn {id, idx} ->
+        from(f in ContentFolder, where: f.id == ^id)
+        |> Repo.update_all(set: [sort_order: idx])
+      end)
+
+      ordered_page_ids
+      |> Enum.with_index()
+      |> Enum.each(fn {id, idx} ->
+        from(p in ContentPage, where: p.id == ^id)
+        |> Repo.update_all(set: [sort_order: idx])
+      end)
+    end)
+  end
+
+  def move_page_to_folder(page_id, target_folder_id) do
+    page = Repo.get!(ContentPage, page_id)
+
+    # Get max sort_order in target folder
+    max_order =
+      ContentPage
+      |> where(folder_id: ^target_folder_id)
+      |> select([p], max(p.sort_order))
+      |> Repo.one() || -1
+
+    page
+    |> ContentPage.changeset(%{folder_id: target_folder_id, sort_order: max_order + 1})
+    |> Repo.update()
+  end
+
+  def move_page_to_root(page_id) do
+    page = Repo.get!(ContentPage, page_id)
+
+    max_order =
+      ContentPage
+      |> where([p], is_nil(p.folder_id))
+      |> select([p], max(p.sort_order))
+      |> Repo.one() || -1
+
+    page
+    |> ContentPage.changeset(%{folder_id: nil, sort_order: max_order + 1})
+    |> Repo.update()
+  end
+
+  def move_folder_to_parent(folder_id, target_parent_id) do
+    folder = Repo.get!(ContentFolder, folder_id)
+
+    # Cycle detection: walk up from target_parent_id, ensure we don't hit folder_id
+    if target_parent_id && has_ancestor?(target_parent_id, folder_id) do
+      {:error, :cycle}
+    else
+      max_order =
+        if target_parent_id do
+          ContentFolder
+          |> where(parent_id: ^target_parent_id)
+          |> select([f], max(f.sort_order))
+          |> Repo.one() || -1
+        else
+          ContentFolder
+          |> where([f], is_nil(f.parent_id))
+          |> select([f], max(f.sort_order))
+          |> Repo.one() || -1
+        end
+
+      folder
+      |> ContentFolder.changeset(%{parent_id: target_parent_id, sort_order: max_order + 1})
+      |> Repo.update()
+    end
+  end
+
+  defp has_ancestor?(folder_id, target_ancestor_id) do
+    case Repo.get(ContentFolder, folder_id) do
+      nil -> false
+      %ContentFolder{id: id} when id == target_ancestor_id -> true
+      %ContentFolder{parent_id: nil} -> false
+      %ContentFolder{parent_id: pid} -> has_ancestor?(pid, target_ancestor_id)
+    end
   end
 
   @doc """

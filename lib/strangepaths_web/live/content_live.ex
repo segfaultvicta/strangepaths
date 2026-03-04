@@ -23,14 +23,15 @@ defmodule StrangepathsWeb.ContentLive do
         can_view = page.published || is_admin
 
         if can_view do
-          can_edit = is_admin
+          can_edit = socket.assigns.current_user != nil
+          breadcrumbs = Site.get_folder_breadcrumbs(page.folder_id)
 
           {:ok,
            socket
            |> assign(:page, page)
            |> assign(:page_title, "Codex - " <> page.title)
-           # n.b. "can see content admin link"
            |> assign(:can_edit, can_edit)
+           |> assign(:breadcrumbs, breadcrumbs)
            |> assign(:editing, false)}
         else
           {:ok,
