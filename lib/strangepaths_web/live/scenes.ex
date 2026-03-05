@@ -12,14 +12,7 @@ defmodule StrangepathsWeb.Scenes do
 
   alias StrangepathsWeb.Endpoint, as: E
 
-  @glyph_styles %{
-    "⚗" => "inline-burning-gnosis",
-    "ⵣ" => "inline-flourishing-gnosis",
-    "⌬" => "inline-pellucid-gnosis",
-    "☉" => "inline-radiant-gnosis",
-    "ᛝ" => "inline-tenebrous-gnosis",
-    "ꙮ" => "inline-liminal"
-  }
+  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 1]
 
   @impl true
   def mount(_params, session, socket) do
@@ -1656,7 +1649,7 @@ defmodule StrangepathsWeb.Scenes do
       ooc = Map.get(params, "ooc_content", "")
       ooc = if String.trim(ooc) == "", do: nil, else: String.trim(ooc)
 
-      case Scenes.update_post(post, %{content: String.trim(content), ooc_content: ooc}) do
+      case Scenes.update_post(post, %{content: String.trim(content), ooc_content: ooc, edited_by_id: socket.assigns.current_user.id}) do
         {:ok, updated_post} ->
           posts =
             Enum.map(socket.assigns.posts, fn p ->
@@ -1726,6 +1719,7 @@ defmodule StrangepathsWeb.Scenes do
 
   defp can_edit_post?(%{post_type: :system}, _user), do: false
   defp can_edit_post?(_post, %{role: :dragon}), do: true
+  defp can_edit_post?(%{edited_by_id: edited_by_id, user_id: user_id}, _user) when edited_by_id != nil and edited_by_id != user_id, do: false
   defp can_edit_post?(%{user_id: post_user_id}, %{id: user_id}), do: post_user_id == user_id
   defp can_edit_post?(_, _), do: false
 
@@ -1999,15 +1993,6 @@ defmodule StrangepathsWeb.Scenes do
   defp base_title(%{assigns: %{current_scene: nil}}), do: "Stillness"
   defp base_title(%{assigns: %{current_scene: scene}}), do: scene.name
 
-  defp process_inline_glyphs(html) do
-    Enum.reduce(@glyph_styles, html, fn {glyph, class}, acc ->
-      Regex.replace(
-        ~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s,
-        acc,
-        "<span class=\"#{class}\">\\1</span>"
-      )
-    end)
-  end
 
   defp build_card_lookup do
     import Ecto.Query, warn: false

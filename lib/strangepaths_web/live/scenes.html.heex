@@ -131,12 +131,20 @@
                   <% end %>
 
                   <!-- Post Content -->
-                  <% editable = post.post_type != :system && (@role == :dragon || post.user_id == @current_user.id) %>
-                  <div
-                    class={"post-content-icecylee" <> if(editable && @editing_post_id != post.id, do: " post-editable", else: "")}
-                    phx-click={if(editable && @editing_post_id != post.id, do: "start_edit_post")}
-                    phx-value-post-id={if(editable && @editing_post_id != post.id, do: post.id)}
-                  >
+                  <% editable = post.post_type != :system && (@role == :dragon || (post.user_id == @current_user.id && (post.edited_by_id == nil || post.edited_by_id == post.user_id))) %>
+                  <div class="post-content-icecylee">
+                    <%= if editable && @editing_post_id != post.id do %>
+                      <button
+                        phx-click="start_edit_post"
+                        phx-value-post-id={post.id}
+                        class="post-edit-button"
+                        title="Edit post"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                      </button>
+                    <% end %>
                     <%= if @editing_post_id == post.id do %>
                       <!-- Edit Mode -->
                       <form phx-submit="save_edit_post" phx-change="update_edit_post" phx-window-keydown="cancel_edit_post" phx-key="Escape" class="w-full">

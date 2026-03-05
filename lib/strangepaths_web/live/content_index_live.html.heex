@@ -71,7 +71,7 @@
   <% end %>
 
   <%!-- Content list --%>
-  <div id="content-list" class="grid gap-2 max-w-2xl" phx-hook={if @logged_in, do: "ContentDragDrop"} phx-update="replace">
+  <div id="content-list" class="grid gap-2 max-w-2xl pb-24" phx-hook={if @logged_in, do: "ContentDragDrop"} phx-update="replace">
     <%!-- Parent folder drop zone (only inside a subfolder, only for logged-in users) --%>
     <%= if @current_folder_id && @logged_in do %>
       <div data-drop-parent

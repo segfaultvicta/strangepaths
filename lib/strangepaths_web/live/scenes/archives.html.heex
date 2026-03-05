@@ -158,7 +158,7 @@
                         Unknown
                     <% end %>
                   </span>
-                  <%= raw Earmark.as_html!(post.content || "", sub_sup: true) %>
+                  <%= raw process_inline_glyphs(Earmark.as_html!(post.content || "", sub_sup: true)) %>
                 </div>
 
                 <!-- OOC Content -->
@@ -352,7 +352,7 @@
                       <%= for snippet <- result.post_snippets do %>
                         <%= live_patch to: "#{base_url}#post-#{snippet.post_id}",
                             class: "block text-sm text-gray-600 dark:text-gray-400 pl-3 border-l-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded py-2 transition" do %>
-                          <%= raw String.replace(snippet.snippet, ~r/#{Regex.escape(@search_query)}/i, "<mark class='bg-yellow-200 dark:bg-yellow-700'>\\0</mark>") %>
+                          <%= raw String.replace(strip_glyphs(snippet.snippet), ~r/#{Regex.escape(@search_query)}/i, "<mark class='bg-yellow-200 dark:bg-yellow-700'>\\0</mark>") %>
                           <div class="text-xs text-gray-500 dark:text-gray-500 mt-1 flex justify-between items-center">
                             <span class="font-semibold"><%= snippet.author %></span>
                             <span><%= Calendar.strftime(snippet.posted_at, "%B %d, %Y") %></span>

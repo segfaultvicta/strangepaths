@@ -17,6 +17,7 @@ defmodule Strangepaths.Scenes.Post do
     belongs_to(:scene, Strangepaths.Scenes.Scene)
     belongs_to(:user, Strangepaths.Accounts.User)
     belongs_to(:avatar, Strangepaths.Accounts.Avatar)
+    belongs_to(:edited_by, Strangepaths.Accounts.User)
 
     timestamps()
   end
@@ -81,10 +82,11 @@ defmodule Strangepaths.Scenes.Post do
   """
   def edit_changeset(post, attrs) do
     post
-    |> cast(attrs, [:content, :ooc_content])
+    |> cast(attrs, [:content, :ooc_content, :edited_by_id])
     |> validate_required([:content])
     |> validate_length(:content, min: 1, max: 10000)
     |> validate_length(:ooc_content, max: 2000)
     |> put_change(:edited_at, DateTime.utc_now() |> DateTime.truncate(:second))
+    |> foreign_key_constraint(:edited_by_id)
   end
 end

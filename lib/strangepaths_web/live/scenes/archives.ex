@@ -2,6 +2,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
   use StrangepathsWeb, :live_view
 
   import StrangepathsWeb.MusicBroadcast
+  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 1, strip_glyphs: 1]
 
   alias Strangepaths.Scenes
   alias Strangepaths.Accounts
