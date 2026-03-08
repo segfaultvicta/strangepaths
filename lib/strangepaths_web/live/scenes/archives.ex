@@ -613,6 +613,16 @@ defmodule StrangepathsWeb.Scenes.Archives do
         true -> nil
       end
 
+      # Wrap entire post in gnosis label if the post has a color category
+      plain = case post.color_category do
+        "red" -> "[Burning]#{plain}[/Burning]"
+        "green" -> "[Flourishing]#{plain}[/Flourishing]"
+        "blue" -> "[Pellucid]#{plain}[/Pellucid]"
+        "white" -> "[Radiant]#{plain}[/Radiant]"
+        "black" -> "[Tenebrous]#{plain}[/Tenebrous]"
+        _ -> plain
+      end
+
       line = if author, do: "#{author} #{plain}", else: plain
 
       ooc = if post.ooc_content do
