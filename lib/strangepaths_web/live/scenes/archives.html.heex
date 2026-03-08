@@ -2,7 +2,7 @@
   <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold">Scene Archives</h1>
     <a href="/scenes" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition">
-      Back to Active Scenes
+      ← Active Scenes
     </a>
   </div>
 
@@ -11,7 +11,7 @@
     <div class="mb-4">
       <%= live_patch to: "/scenes/archives",
                         class: "flex-1 p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition" do %>
-        ← Back to Archive List woo
+        ← Archive List
       <% end %>
     </div>
 
@@ -62,115 +62,129 @@
           <% end %>
         </div>
 
-        <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon do %>
-          <%= if @selected_scene.locked_to_users != [] do %>
-            <button
-              phx-click="unlock_scene"
-              phx-value-scene-id={@selected_scene.id}
-              class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded font-semibold transition flex items-center gap-2"
-              data-confirm="Are you sure you want to make this scene publicly viewable?"
-            >
-              <i class="fa-solid fa-unlock"></i>
-              Unlock Scene
-            </button>
-          <% else %>
-            <%= if @locking_scene do %>
-              <form phx-submit="lock_scene" class="flex flex-col gap-2 items-end">
-                <select
-                  name="user_ids[]"
-                  multiple
-                  size="5"
-                  class="p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm min-w-48"
-                >
-                  <%= for user <- @all_users do %>
-                    <option value={user.id}><%= user.nickname %></option>
-                  <% end %>
-                </select>
-                <p class="text-xs text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-                <div class="flex gap-2">
-                  <button type="submit" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition">
-                    <i class="fa-solid fa-lock"></i> Lock
-                  </button>
-                  <button type="button" phx-click="cancel_lock_scene" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            <% else %>
+        <div class="flex items-start gap-2">
+          <button
+            id="copy-plaintext-btn"
+            phx-click="copy_plaintext"
+            phx-hook="CopyPlaintext"
+            class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition flex items-center gap-2"
+          >
+            <i class="fa-solid fa-copy"></i>
+            Copy as Text
+          </button>
+
+          <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon do %>
+            <%= if @selected_scene.locked_to_users != [] do %>
               <button
-                phx-click="show_lock_form"
-                class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition flex items-center gap-2"
+                phx-click="unlock_scene"
+                phx-value-scene-id={@selected_scene.id}
+                class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded font-semibold transition flex items-center gap-2"
+                data-confirm="Are you sure you want to make this scene publicly viewable?"
               >
-                <i class="fa-solid fa-lock"></i>
-                Lock Scene
+                <i class="fa-solid fa-unlock"></i>
+                Unlock Scene
               </button>
+            <% else %>
+              <%= if @locking_scene do %>
+                <form phx-submit="lock_scene" class="flex flex-col gap-2 items-end">
+                  <select
+                    name="user_ids[]"
+                    multiple
+                    size="5"
+                    class="p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm min-w-48"
+                  >
+                    <%= for user <- @all_users do %>
+                      <option value={user.id}><%= user.nickname %></option>
+                    <% end %>
+                  </select>
+                  <p class="text-xs text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                  <div class="flex gap-2">
+                    <button type="submit" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition">
+                      <i class="fa-solid fa-lock"></i> Lock
+                    </button>
+                    <button type="button" phx-click="cancel_lock_scene" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              <% else %>
+                <button
+                  phx-click="show_lock_form"
+                  class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-semibold transition flex items-center gap-2"
+                >
+                  <i class="fa-solid fa-lock"></i>
+                  Lock Scene
+                </button>
+              <% end %>
             <% end %>
           <% end %>
-        <% end %>
+        </div>
       </div>
 
       <%= if @posts && length(@posts) > 0 do %>
         <div id="posts-spacing">
-          <%= for post <- @posts do %>
-            <div id={"post-#{post.id}"} class={"post-container-icecylee " <> case post.post_type do
-              :narrative -> "post-container-narrative lyrics-alternate-font"
-              :system -> "post-container-system lyrics-alternate-font"
-              _ ->
-                color_classes = case post.color_category do
-                  "red" -> "text-burning-gnosis font-burning-gnosis"
-                  "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
-                  "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
-                  "white" -> "text-radiant-gnosis font-radiant-gnosis"
-                  "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
-                  _ -> ""
-                end
-                "post-container-post #{color_classes}"
-            end}>
-              <!-- Post Header -->
-              <%= if post.post_type not in [:narrative, :system] do %>
-                <div class="post-header-icecylee">
-                  <%= if post.avatar do %>
-                    <img
-                      src={post.avatar.filepath}
-                      alt="Avatar"
-                      class="post-avatar-icecylee"
-                    />
-                  <% end %>
-                </div>
-              <% end %>
-
-              <!-- Post Content -->
-              <div class="post-content-icecylee">
-                <div class="post-ic-content-icecylee">
-                  <span class="post-ic-authorspan">
-                    <%= cond do %>
-                      <% post.post_type == :system -> %>
-
-                      <% post.post_type == :narrative -> %>
-
-                      <% post.narrative_author_name != nil -> %>
-                        <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
-                      <% post.author_nickname -> %>
-                        <%= post.author_nickname %>
-                      <% post.user -> %>
-                        <%= post.user.nickname %>
-                      <% true -> %>
-                        Unknown
+            <%= for post <- @posts do %>
+              <div id={"post-#{post.id}"} class={"post-container-icecylee " <> case post.post_type do
+                :narrative -> "post-container-narrative lyrics-alternate-font"
+                :system -> "post-container-system lyrics-alternate-font"
+                _ ->
+                  color_classes = case post.color_category do
+                    "red" -> "text-burning-gnosis font-burning-gnosis"
+                    "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
+                    "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
+                    "white" -> "text-radiant-gnosis font-radiant-gnosis"
+                    "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
+                    _ -> ""
+                  end
+                  "post-container-post #{color_classes}"
+              end}>
+                <!-- Post Header -->
+                <%= if post.post_type not in [:narrative, :system] do %>
+                  <div class="post-header-icecylee">
+                    <%= if post.avatar do %>
+                      <img
+                        src={post.avatar.filepath}
+                        alt="Avatar"
+                        class="post-avatar-icecylee"
+                      />
                     <% end %>
-                  </span>
-                  <%= raw process_inline_glyphs(Earmark.as_html!(post.content || "", sub_sup: true)) %>
-                </div>
-
-                <!-- OOC Content -->
-                <%= if post.ooc_content do %>
-                  <div class="post-ooc-container">
-                    <hr class="post-ooc-divider-icecylee">
-                      <span class="post-ooc-content-icecylee"><%= post.ooc_content %></span>
                   </div>
                 <% end %>
+
+                <!-- Post Content -->
+                <div class="post-content-icecylee">
+                  <div class="post-ic-content-icecylee">
+                    <span class="post-ic-authorspan">
+                      <%= cond do %>
+                        <% post.post_type == :system -> %>
+
+                        <% post.post_type == :narrative -> %>
+
+                        <% post.user && post.user.role == :dragon && post.narrative_author_name == nil -> %>
+
+                        <% post.narrative_author_name != nil -> %>
+                          <span class="text-purple-700 dark:text-purple-300"><%= post.narrative_author_name %></span>
+                        <% post.author_nickname -> %>
+                          <%= post.author_nickname %>
+                        <% post.user -> %>
+                          <%= post.user.nickname %>
+                        <% true -> %>
+                          Unknown
+                      <% end %>
+                    </span>
+                    <%= raw process_inline_glyphs(Earmark.as_html!(post.content || "", sub_sup: true)) %>
+                  </div>
+
+                  <!-- OOC Content -->
+                  <%= if post.ooc_content do %>
+                    <div class="post-ooc-container">
+                      <hr class="post-ooc-divider-icecylee">
+                        <span class="post-ooc-content-icecylee"><%= post.ooc_content %></span>
+                    </div>
+                  <% end %>
+                </div>
               </div>
-            </div>
-          <% end %>
+            <% end %>
         </div>
       <% else %>
         <p class="text-gray-400">No posts found in this archive.</p>
@@ -180,7 +194,7 @@
     <div class="mb-4">
       <%= live_patch to: "/scenes/archives",
                         class: "flex-1 p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition" do %>
-        ← Back to Archive List woo
+        ← Archive List
       <% end %>
     </div>
   <% else %>

@@ -12,11 +12,30 @@ defmodule StrangepathsWeb.SceneHelpers do
     "ꙮ" => "inline-liminal"
   }
 
-  @doc """
-  Wraps text between matching glyph pairs in colored spans.
-  E.g. ⚗text⚗ becomes <span class="inline-burning-gnosis">text</span>
-  """
+  @glyph_labels %{
+    "⚗" => "Burning",
+    "ⵣ" => "Flourishing",
+    "⌬" => "Pellucid",
+    "☉" => "Radiant",
+    "ᛝ" => "Tenebrous",
+    "ꙮ" => "Liminal"
+  }
+
   @glyph_chars Map.keys(@glyph_styles)
+
+  @doc """
+  Replaces glyph pairs with readable plaintext labels.
+  E.g. ⚗text⚗ becomes [Burning]text[/Burning]
+  """
+  def process_inline_glyphs_plaintext(text) do
+    Enum.reduce(@glyph_labels, text, fn {glyph, label}, acc ->
+      Regex.replace(
+        ~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s,
+        acc,
+        "[#{label}]\\1[/#{label}]"
+      )
+    end)
+  end
 
   @doc """
   Removes glyph marker characters from text without adding styling.

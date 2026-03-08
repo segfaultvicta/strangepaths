@@ -2,7 +2,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
   use StrangepathsWeb, :live_view
 
   import StrangepathsWeb.MusicBroadcast
-  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 1, strip_glyphs: 1]
+  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 1, strip_glyphs: 1, process_inline_glyphs_plaintext: 1]
 
   alias Strangepaths.Scenes
   alias Strangepaths.Accounts
@@ -570,8 +570,60 @@ defmodule StrangepathsWeb.Scenes.Archives do
     end
   end
 
+  defp handle_archive_event("copy_plaintext", _params, socket) do
+    posts = cond do
+      socket.assigns.selected_scene ->
+        Scenes.list_posts_for_archive(socket.assigns.selected_scene.id)
+      socket.assigns.viewing_elsewhere && socket.assigns.selected_week ->
+        case List.keyfind(socket.assigns.elsewhere_weeks, socket.assigns.selected_week, 0) do
+          {_, posts} -> posts
+          nil -> []
+        end
+      true -> []
+    end
+
+    text = generate_plaintext(posts)
+    {:noreply, push_event(socket, "copy_to_clipboard", %{text: text})}
+  end
+
   defp handle_archive_event(_event, _params, socket) do
     {:noreply, socket}
+  end
+
+  defp generate_plaintext(posts) do
+    posts
+    |> Enum.map(fn post ->
+      content = post.content || ""
+      # Render markdown to HTML, then strip tags to get plain text
+      plain = content
+              |> Earmark.as_html!(sub_sup: true)
+              |> String.replace(~r/<br\s*\/?>/, "\n")
+              |> String.replace(~r/<\/p>\s*<p>/, "\n\n")
+              |> String.replace(~r/<[^>]+>/, "")
+              |> String.trim()
+              |> process_inline_glyphs_plaintext()
+
+      author = cond do
+        post.post_type == :system -> "[System]"
+        post.post_type == :narrative -> nil
+        post.narrative_author_name != nil -> "**#{post.narrative_author_name}**"
+        post.user && post.user.role == :dragon && post.narrative_author_name == nil -> nil
+        post.author_nickname -> "**#{post.author_nickname}**"
+        post.user -> "**#{post.user.nickname}**"
+        true -> nil
+      end
+
+      line = if author, do: "#{author} #{plain}", else: plain
+
+      ooc = if post.ooc_content do
+        "\n(OOC: #{post.ooc_content})"
+      else
+        ""
+      end
+
+      "#{line}#{ooc}"
+    end)
+    |> Enum.join("\n\n")
   end
 
   @impl true

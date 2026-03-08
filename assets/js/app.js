@@ -1579,6 +1579,20 @@ Hooks.CreateConnectionButton = {
     }
 };
 
+Hooks.CopyPlaintext = {
+    mounted() {
+        this.handleEvent("copy_to_clipboard", ({text}) => {
+            navigator.clipboard.writeText(text).then(() => {
+                // Brief flash on the button
+                const btn = this.el;
+                const original = btn.textContent;
+                btn.textContent = "Copied!";
+                setTimeout(() => { btn.textContent = original; }, 1500);
+            });
+        });
+    }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {
