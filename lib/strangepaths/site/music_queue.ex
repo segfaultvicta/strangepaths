@@ -28,6 +28,11 @@ defmodule Strangepaths.Site.MusicQueue do
     GenServer.call(__MODULE__, :clear_queue)
   end
 
+  @doc "Toggle repeat mode"
+  def toggle_repeat do
+    GenServer.call(__MODULE__, :toggle_repeat)
+  end
+
   # Server Callbacks
 
   @impl true
@@ -41,7 +46,8 @@ defmodule Strangepaths.Site.MusicQueue do
        started_at: nil,
        queue: [],
        history: [],
-       timer_ref: nil
+       timer_ref: nil,
+       repeat: false
      }}
   end
 
@@ -65,8 +71,8 @@ defmodule Strangepaths.Site.MusicQueue do
             broadcast_now_playing(queue_item, 0)
             %{state | now_playing: queue_item, started_at: started_at}
           else
-            # Add to queue
-            %{state | queue: state.queue ++ [queue_item]}
+            # Add to queue — turn off repeat since someone queued something new
+            %{state | queue: state.queue ++ [queue_item], repeat: false}
           end
 
         broadcast_queue_update(new_state)
@@ -123,10 +129,18 @@ defmodule Strangepaths.Site.MusicQueue do
         now_playing: nil,
         started_at: nil,
         history: history,
-        timer_ref: nil
+        timer_ref: nil,
+        repeat: false
     }
 
     broadcast_stopped()
+    broadcast_queue_update(new_state)
+    {:reply, {:ok, new_state}, new_state}
+  end
+
+  @impl true
+  def handle_call(:toggle_repeat, _from, state) do
+    new_state = %{state | repeat: !state.repeat}
     broadcast_queue_update(new_state)
     {:reply, {:ok, new_state}, new_state}
   end
@@ -186,9 +200,32 @@ defmodule Strangepaths.Site.MusicQueue do
     new_state =
       case state.queue do
         [] ->
-          # Queue empty, stop playing
-          broadcast_stopped()
-          %{state | now_playing: nil, started_at: nil, history: history, timer_ref: nil}
+          if state.repeat and state.now_playing != nil do
+            # Repeat mode: restart the same song
+            restarted = %{
+              song: state.now_playing.song,
+              queued_by: state.now_playing.queued_by,
+              queued_at: DateTime.utc_now()
+            }
+
+            started_at = DateTime.utc_now()
+            broadcast_now_playing(restarted, 0)
+
+            timer_ref =
+              Process.send_after(self(), :auto_advance, :timer.minutes(5) + :timer.seconds(10))
+
+            %{
+              state
+              | now_playing: restarted,
+                started_at: started_at,
+                history: history,
+                timer_ref: timer_ref
+            }
+          else
+            # Queue empty, stop playing
+            broadcast_stopped()
+            %{state | now_playing: nil, started_at: nil, history: history, timer_ref: nil}
+          end
 
         [next | rest] ->
           # Play next song from the beginning
@@ -241,7 +278,8 @@ defmodule Strangepaths.Site.MusicQueue do
     StrangepathsWeb.Endpoint.broadcast("music:broadcast", "queue_update", %{
       now_playing: format_queue_item(state.now_playing),
       queue: Enum.map(state.queue, &format_queue_item/1),
-      queue_length: length(state.queue)
+      queue_length: length(state.queue),
+      repeat: state.repeat
     })
   end
 

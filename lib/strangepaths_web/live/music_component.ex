@@ -80,6 +80,10 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
             <button id="emit_message" phx-click="emit_message" class="">🎉</button>
           <% end %>
 
+          <button id="toggle_repeat" phx-click="toggle_repeat" class={"text-sm " <> if(@music_queue.repeat, do: "text-purple-400", else: "text-gray-600 hover:text-gray-400")} title={if(@music_queue.repeat, do: "Repeat: ON", else: "Repeat: OFF")}>
+            ⟳
+          </button>
+
           <button id="manual-play-btn" class="hidden text-purple-600">
             ▶
           </button>

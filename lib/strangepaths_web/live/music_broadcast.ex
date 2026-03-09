@@ -69,6 +69,12 @@ defmodule StrangepathsWeb.MusicBroadcast do
     {:noreply, socket}
   end
 
+  def forward_music_client_event("toggle_repeat", _, socket) do
+    Strangepaths.Site.MusicQueue.toggle_repeat()
+
+    {:noreply, socket}
+  end
+
   def forward_music_client_event(_event, _params, _socket) do
     :not_music_event
   end

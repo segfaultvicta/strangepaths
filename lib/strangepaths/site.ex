@@ -170,6 +170,10 @@ defmodule Strangepaths.Site do
     MusicQueue.next_song(song_id)
   end
 
+  def toggle_repeat do
+    MusicQueue.toggle_repeat()
+  end
+
   # Admin functions for song management
 
   @doc """
