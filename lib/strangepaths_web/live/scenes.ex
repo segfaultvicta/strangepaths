@@ -12,7 +12,7 @@ defmodule StrangepathsWeb.Scenes do
 
   alias StrangepathsWeb.Endpoint, as: E
 
-  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 1]
+  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 2]
 
   @impl true
   def mount(_params, session, socket) do

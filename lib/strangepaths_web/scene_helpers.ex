@@ -23,22 +23,10 @@ defmodule StrangepathsWeb.SceneHelpers do
 
   @glyph_chars Map.keys(@glyph_styles)
 
-  @narrative_placeholder "\0GNARR\0"
   @escape_placeholders @glyph_chars
                         |> Enum.with_index()
                         |> Enum.map(fn {glyph, i} -> {glyph, "\0GESC_#{i}\0"} end)
                         |> Map.new()
-
-  defp protect_narrative(text) do
-    if String.starts_with?(text, "ꙮ ") do
-      {@narrative_placeholder <> String.slice(text, 2..-1//1), true}
-    else
-      {text, false}
-    end
-  end
-
-  defp restore_narrative(text, true), do: String.replace(text, @narrative_placeholder, "ꙮ ")
-  defp restore_narrative(text, false), do: text
 
   defp protect_escapes(text) do
     Enum.reduce(@escape_placeholders, text, fn {glyph, placeholder}, acc ->
@@ -64,9 +52,7 @@ defmodule StrangepathsWeb.SceneHelpers do
   Escaped glyphs like [⚗] render as the literal character.
   Unpaired glyphs are silently stripped.
   """
-  def process_inline_glyphs_plaintext(text) do
-    {text, narr?} = protect_narrative(text)
-
+  def process_inline_glyphs_plaintext(text, opts \\ []) do
     text
     |> protect_escapes()
     |> then(fn t ->
@@ -78,9 +64,8 @@ defmodule StrangepathsWeb.SceneHelpers do
         )
       end)
     end)
-    |> strip_bare_glyphs()
+    |> maybe_strip_bare_glyphs(opts)
     |> restore_escapes()
-    |> restore_narrative(narr?)
   end
 
   @doc """
@@ -88,23 +73,18 @@ defmodule StrangepathsWeb.SceneHelpers do
   Escaped glyphs like [⚗] are preserved as literal characters.
   """
   def strip_glyphs(text) do
-    {text, narr?} = protect_narrative(text)
-
     text
     |> protect_escapes()
     |> strip_bare_glyphs()
     |> restore_escapes()
-    |> restore_narrative(narr?)
   end
 
   @doc """
   Replaces glyph pairs with styled HTML spans.
   Escaped glyphs like [⚗] render as the literal character.
-  Unpaired glyphs are silently stripped.
+  Unpaired glyphs are silently stripped unless `narrative: true` is passed.
   """
-  def process_inline_glyphs(html) do
-    {html, narr?} = protect_narrative(html)
-
+  def process_inline_glyphs(html, opts \\ []) do
     html
     |> protect_escapes()
     |> then(fn t ->
@@ -116,8 +96,11 @@ defmodule StrangepathsWeb.SceneHelpers do
         )
       end)
     end)
-    |> strip_bare_glyphs()
+    |> maybe_strip_bare_glyphs(opts)
     |> restore_escapes()
-    |> restore_narrative(narr?)
+  end
+
+  defp maybe_strip_bare_glyphs(text, opts) do
+    if Keyword.get(opts, :narrative, false), do: text, else: strip_bare_glyphs(text)
   end
 end

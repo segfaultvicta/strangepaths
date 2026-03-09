@@ -2,7 +2,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
   use StrangepathsWeb, :live_view
 
   import StrangepathsWeb.MusicBroadcast
-  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 1, strip_glyphs: 1, process_inline_glyphs_plaintext: 1]
+  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 2, strip_glyphs: 1, process_inline_glyphs_plaintext: 2]
 
   alias Strangepaths.Scenes
   alias Strangepaths.Accounts
@@ -601,7 +601,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
               |> String.replace(~r/<\/p>\s*<p>/, "\n\n")
               |> String.replace(~r/<[^>]+>/, "")
               |> String.trim()
-              |> process_inline_glyphs_plaintext()
+              |> process_inline_glyphs_plaintext(narrative: post.post_type == :narrative)
 
       author = cond do
         post.post_type == :system -> "[System]"

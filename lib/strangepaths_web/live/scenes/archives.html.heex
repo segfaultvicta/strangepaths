@@ -172,7 +172,7 @@
                           Unknown
                       <% end %>
                     </span>
-                    <%= raw process_inline_glyphs(Earmark.as_html!(post.content || "", sub_sup: true)) %>
+                    <%= raw process_inline_glyphs(Earmark.as_html!(post.content || "", sub_sup: true), narrative: post.post_type == :narrative) %>
                   </div>
 
                   <!-- OOC Content -->

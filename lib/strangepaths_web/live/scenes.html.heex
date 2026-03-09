@@ -198,7 +198,7 @@
                               Unknown
                           <% end %>
                         </span>
-                          <%= raw process_card_references(process_inline_glyphs(Earmark.as_html!(post.content, sub_sup: true)), @card_lookup) %>
+                          <%= raw process_card_references(process_inline_glyphs(Earmark.as_html!(post.content, sub_sup: true), narrative: post.post_type == :narrative), @card_lookup) %>
                         <%= if post.edited_at do %>
                           <span class="text-xs italic text-gray-400 ml-1">(edited)</span>
                         <% end %>
