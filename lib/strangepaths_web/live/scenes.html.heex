@@ -267,16 +267,26 @@
               <% end %>
               <!-- Composer Column (flex-1) -->
               <div class="flex-1">
-                <textarea
-                  id="post-content-input-chat"
-                  name="content"
-                  data-scene-id={@current_scene.id}
-                  placeholder="Write your post..."
-                  class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none"
-                  rows="2"
-                  required
-                  phx-hook="PostContentInput"
-                ><%= @post_content %></textarea>
+                <div class="relative">
+                  <div id="grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="post-content-input-chat" tabindex="-1">
+                    <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
+                    <div class="grimoire-popover" style="display:none;">
+                      <div class="grimoire-glyphs"></div>
+                      <button type="button" class="grimoire-add-btn">+</button>
+                      <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                    </div>
+                  </div>
+                  <textarea
+                    id="post-content-input-chat"
+                    name="content"
+                    data-scene-id={@current_scene.id}
+                    placeholder="Write your post..."
+                    class="w-full p-2 bg-gray-100 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white resize-none"
+                    rows="2"
+                    required
+                    phx-hook="PostContentInput"
+                  ><%= @post_content %></textarea>
+                </div>
 
                 <%= if @role == :user or (@role == :dragon && !@narrative_mode) do %>
                   <textarea

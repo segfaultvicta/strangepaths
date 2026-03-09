@@ -1850,6 +1850,11 @@ a:hover {
   background-color: rgb(220 38 38 / var(--tw-bg-opacity));
 }
 
+.bg-purple-600 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+
 .bg-yellow-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(202 138 4 / var(--tw-bg-opacity));
@@ -1878,11 +1883,6 @@ a:hover {
 .bg-blue-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(37 99 235 / var(--tw-bg-opacity));
-}
-
-.bg-purple-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(147 51 234 / var(--tw-bg-opacity));
 }
 
 .bg-black\/60 {
@@ -4741,6 +4741,121 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .tippy-box[data-theme~=card-reference] .tippy-arrow {
   display: none;
+}
+
+/* Grimoire glyph input helper */
+
+.grimoire-trigger {
+  position: absolute;
+  bottom: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  color: #6b21a8;
+  opacity: 0.25;
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px;
+  transition: opacity 0.2s;
+}
+
+.grimoire-trigger:hover {
+  opacity: 0.7;
+}
+
+.dark .grimoire-trigger {
+  color: #a78bfa;
+}
+
+.grimoire-popover {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  background: #1e1b2e;
+  border: 1px solid #4c1d95;
+  border-radius: 6px;
+  padding: 8px;
+  z-index: 50;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.grimoire-glyphs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.grimoire-glyph-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.grimoire-glyph-btn {
+  background: #2d2640;
+  border: 1px solid #6d28d9;
+  border-radius: 4px;
+  color: #e9d5ff;
+  font-size: 24px;
+  padding: 6px 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.grimoire-glyph-btn:hover {
+  background: #4c1d95;
+}
+
+.grimoire-glyph-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #7f1d1d;
+  color: #fecaca;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.grimoire-glyph-wrapper:hover .grimoire-glyph-remove {
+  opacity: 1;
+}
+
+.grimoire-add-input {
+  width: 38px;
+  background: #2d2640;
+  border: 1px solid #4c1d95;
+  border-radius: 3px;
+  color: #e9d5ff;
+  padding: 4px 6px;
+  font-size: 22px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.grimoire-add-btn {
+  background: #4c1d95;
+  border: none;
+  border-radius: 3px;
+  color: #e9d5ff;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.grimoire-add-btn:hover {
+  background: #6d28d9;
 }
 
 /* Resizable column drag handles */

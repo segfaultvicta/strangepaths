@@ -196,6 +196,11 @@ Hooks.PostContentInput = {
                 e.preventDefault();
                 this.pushEvent("toggle_narrative_mode", {});
             }
+
+            if (e.key === "g" && e.ctrlKey) {
+                e.preventDefault();
+                document.dispatchEvent(new Event("grimoire:toggle"));
+            }
         });
     },
 
@@ -228,6 +233,230 @@ Hooks.PostContentInput = {
 
     destroyed() {
         clearTimeout(this.typingTimer);
+    }
+}
+
+Hooks.Grimoire = {
+    mounted() {
+        this.textareaId = this.el.dataset.textareaId;
+        this.trigger = this.el.querySelector(".grimoire-trigger");
+        this.popover = this.el.querySelector(".grimoire-popover");
+        this.glyphsContainer = this.el.querySelector(".grimoire-glyphs");
+        this.addInput = this.el.querySelector(".grimoire-add-input");
+        this.addBtn = this.el.querySelector(".grimoire-add-btn");
+        this.selectedIndex = 0;
+
+        this.loadGlyphs();
+        this.renderGlyphs();
+
+        // Toggle popover on trigger click
+        this.trigger.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.togglePopover();
+        });
+
+        // + button reveals the add input
+        this.addBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showAddInput();
+        });
+
+        // Add input: Enter saves, Escape cancels
+        this.addInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                this.addGlyph();
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                this.hideAddInput();
+            }
+        });
+
+        // Arrow key + Escape navigation on the popover
+        this.popover.addEventListener("keydown", (e) => {
+            if (this.addInput.style.display !== "none") return; // input is open, don't nav
+            const items = this.getNavItems();
+            if (!items.length) return;
+
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                e.preventDefault();
+                this.selectedIndex = (this.selectedIndex + 1) % items.length;
+                this.focusSelected(items);
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                e.preventDefault();
+                this.selectedIndex = (this.selectedIndex - 1 + items.length) % items.length;
+                this.focusSelected(items);
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                items[this.selectedIndex]?.click();
+            } else if (e.key === "Escape") {
+                e.preventDefault();
+                this.closePopover();
+            }
+        });
+
+        // Close popover on outside click
+        this._outsideClick = (e) => {
+            if (this.popover.style.display !== "none" && !this.el.contains(e.target)) {
+                this.popover.style.display = "none";
+            }
+        };
+        document.addEventListener("click", this._outsideClick);
+
+        // Listen for grimoire:toggle from Ctrl+G
+        this._toggleHandler = () => this.togglePopover();
+        document.addEventListener("grimoire:toggle", this._toggleHandler);
+    },
+
+    destroyed() {
+        document.removeEventListener("click", this._outsideClick);
+        document.removeEventListener("grimoire:toggle", this._toggleHandler);
+    },
+
+    getNavItems() {
+        // All glyph buttons + the add button, in DOM order
+        const btns = Array.from(this.glyphsContainer.querySelectorAll(".grimoire-glyph-btn"));
+        btns.push(this.addBtn);
+        return btns;
+    },
+
+    focusSelected(items) {
+        items = items || this.getNavItems();
+        if (items[this.selectedIndex]) {
+            items[this.selectedIndex].focus();
+        }
+    },
+
+    loadGlyphs() {
+        try {
+            this.glyphs = JSON.parse(localStorage.getItem("grimoire_glyphs") || "[]");
+        } catch { this.glyphs = []; }
+    },
+
+    saveGlyphs() {
+        localStorage.setItem("grimoire_glyphs", JSON.stringify(this.glyphs));
+    },
+
+    togglePopover() {
+        if (this.popover.style.display === "none") {
+            this.loadGlyphs();
+            this.renderGlyphs();
+            this.hideAddInput();
+            this.popover.style.display = "block";
+            // Select first glyph if any exist, otherwise the + button
+            this.selectedIndex = 0;
+            this.focusSelected();
+        } else {
+            this.closePopover();
+        }
+    },
+
+    closePopover() {
+        this.popover.style.display = "none";
+        this.hideAddInput();
+        const textarea = document.getElementById(this.textareaId);
+        if (textarea) textarea.focus();
+    },
+
+    showAddInput() {
+        this.addInput.style.display = "block";
+        this.addInput.value = "";
+        this.addInput.focus();
+    },
+
+    hideAddInput() {
+        this.addInput.style.display = "none";
+        this.addInput.value = "";
+    },
+
+    renderGlyphs() {
+        this.glyphsContainer.innerHTML = "";
+        this.glyphs.forEach((g, i) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "grimoire-glyph-btn";
+            btn.textContent = g.glyph;
+            btn.tabIndex = -1; // managed by arrow keys
+
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                this.insertGlyph(g.glyph);
+            });
+
+            // Right-click to remove
+            btn.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                this.glyphs.splice(i, 1);
+                this.saveGlyphs();
+                this.renderGlyphs();
+                this.selectedIndex = Math.min(this.selectedIndex, this.getNavItems().length - 1);
+                this.focusSelected();
+            });
+
+            // Remove button
+            const removeBtn = document.createElement("span");
+            removeBtn.className = "grimoire-glyph-remove";
+            removeBtn.textContent = "\u00d7";
+            removeBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.glyphs.splice(i, 1);
+                this.saveGlyphs();
+                this.renderGlyphs();
+                this.selectedIndex = Math.min(this.selectedIndex, this.getNavItems().length - 1);
+                this.focusSelected();
+            });
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "grimoire-glyph-wrapper";
+            wrapper.appendChild(btn);
+            wrapper.appendChild(removeBtn);
+            this.glyphsContainer.appendChild(wrapper);
+        });
+    },
+
+    addGlyph() {
+        const glyph = this.addInput.value.trim();
+        if (!glyph) return;
+        this.glyphs.push({ glyph });
+        this.saveGlyphs();
+        this.renderGlyphs();
+        this.hideAddInput();
+        // Select the newly added glyph (last one before the + button)
+        this.selectedIndex = this.glyphs.length - 1;
+        this.focusSelected();
+    },
+
+    insertGlyph(glyph) {
+        const textarea = document.getElementById(this.textareaId);
+        if (!textarea) return;
+
+        textarea.focus();
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+
+        if (start !== end) {
+            // Wrap selection
+            const selected = text.substring(start, end);
+            const newText = text.substring(0, start) + glyph + selected + glyph + text.substring(end);
+            textarea.value = newText;
+            textarea.selectionStart = start;
+            textarea.selectionEnd = end + glyph.length * 2;
+        } else {
+            // Insert pair, cursor between
+            const newText = text.substring(0, start) + glyph + glyph + text.substring(start);
+            textarea.value = newText;
+            textarea.selectionStart = textarea.selectionEnd = start + glyph.length;
+        }
+
+        // Trigger input event so draft-save fires
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        this.popover.style.display = "none";
+        this.hideAddInput();
+        textarea.focus();
     }
 }
 

@@ -453,14 +453,16 @@ defmodule StrangepathsWeb.Scenes do
 
         content = "*" <> transform_quotes(content) <> "*"
 
-        # Strip leading whitespace after paragraph-break italic markers so
-        # Earmark doesn't interpret "* " at the start of a line as a bullet list
-        content = Regex.replace(~r/(\n+\*)[ \t]+/, content, "\\1")
+        # Strip leading whitespace after italic markers (at start of content
+        # or after paragraph breaks) so Earmark doesn't interpret "* " as a bullet list
+        content = Regex.replace(~r/((?:^|\n+)\*)[ \t]+/, content, "\\1")
 
-        # if the last two characters of content are "**" preceded by a """,
-        # remove the final asterisks.
+        # If content ends with "**", the outer wrapping asterisk has collided
+        # with a user asterisk (e.g. “this is *stupid*” → “*this is *stupid**”).
+        # Remove the trailing "**" — the user's closing asterisk already closed
+        # the italic span, so the extras are just orphaned literal asterisks.
         content =
-          if String.ends_with?(content, "”**") do
+          if String.ends_with?(content, "**") do
             String.slice(content, 0..-3//1)
           else
             content
