@@ -67,6 +67,18 @@
             </select>
           </label>
         </div>
+
+        <div>
+          <label class="block mb-2">
+            <span class="text-gray-300">Grant to player:</span>
+            <select name="granted_user_id" class="w-full mt-1 bg-gray-700 text-gray-100 border border-gray-600 rounded px-3 py-2">
+              <option value="">None</option>
+              <%= for user <- @users do %>
+                <option value={user.id}><%= user.nickname %></option>
+              <% end %>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="flex gap-2 mt-4">
@@ -120,6 +132,13 @@
                   <option value="false" selected={!avatar.public}>GM Only</option>
                 </select>
 
+                <select name="granted_user_id" class="w-full bg-gray-700 text-gray-100 text-sm border border-gray-600 rounded px-2 py-1">
+                  <option value="">No grant</option>
+                  <%= for user <- @users do %>
+                    <option value={user.id} selected={avatar.granted_user_id == user.id}><%= user.nickname %></option>
+                  <% end %>
+                </select>
+
                 <div class="flex gap-1">
                   <button type="submit" class="flex-1 px-2 py-1 bg-green-600 hover:bg-green-500 rounded text-xs">
                     Save
@@ -136,6 +155,9 @@
               <div class="text-xs text-gray-400 mb-1">
                 <%= if !avatar.public do %>
                   <span class="px-1 bg-red-600 text-white rounded">GM</span>
+                <% end %>
+                <%= if avatar.granted_user_id do %>
+                  <span class="px-1 bg-purple-600 text-white rounded">+ <%= @users_by_id[avatar.granted_user_id] && @users_by_id[avatar.granted_user_id].nickname %></span>
                 <% end %>
               </div>
 

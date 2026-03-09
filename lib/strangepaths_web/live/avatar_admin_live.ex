@@ -8,8 +8,13 @@ defmodule StrangepathsWeb.AvatarAdminLive do
     socket = assign_defaults(session, socket)
 
     if socket.assigns.current_user.role == :dragon do
+      users =
+        Accounts.list_users()
+        |> Enum.reject(&(&1.role == :dragon))
+
       {:ok,
        socket
+       |> assign(:users, users)
        |> assign_avatars()
        |> assign(:editing_avatar, nil)
        |> assign(:creating_avatar, false)
@@ -39,11 +44,19 @@ defmodule StrangepathsWeb.AvatarAdminLive do
     filepath = handle_avatar_upload(socket)
 
     if filepath do
+      granted_user_id =
+        case params["granted_user_id"] do
+          "" -> nil
+          nil -> nil
+          id -> String.to_integer(id)
+        end
+
       attrs = %{
         filepath: filepath,
         category: params["category"],
         display_name: params["display_name"],
-        public: params["public"] == "true"
+        public: params["public"] == "true",
+        granted_user_id: granted_user_id
       }
 
       case Accounts.create_avatar(attrs) do
@@ -73,10 +86,18 @@ defmodule StrangepathsWeb.AvatarAdminLive do
   def handle_event("update", params, socket) do
     avatar = Accounts.get_avatar!(params["id"])
 
+    granted_user_id =
+      case params["granted_user_id"] do
+        "" -> nil
+        nil -> nil
+        id -> String.to_integer(id)
+      end
+
     attrs = %{
       category: params["category"],
       display_name: params["display_name"],
-      public: params["public"] == "true"
+      public: params["public"] == "true",
+      granted_user_id: granted_user_id
     }
 
     case Accounts.update_avatar(avatar, attrs) do
@@ -116,6 +137,7 @@ defmodule StrangepathsWeb.AvatarAdminLive do
 
   defp assign_avatars(socket) do
     avatars = Accounts.list_avatars()
+    users_by_id = Map.new(socket.assigns.users, &{&1.id, &1})
 
     avatars_by_category =
       avatars
@@ -127,6 +149,7 @@ defmodule StrangepathsWeb.AvatarAdminLive do
     socket
     |> assign(:avatars_by_category, avatars_by_category)
     |> assign(:categories, categories)
+    |> assign(:users_by_id, users_by_id)
   end
 
   defp handle_avatar_upload(socket) do

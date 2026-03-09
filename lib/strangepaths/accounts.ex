@@ -752,7 +752,10 @@ defmodule Strangepaths.Accounts do
       if user.role == :dragon do
         from(a in Avatar, order_by: [a.category, a.filepath])
       else
-        from(a in Avatar, where: a.public == true, order_by: [a.category, a.filepath])
+        from(a in Avatar,
+          where: a.public == true or a.granted_user_id == ^user.id,
+          order_by: [a.category, a.filepath]
+        )
       end
 
     Repo.all(query)
