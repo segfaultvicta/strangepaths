@@ -1651,7 +1651,11 @@ defmodule StrangepathsWeb.Scenes do
       ooc = Map.get(params, "ooc_content", "")
       ooc = if String.trim(ooc) == "", do: nil, else: String.trim(ooc)
 
-      case Scenes.update_post(post, %{content: String.trim(content), ooc_content: ooc, edited_by_id: socket.assigns.current_user.id}) do
+      case Scenes.update_post(post, %{
+             content: String.trim(content),
+             ooc_content: ooc,
+             edited_by_id: socket.assigns.current_user.id
+           }) do
         {:ok, updated_post} ->
           posts =
             Enum.map(socket.assigns.posts, fn p ->
@@ -1721,7 +1725,10 @@ defmodule StrangepathsWeb.Scenes do
 
   defp can_edit_post?(%{post_type: :system}, _user), do: false
   defp can_edit_post?(_post, %{role: :dragon}), do: true
-  defp can_edit_post?(%{edited_by_id: edited_by_id, user_id: user_id}, _user) when edited_by_id != nil and edited_by_id != user_id, do: false
+
+  defp can_edit_post?(%{edited_by_id: edited_by_id, user_id: user_id}, _user)
+       when edited_by_id != nil and edited_by_id != user_id, do: false
+
   defp can_edit_post?(%{user_id: post_user_id}, %{id: user_id}), do: post_user_id == user_id
   defp can_edit_post?(_, _), do: false
 
@@ -1882,35 +1889,61 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp transform_quotes(text) do
+    glyph_set = MapSet.new(StrangepathsWeb.SceneHelpers.glyph_chars())
     text = Regex.replace(~r/\R+/, text, "\n")
 
     return =
       text
       |> String.trim_trailing()
       |> String.graphemes()
-      |> Enum.reduce({[], false}, fn char, {acc, in_quote} ->
+      |> Enum.reduce({[], false, false}, fn char, {acc, in_quote, pending_star} ->
+        is_glyph = MapSet.member?(glyph_set, char)
+
+        # If we have a pending star and hit a non-glyph, flush it now
+        {acc, pending_star} =
+          if pending_star and not is_glyph do
+            {acc ++ ["*"], false}
+          else
+            {acc, pending_star}
+          end
+
         case char do
           "\"" when in_quote ->
-            # Closing quote - add italic marker after the quote
-            {acc ++ ["\”", "*"], false}
+            # Closing quote - defer italic-reopen past any following glyph
+            acc = if pending_star, do: acc ++ ["*"], else: acc
+            {acc ++ ["\""], false, true}
 
           "\"" when not in_quote ->
-            # Opening quote - add italic marker before the quote
-            {acc ++ ["*", "\“"], true}
+            # Opening quote - pull italic marker before any trailing glyphs
+            acc = if pending_star, do: acc ++ ["*"], else: acc
+            {glyphs, rest} = split_trailing_glyphs(acc, glyph_set)
+            {rest ++ ["*"] ++ glyphs ++ ["\""], true, false}
 
           "\n" ->
-            {acc ++ ["*", "\n", "\n", "\n", "*"], in_quote}
+            acc = if pending_star, do: acc ++ ["*"], else: acc
+            {acc ++ ["*", "\n", "\n", "\n", "*"], in_quote, false}
 
-          other ->
-            {acc ++ [other], in_quote}
+          _ ->
+            {acc ++ [char], in_quote, pending_star}
         end
       end)
-      |> elem(0)
+      |> then(fn {acc, _in_quote, pending_star} ->
+        if pending_star, do: acc ++ ["*"], else: acc
+      end)
       |> Enum.join()
       |> String.replace("\n\n\n**\“", "\n\n\n\“")
       |> String.replace("\”**\n\n\n", "\”\n\n\n")
 
     return
+  end
+
+  defp split_trailing_glyphs(acc, glyph_set) do
+    {glyphs_rev, rest_rev} =
+      acc
+      |> Enum.reverse()
+      |> Enum.split_while(&MapSet.member?(glyph_set, &1))
+
+    {Enum.reverse(glyphs_rev), Enum.reverse(rest_rev)}
   end
 
   defp color_lookup(color) do
@@ -1994,7 +2027,6 @@ defmodule StrangepathsWeb.Scenes do
   # Derive the base title from current_scene (without any unread prefix)
   defp base_title(%{assigns: %{current_scene: nil}}), do: "Stillness"
   defp base_title(%{assigns: %{current_scene: scene}}), do: scene.name
-
 
   defp build_card_lookup do
     import Ecto.Query, warn: false

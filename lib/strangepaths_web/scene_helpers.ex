@@ -23,6 +23,8 @@ defmodule StrangepathsWeb.SceneHelpers do
 
   @glyph_chars Map.keys(@glyph_styles)
 
+  def glyph_chars, do: @glyph_chars
+
   @escape_placeholders @glyph_chars
                         |> Enum.with_index()
                         |> Enum.map(fn {glyph, i} -> {glyph, "\0GESC_#{i}\0"} end)
