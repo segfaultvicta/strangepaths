@@ -2514,6 +2514,10 @@ a:hover {
   font-style: italic;
 }
 
+.not-italic {
+  font-style: normal;
+}
+
 .leading-tight {
   line-height: 1.25;
 }

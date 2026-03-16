@@ -27,7 +27,7 @@ defmodule StrangepathsWeb.SceneHelpers do
 
   @escape_placeholders @glyph_chars
                         |> Enum.with_index()
-                        |> Enum.map(fn {glyph, i} -> {glyph, "\0GESC_#{i}\0"} end)
+                        |> Enum.map(fn {glyph, i} -> {glyph, "GLYPHESC#{i}GLYPHESC"} end)
                         |> Map.new()
 
   defp protect_escapes(text) do
@@ -82,24 +82,64 @@ defmodule StrangepathsWeb.SceneHelpers do
   end
 
   @doc """
-  Replaces glyph pairs with styled HTML spans.
+  Renders post content: processes glyph pairs before Earmark so that
+  markdown inside glyph spans doesn't interfere with the outer *...* italic
+  wrapping applied to IC posts.
+
   Escaped glyphs like [⚗] render as the literal character.
   Unpaired glyphs are silently stripped unless `narrative: true` is passed.
   """
-  def process_inline_glyphs(html, opts \\ []) do
-    html
-    |> protect_escapes()
-    |> then(fn t ->
-      Enum.reduce(@glyph_styles, t, fn {glyph, class}, acc ->
-        Regex.replace(
-          ~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s,
-          acc,
-          "<span class=\"#{class}\">\\1</span>"
-        )
-      end)
-    end)
+  def render_post_content(content, opts \\ []) do
+    {tokenized, token_map} =
+      content
+      |> protect_escapes()
+      |> extract_glyph_tokens()
+
+    tokenized
+    |> Earmark.as_html!(sub_sup: true)
+    |> restore_glyph_tokens(token_map)
     |> maybe_strip_bare_glyphs(opts)
     |> restore_escapes()
+    |> deitalicize_nested_ems()
+  end
+
+  defp extract_glyph_tokens(text) do
+    Enum.reduce(@glyph_styles, {text, %{}}, fn {glyph, class}, {acc_text, acc_tokens} ->
+      pattern = ~r/#{Regex.escape(glyph)}(.*?)#{Regex.escape(glyph)}/s
+
+      Regex.scan(pattern, acc_text)
+      |> Enum.reduce({acc_text, acc_tokens}, fn [full_match, content], {t, m} ->
+        token = "GLYPHTOKEN#{map_size(m)}GLYPHTOKEN"
+        {String.replace(t, full_match, token, global: false), Map.put(m, token, {content, class})}
+      end)
+    end)
+  end
+
+  defp restore_glyph_tokens(html, token_map) do
+    Enum.reduce(token_map, html, fn {token, {content, class}}, acc ->
+      inner =
+        content
+        |> Earmark.as_html!(sub_sup: true)
+        |> String.replace("<p>", "")
+        |> String.replace("</p>", "")
+        |> String.trim()
+
+      String.replace(acc, token, "<span class=\"#{class}\">#{inner}</span>")
+    end)
+  end
+
+  defp deitalicize_nested_ems(html) do
+    {parts, _depth} =
+      html
+      |> String.split(~r/(<\/?em>)/, include_captures: true)
+      |> Enum.map_reduce(0, fn
+        "<em>", depth when depth > 0 -> {"<em style=\"font-style:normal\">", depth + 1}
+        "<em>", depth -> {"<em>", depth + 1}
+        "</em>", depth -> {"</em>", max(depth - 1, 0)}
+        other, depth -> {other, depth}
+      end)
+
+    Enum.join(parts)
   end
 
   defp maybe_strip_bare_glyphs(text, opts) do

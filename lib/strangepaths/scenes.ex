@@ -576,10 +576,9 @@ defmodule Strangepaths.Scenes do
   end
 
   @doc """
-  Checks if a user can create scenes (Dragon only).
+  Checks if a user can create scenes.
   """
-  def can_create_scene?(%User{role: :dragon}), do: true
-  def can_create_scene?(_user), do: false
+  def can_create_scene?(%User{}), do: true
 
   @doc """
   Returns a list of users who can post in the given scene.

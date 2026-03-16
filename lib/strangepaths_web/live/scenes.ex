@@ -12,7 +12,7 @@ defmodule StrangepathsWeb.Scenes do
 
   alias StrangepathsWeb.Endpoint, as: E
 
-  import StrangepathsWeb.SceneHelpers, only: [process_inline_glyphs: 2]
+  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 2]
 
   @impl true
   def mount(_params, session, socket) do
@@ -652,7 +652,7 @@ defmodule StrangepathsWeb.Scenes do
 
     if Scenes.can_create_scene?(user) do
       name = Map.get(params, "name", "")
-      locked = Map.get(params, "locked", "false") == "true"
+      locked = user.role == :dragon && Map.get(params, "locked", "false") == "true"
 
       user_ids =
         params
