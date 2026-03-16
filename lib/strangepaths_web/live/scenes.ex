@@ -1134,6 +1134,88 @@ defmodule StrangepathsWeb.Scenes do
     {:noreply, assign(socket, :dragon_selections, dragon_selections)}
   end
 
+  defp handle_scene_event(
+         "select_correction_color",
+         %{"user-id" => user_id, "color" => color},
+         socket
+       ) do
+    user_selections = Map.get(socket.assigns.dragon_selections, user_id, %{})
+    current_color = Map.get(user_selections, :correction_color)
+    new_color = if current_color == color, do: nil, else: color
+
+    updated_selections =
+      user_selections
+      |> Map.put(:correction_color, new_color)
+      |> Map.delete(:correction_field)
+      |> Map.delete(:correction_value)
+
+    dragon_selections = Map.put(socket.assigns.dragon_selections, user_id, updated_selections)
+    {:noreply, assign(socket, :dragon_selections, dragon_selections)}
+  end
+
+  defp handle_scene_event(
+         "update_correction_selection",
+         %{"user-id" => user_id} = params,
+         socket
+       ) do
+    user_selections = Map.get(socket.assigns.dragon_selections, user_id, %{})
+
+    updated_selections =
+      user_selections
+      |> then(fn sel ->
+        case Map.get(params, "field", "") do
+          "" -> sel
+          field -> Map.put(sel, :correction_field, field)
+        end
+      end)
+      |> then(fn sel ->
+        case Map.get(params, "value", "") do
+          "" -> sel
+          value_str -> Map.put(sel, :correction_value, String.to_integer(value_str))
+        end
+      end)
+
+    dragon_selections = Map.put(socket.assigns.dragon_selections, user_id, updated_selections)
+    {:noreply, assign(socket, :dragon_selections, dragon_selections)}
+  end
+
+  defp handle_scene_event("apply_correction", %{"user-id" => user_id_str}, socket) do
+    user = Accounts.get_user!(user_id_str)
+    selections = Map.get(socket.assigns.dragon_selections, user_id_str, %{})
+
+    color = Map.get(selections, :correction_color)
+    field = Map.get(selections, :correction_field)
+    value = Map.get(selections, :correction_value)
+
+    msg =
+      if color && field && not is_nil(value) do
+        case Accounts.gm_correct_die(user, color, field, value) do
+          {:ok, _} ->
+            die_label = if value == 0, do: "0", else: "d#{value}"
+
+            "- **#{user.nickname}**'s #{color_lookup(color)} #{field} gnosis has been corrected to #{die_label}."
+
+          {:error, reason} ->
+            "ERROR: #{user.nickname}'s correction failed: #{reason}"
+        end
+      else
+        ""
+      end
+
+    E.broadcast("ascension", "update", %{})
+
+    dragon_selections =
+      Map.update(socket.assigns.dragon_selections, user_id_str, %{}, fn sel ->
+        sel
+        |> Map.delete(:correction_color)
+        |> Map.delete(:correction_field)
+        |> Map.delete(:correction_value)
+      end)
+
+    Scenes.system_message(msg, false, socket.assigns.current_scene.id)
+    {:noreply, assign(socket, :dragon_selections, dragon_selections)}
+  end
+
   # TODO send narrative posts
   defp handle_scene_event("apply_dragon_changes", %{"user-id" => user_id_str}, socket) do
     user = Accounts.get_user!(user_id_str)

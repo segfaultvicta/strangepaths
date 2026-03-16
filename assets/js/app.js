@@ -72,6 +72,7 @@ Hooks.SceneFocusManager = {
 Hooks.ChatScrollManager = {
     mounted() {
         this._currentSceneId = this.el.dataset.sceneId || null;
+        this._wasNearBottom = true;
 
         // Scroll to bottom on mount
         this.scrollToBottom();
@@ -82,8 +83,8 @@ Hooks.ChatScrollManager = {
                 // Always scroll for own posts
                 this.scrollToBottom();
             } else {
-                // Only scroll if user is near bottom
-                if (this.isNearBottom()) {
+                // Only scroll if user was near bottom before the DOM patch
+                if (this._wasNearBottom) {
                     this.scrollToBottom();
                 }
             }
@@ -109,6 +110,10 @@ Hooks.ChatScrollManager = {
                 }
             });
         });
+    },
+
+    beforeUpdate() {
+        this._wasNearBottom = this.isNearBottom();
     },
 
     updated() {

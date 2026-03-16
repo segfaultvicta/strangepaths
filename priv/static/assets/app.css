@@ -2085,6 +2085,11 @@ a:hover {
   background-color: rgb(187 247 208 / var(--tw-bg-opacity));
 }
 
+.bg-amber-700 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(180 83 9 / var(--tw-bg-opacity));
+}
+
 .bg-opacity-80 {
   --tw-bg-opacity: 0.8;
 }
@@ -5151,6 +5156,11 @@ input[type=range].slider-purple::-moz-range-progress {
 .hover\:bg-gray-100:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-amber-600:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(217 119 6 / var(--tw-bg-opacity));
 }
 
 .hover\:text-purple-300:hover {

@@ -372,6 +372,33 @@ defmodule Strangepaths.Accounts do
     end
   end
 
+  def gm_correct_die(user, color, field, value) do
+    key = correction_die_key(field, color)
+
+    case key do
+      :error -> {:error, "Invalid color or field"}
+      k -> update_user_die(user, %{k => value})
+    end
+  end
+
+  defp correction_die_key(field, color) do
+    case {field, color} do
+      {"primary", "red"} -> :primary_red
+      {"primary", "green"} -> :primary_green
+      {"primary", "blue"} -> :primary_blue
+      {"primary", "white"} -> :primary_white
+      {"primary", "black"} -> :primary_black
+      {"primary", "empty"} -> :primary_void
+      {"alethic", "red"} -> :alethic_red
+      {"alethic", "green"} -> :alethic_green
+      {"alethic", "blue"} -> :alethic_blue
+      {"alethic", "white"} -> :alethic_white
+      {"alethic", "black"} -> :alethic_black
+      {"alethic", "empty"} -> :alethic_void
+      _ -> :error
+    end
+  end
+
   def ascend(dieval) do
     cond do
       dieval >= 20 -> {:alethic_sacrifice, 20}
