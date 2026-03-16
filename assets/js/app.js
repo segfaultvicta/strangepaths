@@ -94,7 +94,7 @@ Hooks.ChatScrollManager = {
                     if (!maxId || id > maxId) maxId = id;
                 }
             }
-            if (maxId && maxId !== this._lastReportedPostId) {
+            if (maxId && maxId > this._lastReportedPostId) {
                 this._lastReportedPostId = maxId;
                 this.pushEvent('mark_posts_read', { post_id: maxId });
             }
