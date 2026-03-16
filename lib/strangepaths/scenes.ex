@@ -399,17 +399,97 @@ defmodule Strangepaths.Scenes do
   ## Read marks (persistent unread tracking)
 
   @doc """
-  Upserts a read mark for the given user and scene to the current time.
+  Upserts a read mark for the given user and scene to the current wall-clock time,
+  clearing any stored last_read_post_id. Used for "mark everything read" (smart_unread OFF,
+  or first-time scene entry).
   """
   def upsert_read_mark(user_id, scene_id) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
+    fields = %{user_id: user_id, scene_id: scene_id, last_read_at: now, last_read_post_id: nil}
 
     %SceneReadMark{}
-    |> SceneReadMark.changeset(%{user_id: user_id, scene_id: scene_id, last_read_at: now})
+    |> SceneReadMark.changeset(fields)
     |> Repo.insert(
-      on_conflict: [set: [last_read_at: now]],
+      on_conflict: [set: [last_read_at: now, last_read_post_id: nil]],
       conflict_target: [:user_id, :scene_id]
     )
+  end
+
+  @doc """
+  Advances the read mark to a specific post, using that post's own posted_at as the
+  timestamp. This is the correct call for smart_unread scroll tracking: it preserves
+  the unread count for posts newer than this post, because the comparison
+  `p.posted_at > rm.last_read_at` uses the post's historical timestamp, not now.
+  """
+  def advance_read_mark(user_id, scene_id, post_id, %DateTime{} = posted_at) do
+    at = DateTime.truncate(posted_at, :second)
+    fields = %{user_id: user_id, scene_id: scene_id, last_read_at: at, last_read_post_id: post_id}
+
+    %SceneReadMark{}
+    |> SceneReadMark.changeset(fields)
+    |> Repo.insert(
+      on_conflict: [set: [last_read_at: at, last_read_post_id: post_id]],
+      conflict_target: [:user_id, :scene_id]
+    )
+  end
+
+  @doc """
+  Returns the stored last_read_post_id for a user/scene, or nil.
+  """
+  def get_read_mark_post_id(user_id, scene_id) do
+    from(r in SceneReadMark,
+      where: r.user_id == ^user_id and r.scene_id == ^scene_id,
+      select: r.last_read_post_id
+    )
+    |> Repo.one()
+  end
+
+  @doc """
+  Loads the right window of posts for smart_unread scene entry.
+  Returns unread posts (id > last_read_post_id) plus context posts just before the boundary.
+  """
+  def list_posts_for_scene_entry(scene_id, last_read_post_id, opts \\ []) do
+    unread_cap = Keyword.get(opts, :unread_cap, 500)
+    context_limit = Keyword.get(opts, :context, 10)
+
+    unread =
+      from(p in Post,
+        where: p.scene_id == ^scene_id and p.id > ^last_read_post_id,
+        order_by: [desc: p.posted_at],
+        limit: ^unread_cap,
+        preload: [:user, :avatar]
+      )
+      |> Repo.all()
+
+    context =
+      from(p in Post,
+        where: p.scene_id == ^scene_id and p.id <= ^last_read_post_id,
+        order_by: [desc: p.posted_at],
+        limit: ^context_limit,
+        preload: [:user, :avatar]
+      )
+      |> Repo.all()
+
+    %{
+      posts: unread ++ context,
+      unread_loaded: length(unread),
+      context_loaded: length(context),
+      first_unread_post_id: unread |> List.last() |> then(&(&1 && &1.id))
+    }
+  end
+
+  @doc """
+  Returns the current unread count for a single scene/user pair.
+  """
+  def unread_count_for_scene(user_id, scene_id) do
+    from(p in Post,
+      left_join: rm in SceneReadMark,
+      on: rm.scene_id == p.scene_id and rm.user_id == ^user_id,
+      where: p.scene_id == ^scene_id,
+      where: is_nil(rm.last_read_at) or p.posted_at > rm.last_read_at,
+      select: count(p.id)
+    )
+    |> Repo.one() || 0
   end
 
   @doc """

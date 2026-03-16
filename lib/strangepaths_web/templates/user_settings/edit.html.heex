@@ -85,6 +85,29 @@
       </.form>
     </div>
 
+    <!-- Unread Scroll Behavior -->
+    <div class="section p-6">
+      <h2 class="mb-2">Unread Post Behavior</h2>
+      <p class="text-sm text-gray-400 mb-4">
+        When enabled, opening a scene scrolls to where you left off and tracks
+        which posts you've actually read. Disable this if you prefer to always
+        land at the latest posts and skip the backlog.
+      </p>
+
+      <.form let={f} for={@smart_unread_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_smart_unread" class="formstyle">
+        <%= hidden_input f, :action, name: "action", value: "update_smart_unread" %>
+
+        <label class="flex items-center gap-3 cursor-pointer">
+          <%= checkbox f, :smart_unread, class: "mr-2" %>
+          <span>Track read position and scroll to last-read post</span>
+        </label>
+
+        <div class="pt-3">
+          <%= submit "Save", class: "submit" %>
+        </div>
+      </.form>
+    </div>
+
     <!-- Change Password Section -->
     <div class="section p-6">
       <h2 class="mb-4">Change Password</h2>

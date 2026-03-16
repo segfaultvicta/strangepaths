@@ -29,6 +29,7 @@ defmodule Strangepaths.Accounts.User do
     field(:color_category, :string, default: "redacted", virtual: true)
     field(:theme, :string, default: "dark")
     field(:action_default, :string, default: "action")
+    field(:smart_unread, :boolean, default: true)
     field(:last_rite_id, :string)
 
     timestamps()
@@ -155,6 +156,11 @@ defmodule Strangepaths.Accounts.User do
     user
     |> cast(attrs, [:theme])
     |> validate_inclusion(:theme, ["light", "dark"])
+  end
+
+  def smart_unread_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:smart_unread])
   end
 
   def last_scene_id_changeset(user, attrs) do

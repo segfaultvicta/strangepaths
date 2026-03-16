@@ -73,9 +73,54 @@ Hooks.ChatScrollManager = {
     mounted() {
         this._currentSceneId = this.el.dataset.sceneId || null;
         this._wasNearBottom = true;
+        this._loadingMore = false;
+        this._scrollHeightBeforeUpdate = 0;
+        this._scrollTopBeforeUpdate = 0;
+        this._lastReportedPostId = null;
+        this._readTrackTimer = null;
 
         // Scroll to bottom on mount
         this.scrollToBottom();
+
+        // Read tracking via scroll
+        this._trackReadPosts = () => {
+            if (this.el.dataset.smartUnread !== 'true') return;
+            const posts = this.el.querySelectorAll('[data-post-id]');
+            const containerBottom = this.el.scrollTop + this.el.clientHeight;
+            let maxId = null;
+            for (const post of posts) {
+                if (post.offsetTop + post.offsetHeight <= containerBottom) {
+                    const id = parseInt(post.dataset.postId, 10);
+                    if (!maxId || id > maxId) maxId = id;
+                }
+            }
+            if (maxId && maxId !== this._lastReportedPostId) {
+                this._lastReportedPostId = maxId;
+                this.pushEvent('mark_posts_read', { post_id: maxId });
+            }
+        };
+
+        this.el.addEventListener('scroll', () => {
+            clearTimeout(this._readTrackTimer);
+            this._readTrackTimer = setTimeout(this._trackReadPosts, 600);
+        });
+
+        // Sentinel for infinite scroll
+        this._sentinel = document.createElement('div');
+        this._sentinel.id = 'load-more-sentinel';
+        this._sentinel.style.cssText = 'height:1px;width:100%;flex-shrink:0;';
+        this.el.prepend(this._sentinel);
+
+        this._observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting &&
+                this.el.dataset.hasMore === 'true' &&
+                !this._loadingMore) {
+                this._loadingMore = true;
+                this.pushEvent('load_more_posts', {});
+            }
+        }, { root: this.el, threshold: 0 });
+
+        this._observer.observe(this._sentinel);
 
         // Listen for new posts from server
         this.handleEvent("new_post_received", ({ is_own_post }) => {
@@ -100,29 +145,51 @@ Hooks.ChatScrollManager = {
             this.scrollToBottom();
         })
 
-        // Handle "Load More" - preserve scroll position
-        this.handleEvent("posts_loaded", ({ old_first_post_id }) => {
-            requestAnimationFrame(() => {
-                // Find the old first post and scroll to it
-                const oldFirstPost = document.querySelector(`[data-post-id="${old_first_post_id}"]`);
-                if (oldFirstPost) {
-                    oldFirstPost.scrollIntoView({ block: 'start' });
-                }
-            });
+        // Handle "Load More" - preserve scroll position using scrollHeight delta
+        this.handleEvent("posts_loaded", () => {
+            this._loadingMore = false;
+            const delta = this.el.scrollHeight - this._scrollHeightBeforeUpdate;
+            if (delta > 0) {
+                this.el.scrollTop = this._scrollTopBeforeUpdate + delta;
+            }
         });
     },
 
     beforeUpdate() {
         this._wasNearBottom = this.isNearBottom();
+        this._scrollHeightBeforeUpdate = this.el.scrollHeight;
+        this._scrollTopBeforeUpdate = this.el.scrollTop;
     },
 
     updated() {
-        // Only scroll to bottom on scene change, not on every DOM patch (e.g. new posts)
+        // Re-prepend sentinel if LiveView's DOM patch removed it
+        if (!this.el.contains(this._sentinel)) {
+            this.el.prepend(this._sentinel);
+        }
+
+        // Only scroll on scene change, not on every DOM patch (e.g. new posts)
         const newSceneId = this.el.dataset.sceneId || null;
         if (newSceneId !== this._currentSceneId) {
             this._currentSceneId = newSceneId;
-            this.scrollToBottom();
+            this._loadingMore = false;
+            this._lastReportedPostId = null;
+
+            const smartUnread = this.el.dataset.smartUnread === 'true';
+            const divider = this.el.querySelector('#unread-divider');
+
+            if (smartUnread && divider) {
+                requestAnimationFrame(() => {
+                    divider.scrollIntoView({ block: 'start' });
+                });
+            } else {
+                this.scrollToBottom();
+            }
         }
+    },
+
+    destroyed() {
+        if (this._observer) this._observer.disconnect();
+        clearTimeout(this._readTrackTimer);
     },
 
     scrollToBottom() {

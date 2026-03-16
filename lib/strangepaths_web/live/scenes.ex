@@ -89,6 +89,9 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:collapse_devour, true)
         |> assign(:unread_counts, %{})
         |> assign(:unread_count, 0)
+        |> assign(:last_read_post_id, nil)
+        |> assign(:first_unread_post_id, nil)
+        |> assign(:unread_above, 0)
         |> assign(:dragon_selections, %{})
         |> assign(:pinned_scene_ids, MapSet.new())
         |> assign(:card_lookup, build_card_lookup())
@@ -170,27 +173,27 @@ defmodule StrangepathsWeb.Scenes do
               has_buffer: false
             })
 
-            posts = SceneServer.get_cached_posts(last_scene.id)
-
             # Get present users
             present_users = get_present_users(last_scene.id)
             rhs_users = Strangepaths.Scenes.rhs_eligible(last_scene)
 
-            # Mark this scene as read and clear its unread count
-            Scenes.upsert_read_mark(socket.assigns.current_user.id, last_scene.id)
-            mount_unread = Map.delete(socket.assigns.unread_counts, last_scene.id)
-            mount_unread_total = mount_unread |> Map.values() |> Enum.sum()
+            {posts, posts_offset, has_more, first_unread_post_id, unread_above,
+             last_read_post_id, unread_counts, unread_count} =
+              scene_entry_posts(socket, last_scene.id)
 
             socket
             |> assign(:current_scene, last_scene)
-            |> assign(:page_title, build_page_title(last_scene.name, mount_unread_total))
+            |> assign(:page_title, build_page_title(last_scene.name, unread_count))
             |> assign(:posts, posts)
-            |> assign(:posts_offset, length(posts))
-            |> assign(:has_more_posts, length(posts) >= 30)
+            |> assign(:posts_offset, posts_offset)
+            |> assign(:has_more_posts, has_more)
             |> assign(:present_users, present_users)
             |> assign(:rhs_users, rhs_users)
-            |> assign(:unread_counts, mount_unread)
-            |> assign(:unread_count, mount_unread_total)
+            |> assign(:unread_counts, unread_counts)
+            |> assign(:unread_count, unread_count)
+            |> assign(:last_read_post_id, last_read_post_id)
+            |> assign(:first_unread_post_id, first_unread_post_id)
+            |> assign(:unread_above, unread_above)
             |> assign(
               :eligible,
               Strangepaths.Scenes.post_eligible(socket.assigns.current_user, last_scene)
@@ -206,27 +209,27 @@ defmodule StrangepathsWeb.Scenes do
                 has_buffer: false
               })
 
-              posts = SceneServer.get_cached_posts(elsewhere_scene.id)
-
               # Get present users
               present_users = get_present_users(elsewhere_scene.id)
               rhs_users = Strangepaths.Scenes.rhs_eligible(elsewhere_scene)
 
-              # Mark Elsewhere as read and clear its unread count
-              Scenes.upsert_read_mark(socket.assigns.current_user.id, elsewhere_scene.id)
-              mount_unread = Map.delete(socket.assigns.unread_counts, elsewhere_scene.id)
-              mount_unread_total = mount_unread |> Map.values() |> Enum.sum()
+              {posts, posts_offset, has_more, first_unread_post_id, unread_above,
+               last_read_post_id, unread_counts, unread_count} =
+                scene_entry_posts(socket, elsewhere_scene.id)
 
               socket
               |> assign(:current_scene, elsewhere_scene)
-              |> assign(:page_title, build_page_title(elsewhere_scene.name, mount_unread_total))
+              |> assign(:page_title, build_page_title(elsewhere_scene.name, unread_count))
               |> assign(:posts, posts)
-              |> assign(:posts_offset, length(posts))
-              |> assign(:has_more_posts, length(posts) >= 30)
+              |> assign(:posts_offset, posts_offset)
+              |> assign(:has_more_posts, has_more)
               |> assign(:present_users, present_users)
               |> assign(:rhs_users, rhs_users)
-              |> assign(:unread_counts, mount_unread)
-              |> assign(:unread_count, mount_unread_total)
+              |> assign(:unread_counts, unread_counts)
+              |> assign(:unread_count, unread_count)
+              |> assign(:last_read_post_id, last_read_post_id)
+              |> assign(:first_unread_post_id, first_unread_post_id)
+              |> assign(:unread_above, unread_above)
               |> assign(:eligible, true)
             else
               socket
@@ -357,10 +360,6 @@ defmodule StrangepathsWeb.Scenes do
           Presence.update(self(), "scene:#{scene.id}", socket.id, new_meta)
       end
 
-      # Load posts
-      posts = SceneServer.get_cached_posts(scene.id)
-      has_more = length(posts) >= 30
-
       # Get present users
       present_users = get_present_users(scene.id)
 
@@ -372,17 +371,17 @@ defmodule StrangepathsWeb.Scenes do
           last_scene_id: scene_id
         })
 
-      # Mark scene as read (persistent) and clear unread count
-      Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
-      unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
-      unread_count = calculate_total_unread(unread_counts)
+      # Load posts and handle read marks based on smart_unread preference
+      {posts, posts_offset, has_more, first_unread_post_id, unread_above,
+       last_read_post_id, unread_counts, unread_count} =
+        scene_entry_posts(socket, scene_id)
 
       {:noreply,
        socket
        |> assign(:current_scene, scene)
        |> assign(:page_title, build_page_title(scene.name, unread_count))
        |> assign(:posts, posts)
-       |> assign(:posts_offset, length(posts))
+       |> assign(:posts_offset, posts_offset)
        |> assign(:has_more_posts, has_more)
        |> assign(:present_users, present_users)
        |> assign(:rhs_users, rhs_users)
@@ -391,10 +390,46 @@ defmodule StrangepathsWeb.Scenes do
        |> assign(:ooc_content, "")
        |> assign(:unread_counts, unread_counts)
        |> assign(:unread_count, unread_count)
+       |> assign(:last_read_post_id, last_read_post_id)
+       |> assign(:first_unread_post_id, first_unread_post_id)
+       |> assign(:unread_above, unread_above)
        |> assign(:drawer_open, false)
        |> push_event("focus_post_input", %{})}
     else
       {:noreply, put_flash(socket, :error, "You don't have permission to view this scene")}
+    end
+  end
+
+  defp handle_scene_event("mark_posts_read", %{"post_id" => post_id}, socket) do
+    user = socket.assigns.current_user
+    scene = socket.assigns.current_scene
+
+    if scene && user.smart_unread do
+      # Find the post in memory to get its posted_at timestamp. We must use
+      # the post's own timestamp (not DateTime.utc_now()) so that the unread
+      # query `p.posted_at > rm.last_read_at` still sees newer posts as unread.
+      post = Enum.find(socket.assigns.posts, fn p -> p.id == post_id end)
+
+      if post do
+        Scenes.advance_read_mark(user.id, scene.id, post.id, post.posted_at)
+        new_unread = Scenes.unread_count_for_scene(user.id, scene.id)
+        unread_counts = Map.put(socket.assigns.unread_counts, scene.id, new_unread)
+        unread_count = calculate_total_unread(unread_counts)
+
+        first_unread = Enum.find(socket.assigns.posts, fn p -> p.id > post_id end)
+
+        {:noreply,
+         socket
+         |> assign(:last_read_post_id, post_id)
+         |> assign(:first_unread_post_id, first_unread && first_unread.id)
+         |> assign(:unread_counts, unread_counts)
+         |> assign(:unread_count, unread_count)
+         |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
     end
   end
 
@@ -1657,17 +1692,10 @@ defmodule StrangepathsWeb.Scenes do
     scene = socket.assigns.current_scene
 
     if scene && !socket.assigns.loading_more do
+      socket = assign(socket, :loading_more, true)
       offset = socket.assigns.posts_offset
       more_posts = Scenes.list_posts(scene.id, 30, offset)
       has_more = length(more_posts) >= 30
-
-      # For chat layout: remember the first post ID before adding more
-      old_first_post_id =
-        if length(socket.assigns.posts) > 0 do
-          List.first(Enum.reverse(socket.assigns.posts)).id
-        else
-          nil
-        end
 
       socket =
         socket
@@ -1675,14 +1703,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:posts_offset, offset + length(more_posts))
         |> assign(:has_more_posts, has_more)
         |> assign(:loading_more, false)
-
-      # Notify chat scroll manager to preserve scroll position
-      socket =
-        if old_first_post_id do
-          push_event(socket, "posts_loaded", %{old_first_post_id: old_first_post_id})
-        else
-          socket
-        end
+        |> push_event("posts_loaded", %{})
 
       {:noreply, socket}
     else
@@ -1842,8 +1863,13 @@ defmodule StrangepathsWeb.Scenes do
         |> push_event("new_post_received", %{is_own_post: is_own_post})
 
       if socket.assigns.tab_visible do
-        # Tab is visible — advance read mark immediately
-        Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
+        # Tab is visible — advance read mark to this post's timestamp so that
+        # only posts newer than it remain unread.
+        if socket.assigns.current_user.smart_unread do
+          Scenes.advance_read_mark(socket.assigns.current_user.id, scene_id, post.id, post.posted_at)
+        else
+          Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
+        end
         {:noreply, socket}
       else
         # Tab is hidden — count this scene as unread
@@ -2092,6 +2118,46 @@ defmodule StrangepathsWeb.Scenes do
         explodes = if outcome == stat, do: "! It ✨explodes!", else: "."
 
         "- **#{nickname}** invoked their #{color_lookup(color)} gnosis [d#{stat}] -> ***#{outcome}***#{explodes}"
+    end
+  end
+
+  # Shared scene-entry post-loading logic for both mount auto-join and select_scene.
+  # Returns {posts, posts_offset, has_more, first_unread_post_id, unread_above,
+  #          last_read_post_id, unread_counts, unread_count}.
+  defp scene_entry_posts(socket, scene_id) do
+    current_user = socket.assigns.current_user
+
+    if current_user.smart_unread do
+      lrpid = Scenes.get_read_mark_post_id(current_user.id, scene_id)
+
+      if lrpid do
+        total_unread = Map.get(socket.assigns.unread_counts, scene_id, 0)
+
+        %{posts: posts, unread_loaded: ul, context_loaded: cl, first_unread_post_id: fupid} =
+          Scenes.list_posts_for_scene_entry(scene_id, lrpid)
+
+        unread_above = max(0, total_unread - ul)
+        has_more = cl >= 10
+
+        {posts, ul + cl, has_more, fupid, unread_above,
+         lrpid, socket.assigns.unread_counts, socket.assigns.unread_count}
+      else
+        # First time in this scene — no boundary yet, load defaults and scroll to bottom
+        posts = SceneServer.get_cached_posts(scene_id)
+        Scenes.upsert_read_mark(current_user.id, scene_id)
+        counts = Map.delete(socket.assigns.unread_counts, scene_id)
+
+        {posts, length(posts), length(posts) >= 30, nil, 0,
+         nil, counts, calculate_total_unread(counts)}
+      end
+    else
+      # smart_unread OFF: clear immediately, scroll to bottom
+      posts = SceneServer.get_cached_posts(scene_id)
+      Scenes.upsert_read_mark(current_user.id, scene_id)
+      counts = Map.delete(socket.assigns.unread_counts, scene_id)
+
+      {posts, length(posts), length(posts) >= 30, nil, 0,
+       nil, counts, calculate_total_unread(counts)}
     end
   end
 

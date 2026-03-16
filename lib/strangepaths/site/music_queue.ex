@@ -209,7 +209,7 @@ defmodule Strangepaths.Site.MusicQueue do
             }
 
             started_at = DateTime.utc_now()
-            broadcast_now_playing(restarted, 0)
+            broadcast_now_playing(restarted, 0, announce: false)
 
             timer_ref =
               Process.send_after(self(), :auto_advance, :timer.minutes(5) + :timer.seconds(10))
@@ -252,7 +252,7 @@ defmodule Strangepaths.Site.MusicQueue do
     new_state
   end
 
-  defp broadcast_now_playing(queue_item, start_position_seconds) do
+  defp broadcast_now_playing(queue_item, start_position_seconds, opts \\ []) do
     StrangepathsWeb.Endpoint.broadcast("music:broadcast", "play_song", %{
       song_id: queue_item.song.id,
       title: queue_item.song.title,
@@ -261,16 +261,18 @@ defmodule Strangepaths.Site.MusicQueue do
       start_position: start_position_seconds
     })
 
-    case Strangepaths.Scenes.get_elsewhere_scene() do
-      nil ->
-        :ok
+    if Keyword.get(opts, :announce, true) do
+      case Strangepaths.Scenes.get_elsewhere_scene() do
+        nil ->
+          :ok
 
-      elsewhere ->
-        Strangepaths.Scenes.system_message(
-          "♪ Now playing: #{queue_item.song.title} · queued by #{queue_item.queued_by}",
-          false,
-          elsewhere.id
-        )
+        elsewhere ->
+          Strangepaths.Scenes.system_message(
+            "♪ Now playing: #{queue_item.song.title} · queued by #{queue_item.queued_by}",
+            false,
+            elsewhere.id
+          )
+      end
     end
   end
 

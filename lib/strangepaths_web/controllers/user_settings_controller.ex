@@ -79,6 +79,21 @@ defmodule StrangepathsWeb.UserSettingsController do
     end
   end
 
+  def update(conn, %{"action" => "update_smart_unread"} = params) do
+    %{"user" => user_params} = params
+    user = conn.assigns.current_user
+
+    case Accounts.update_user_smart_unread(user, user_params) do
+      {:ok, _} ->
+        conn
+        |> put_flash(:info, "Preference updated.")
+        |> redirect(to: Routes.user_settings_path(conn, :edit))
+
+      {:error, changeset} ->
+        render(conn, "edit.html", smart_unread_changeset: changeset)
+    end
+  end
+
   def update(conn, %{"action" => "update_password"} = params) do
     %{"current_password" => password, "user" => user_params} = params
     user = conn.assigns.current_user
@@ -118,5 +133,6 @@ defmodule StrangepathsWeb.UserSettingsController do
     |> assign(:nick_changeset, Accounts.change_user_nickname(user))
     |> assign(:action_default_changeset, Accounts.User.action_default_changeset(user, %{}))
     |> assign(:theme_changeset, Accounts.User.theme_changeset(user, %{}))
+    |> assign(:smart_unread_changeset, Accounts.User.smart_unread_changeset(user, %{}))
   end
 end

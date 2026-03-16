@@ -220,6 +220,12 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
+  def update_user_smart_unread(user, attrs \\ %{}) do
+    user
+    |> User.smart_unread_changeset(attrs)
+    |> Repo.update()
+  end
+
   def update_user_action_default(user, attrs \\ %{}) do
     user
     |> User.action_default_changeset(attrs)

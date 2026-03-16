@@ -74,29 +74,29 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
     ~H"""
       <div id="music-player" style="z-index: 100;" class="fixed bottom-0 left-0 right-0 bg-black/90 backdrop-blur border-t border-purple-500/30 p-4" phx-hook="MusicPlayer" phx-target={@myself}>
         <audio id="audio-player" class="hidden" preload="none"></audio>
-        <div class="container mx-auto flex items-center gap-4">
+        <div class="container mx-auto flex items-center gap-4 flex-nowrap overflow-hidden">
           <%= if @current_user != nil and @current_user.role == :dragon do %>
-            <button id="clear_queue" data-confirm="Confirm queue clear?" phx-click="clear_queue" class="text-red-500">✘</button>
-            <button id="emit_message" phx-click="emit_message" class="">🎉</button>
+            <button id="clear_queue" data-confirm="Confirm queue clear?" phx-click="clear_queue" class="text-red-500 flex-shrink-0">✘</button>
+            <button id="emit_message" phx-click="emit_message" class="flex-shrink-0">🎉</button>
           <% end %>
 
-          <button id="toggle_repeat" phx-click="toggle_repeat" class={"text-sm " <> if(@music_queue.repeat, do: "text-purple-400", else: "text-gray-600 hover:text-gray-400")} title={if(@music_queue.repeat, do: "Repeat: ON", else: "Repeat: OFF")}>
+          <button id="toggle_repeat" phx-click="toggle_repeat" class={"flex-shrink-0 text-sm " <> if(@music_queue.repeat, do: "text-purple-400", else: "text-gray-600 hover:text-gray-400")} title={if(@music_queue.repeat, do: "Repeat: ON", else: "Repeat: OFF")}>
             ⟳
           </button>
 
-          <button id="manual-play-btn" class="hidden text-purple-600">
+          <button id="manual-play-btn" class="hidden flex-shrink-0 text-purple-600">
             ▶
           </button>
 
           <!-- Now Playing -->
-          <div class="flex items-center gap-4 mb-2">
-            <div class="flex-1">
+          <div class="flex items-center gap-4 min-w-0 flex-1">
+            <div class="min-w-0 flex-1">
               <%= if @music_queue.now_playing do %>
-                <div class="text-sm font-medium text-purple-300" id="song-title"><%= @music_queue.now_playing.song.title %></div>
-                <div class="text-xs text-gray-500" id="queued-by">Queued by <%= @music_queue.now_playing.queued_by %></div>
+                <div class="text-sm font-medium text-purple-300 truncate" id="song-title"><%= @music_queue.now_playing.song.title %></div>
+                <div class="text-xs text-gray-500 h-4 truncate" id="queued-by">Queued by <%= @music_queue.now_playing.queued_by %></div>
               <% else %>
-                <div class="text-sm font-medium text-gray-500" id="song-title">No song playing</div>
-                <div class="text-xs text-gray-500" id="queued-by"></div>
+                <div class="text-sm font-medium text-gray-500 truncate" id="song-title">No song playing</div>
+                <div class="text-xs text-gray-500 h-4" id="queued-by"></div>
               <% end %>
             </div>
           </div>
@@ -123,9 +123,9 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
             </div>
           </div>
 
-          <!-- Element with tooltip -->
+          <!-- Element with tooltip — hidden on mobile to prevent layout expansion -->
           <span
-            class="text-xs cursor-help text-gray-600 hover:text-gray-500"
+            class="hidden sm:inline-block flex-shrink-0 text-xs cursor-help text-gray-600 hover:text-gray-500"
             phx-hook="TooltipUpdater"
             data-tooltip-template="queue-tooltip"
             id="queue-tooltip-trigger"
@@ -140,10 +140,10 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
             </details>
           </span>
 
-          <!-- Online Listeners -->
+          <!-- Online Listeners — hidden on mobile -->
           <%= if assigns[:online_users] && length(@online_users) > 0 do %>
             <span
-              class="text-xs cursor-help text-gray-500 hover:text-gray-300"
+              class="hidden sm:inline-block flex-shrink-0 text-xs cursor-help text-gray-500 hover:text-gray-300"
               phx-hook="TooltipUpdater"
               data-tooltip-template="listeners-tooltip"
               id="listeners-tooltip-trigger"
@@ -163,9 +163,9 @@ defmodule StrangepathsWeb.MusicPlayerComponent do
 
           <!-- Volume -->
           <input type="range" id="volume-control" min="0" max="100" value="50"
-                class="w-24 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                class="flex-shrink-0 w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
 
-          <div class="flex-1 relative">
+          <div class="flex-shrink-0 w-24 sm:flex-1 relative">
             <div class="h-1 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-full relative overflow-hidden">
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent animate-pulse"></div>
               <div
