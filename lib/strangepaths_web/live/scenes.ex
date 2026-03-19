@@ -1440,6 +1440,7 @@ defmodule StrangepathsWeb.Scenes do
         end
       end)
 
+    Strangepaths.Site.increment_devour_count()
     StrangepathsWeb.Endpoint.broadcast("ascension", "update", %{})
 
     msg =

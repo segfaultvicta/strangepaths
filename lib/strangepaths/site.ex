@@ -10,6 +10,7 @@ defmodule Strangepaths.Site do
   alias Strangepaths.Site.Song
   alias Strangepaths.Site.ContentPage
   alias Strangepaths.Site.ContentFolder
+  alias Strangepaths.Site.WorldState
 
   @doc """
   Returns the list of songs.
@@ -610,5 +611,16 @@ defmodule Strangepaths.Site do
         |> String.slice(0, max_length)
         |> then(fn s -> if String.length(content) > max_length, do: s <> "...", else: s end)
     end
+  end
+
+  def get_devour_count do
+    case Repo.one(WorldState) do
+      nil -> 0
+      ws -> ws.devour_count
+    end
+  end
+
+  def increment_devour_count do
+    Repo.update_all(WorldState, inc: [devour_count: 1])
   end
 end

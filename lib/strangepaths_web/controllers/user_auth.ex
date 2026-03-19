@@ -106,6 +106,10 @@ defmodule StrangepathsWeb.UserAuth do
     assign(conn, :role, role)
   end
 
+  def fetch_devour_count(conn, _opts) do
+    assign(conn, :devour_count, Strangepaths.Site.get_devour_count())
+  end
+
   defp ensure_user_token(conn) do
     if user_token = get_session(conn, :user_token) do
       {user_token, conn}
