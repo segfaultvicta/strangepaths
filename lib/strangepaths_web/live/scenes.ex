@@ -177,8 +177,8 @@ defmodule StrangepathsWeb.Scenes do
             present_users = get_present_users(last_scene.id)
             rhs_users = Strangepaths.Scenes.rhs_eligible(last_scene)
 
-            {posts, posts_offset, has_more, first_unread_post_id, unread_above,
-             last_read_post_id, unread_counts, unread_count} =
+            {posts, posts_offset, has_more, first_unread_post_id, unread_above, last_read_post_id,
+             unread_counts, unread_count} =
               scene_entry_posts(socket, last_scene.id)
 
             socket
@@ -372,8 +372,8 @@ defmodule StrangepathsWeb.Scenes do
         })
 
       # Load posts and handle read marks based on smart_unread preference
-      {posts, posts_offset, has_more, first_unread_post_id, unread_above,
-       last_read_post_id, unread_counts, unread_count} =
+      {posts, posts_offset, has_more, first_unread_post_id, unread_above, last_read_post_id,
+       unread_counts, unread_count} =
         scene_entry_posts(socket, scene_id)
 
       {:noreply,
@@ -517,6 +517,8 @@ defmodule StrangepathsWeb.Scenes do
           |> String.replace("[...]", "⁂")
           |> String.replace("[X]\”", "\” 🙧")
           |> String.replace("[X]", "🙧")
+          |> String.replace("[x]\”", "\” 🙧")
+          |> String.replace("[x]", "🙧")
 
         # Determine color_category: only use custom color for Dragon with NPC name
         color_category =
@@ -1867,10 +1869,16 @@ defmodule StrangepathsWeb.Scenes do
         # Tab is visible — advance read mark to this post's timestamp so that
         # only posts newer than it remain unread.
         if socket.assigns.current_user.smart_unread do
-          Scenes.advance_read_mark(socket.assigns.current_user.id, scene_id, post.id, post.posted_at)
+          Scenes.advance_read_mark(
+            socket.assigns.current_user.id,
+            scene_id,
+            post.id,
+            post.posted_at
+          )
         else
           Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
         end
+
         {:noreply, socket}
       else
         # Tab is hidden — count this scene as unread
@@ -2140,16 +2148,16 @@ defmodule StrangepathsWeb.Scenes do
         unread_above = max(0, total_unread - ul)
         has_more = cl >= 10
 
-        {posts, ul + cl, has_more, fupid, unread_above,
-         lrpid, socket.assigns.unread_counts, socket.assigns.unread_count}
+        {posts, ul + cl, has_more, fupid, unread_above, lrpid, socket.assigns.unread_counts,
+         socket.assigns.unread_count}
       else
         # First time in this scene — no boundary yet, load defaults and scroll to bottom
         posts = SceneServer.get_cached_posts(scene_id)
         Scenes.upsert_read_mark(current_user.id, scene_id)
         counts = Map.delete(socket.assigns.unread_counts, scene_id)
 
-        {posts, length(posts), length(posts) >= 30, nil, 0,
-         nil, counts, calculate_total_unread(counts)}
+        {posts, length(posts), length(posts) >= 30, nil, 0, nil, counts,
+         calculate_total_unread(counts)}
       end
     else
       # smart_unread OFF: clear immediately, scroll to bottom
@@ -2157,8 +2165,8 @@ defmodule StrangepathsWeb.Scenes do
       Scenes.upsert_read_mark(current_user.id, scene_id)
       counts = Map.delete(socket.assigns.unread_counts, scene_id)
 
-      {posts, length(posts), length(posts) >= 30, nil, 0,
-       nil, counts, calculate_total_unread(counts)}
+      {posts, length(posts), length(posts) >= 30, nil, 0, nil, counts,
+       calculate_total_unread(counts)}
     end
   end
 
