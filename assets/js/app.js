@@ -1766,9 +1766,10 @@ Hooks.RumorMap = {
         const colors = {
             'red': '#ef4444',
             'blue': '#3b82f6',
-            'green': '#22c55e',
-            'white': '#ceb900ff',
-            'black': '#ffffff',
+            'green': '#43e106',
+            'white': '#ceb900',
+            'black': '#ffe6ff',
+            'redacted': '#a855f7',
             'secret': '#a855f7'
         };
         return colors[category] || '#9ca3af';

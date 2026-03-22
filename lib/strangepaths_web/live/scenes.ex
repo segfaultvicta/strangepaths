@@ -2262,8 +2262,9 @@ defmodule StrangepathsWeb.Scenes do
             end
 
           escaped_name = Phoenix.HTML.html_escape(name) |> Phoenix.HTML.safe_to_string()
+          display_name = if glorified?, do: "🟔#{escaped_name}🟔", else: escaped_name
 
-          "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"/uploads/card#{card.img}\">#{escaped_name}</a>"
+          "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"/uploads/card#{card.img}\">#{display_name}</a>"
       end
     end)
   end

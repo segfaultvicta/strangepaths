@@ -1,3 +1,4 @@
+@charset "UTF-8";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -1099,6 +1100,13 @@ input[type=range].slider-purple::-moz-range-progress {
 /* Resizable column drag handles */
 .cursor-col-resize {
   cursor: col-resize !important;
+}
+
+/* Connection color swatches — show selection ring on the checked radio's parent label */
+.color-swatches label:has(input[type=radio]:checked) {
+  outline: 2px solid white;
+  outline-offset: 2px;
+  border-color: white !important;
 }
 
 /*# sourceMappingURL=app.css.tailwind.map */

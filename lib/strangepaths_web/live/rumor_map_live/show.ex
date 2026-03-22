@@ -1273,9 +1273,9 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     case color_category do
       "red" -> "#ef4444"
       "blue" -> "#3b82f6"
-      "green" -> "#22c55e"
+      "green" -> "#43e106"
       "white" -> "#ceb900"
-      "black" -> "#ffffff"
+      "black" -> "#ffe6ff"
       "redacted" -> "#a855f7"
       _ -> "#9ca3af"
     end

@@ -613,10 +613,25 @@
                         <div class="grid grid-cols-2 gap-3 mb-3">
                           <div>
                             <label class="block text-xs font-bold mb-1">Color</label>
-                            <input type="color"
-                                   name="color"
-                                   value={@connection_under_edit.line_style["color"] || "#ffffff"}
-                                   class="w-full h-8 rounded cursor-pointer" />
+                            <% current_color = @connection_under_edit.line_style["color"] || "#ffe6ff"
+                               # Strip alpha suffix if present (e.g. #ceb900ff → #ceb900)
+                               current_color = if String.length(current_color) == 9, do: String.slice(current_color, 0, 7), else: current_color %>
+                            <div class="color-swatches flex gap-2 flex-wrap pt-1">
+                              <%= for {value, title} <- [
+                                {"#ef4444", "Burning"},
+                                {"#3b82f6", "Pellucid"},
+                                {"#43e106", "Flourishing"},
+                                {"#ceb900", "Radiant"},
+                                {"#ffe6ff", "Tenebrous"},
+                                {"#a855f7", "Alethic"}
+                              ] do %>
+                                <label title={title}
+                                       style={"background: #{value}"}
+                                       class="block w-6 h-6 rounded-full cursor-pointer border border-gray-500 hover:border-gray-300">
+                                  <input type="radio" name="color" value={value} checked={current_color == value} class="sr-only" />
+                                </label>
+                              <% end %>
+                            </div>
                           </div>
 
                           <div>
