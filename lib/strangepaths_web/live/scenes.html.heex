@@ -209,7 +209,7 @@
                               Unknown
                           <% end %>
                         </span>
-                          <%= raw process_card_references(render_post_content(post.content, narrative: post.post_type == :narrative), @card_lookup) %>
+                          <%= raw process_card_references(render_post_content(post.content, narrative: post.post_type == :narrative), @card_lookup, @glorified_lookup) %>
                         <%= if post.edited_at do %>
                           <span class="text-xs italic text-gray-400 ml-1">(edited)</span>
                         <% end %>
@@ -219,7 +219,7 @@
                       <%= if post.ooc_content do %>
                         <div class="post-ooc-container">
                           <hr class="post-ooc-divider-icecylee">
-                            <span class="post-ooc-content-icecylee"><%= raw process_card_references(Phoenix.HTML.html_escape(post.ooc_content) |> Phoenix.HTML.safe_to_string(), @card_lookup) %></span>
+                            <span class="post-ooc-content-icecylee"><%= raw process_card_references(Phoenix.HTML.html_escape(post.ooc_content) |> Phoenix.HTML.safe_to_string(), @card_lookup, @glorified_lookup) %></span>
                         </div>
                       <% end %>
                       </div>

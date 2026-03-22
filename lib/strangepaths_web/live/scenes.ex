@@ -95,6 +95,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:dragon_selections, %{})
         |> assign(:pinned_scene_ids, MapSet.new())
         |> assign(:card_lookup, build_card_lookup())
+        |> assign(:glorified_lookup, build_glorified_lookup())
 
       # Only load data and subscribe when connected (WebSocket established)
       if connected?(socket) do
@@ -2195,10 +2196,27 @@ defmodule StrangepathsWeb.Scenes do
         name: c.name,
         name_downcased: fragment("lower(?)", c.name),
         img: c.img,
+        type: c.type,
+        alt: c.alt
+      }
+    )
+    |> Strangepaths.Repo.all()
+  end
+
+  defp build_glorified_lookup do
+    import Ecto.Query, warn: false
+
+    from(c in Cards.Card,
+      where: c.glorified == true,
+      select: %{
+        id: c.id,
+        name: c.name,
+        img: c.img,
         type: c.type
       }
     )
     |> Strangepaths.Repo.all()
+    |> Map.new(fn card -> {card.id, card} end)
   end
 
   defp find_matching_card(text, card_lookup) do
@@ -2222,14 +2240,28 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
-  defp process_card_references(html, card_lookup) do
+  defp process_card_references(html, card_lookup, glorified_lookup \\ %{}) do
     Regex.replace(~r/\[([^\[\]]+)\]/, html, fn full_match, inner ->
-      case find_matching_card(inner, card_lookup) do
+      {name, glorified?} =
+        if String.ends_with?(inner, "!") do
+          {String.slice(inner, 0..-2//1) |> String.trim(), true}
+        else
+          {inner, false}
+        end
+
+      case find_matching_card(name, card_lookup) do
         nil ->
           full_match
 
-        card ->
-          escaped_name = Phoenix.HTML.html_escape(inner) |> Phoenix.HTML.safe_to_string()
+        base_card ->
+          card =
+            if glorified? && base_card.alt do
+              Map.get(glorified_lookup, base_card.alt, base_card)
+            else
+              base_card
+            end
+
+          escaped_name = Phoenix.HTML.html_escape(name) |> Phoenix.HTML.safe_to_string()
 
           "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"/uploads/card#{card.img}\">#{escaped_name}</a>"
       end
