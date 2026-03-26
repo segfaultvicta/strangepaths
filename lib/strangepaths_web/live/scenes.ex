@@ -2008,7 +2008,7 @@ defmodule StrangepathsWeb.Scenes do
 
   defp transform_quotes(text) do
     glyph_set = MapSet.new(StrangepathsWeb.SceneHelpers.glyph_chars())
-    text = Regex.replace(~r/\R+/, text, "\n")
+    text = Regex.replace(~r/\R+/u, text, "\n")
 
     return =
       text
