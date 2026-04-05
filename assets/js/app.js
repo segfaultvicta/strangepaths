@@ -170,6 +170,10 @@ Hooks.ChatScrollManager = {
         // Only scroll on scene change, not on every DOM patch (e.g. new posts)
         const newSceneId = this.el.dataset.sceneId || null;
         if (newSceneId !== this._currentSceneId) {
+            // Cancel any pending read-tracker from the previous scene so it doesn't
+            // fire against the new scene's DOM and advance the wrong read mark.
+            clearTimeout(this._readTrackTimer);
+            this._readTrackTimer = null;
             this._currentSceneId = newSceneId;
             this._loadingMore = false;
             this._lastReportedPostId = null;

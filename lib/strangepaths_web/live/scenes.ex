@@ -724,7 +724,20 @@ defmodule StrangepathsWeb.Scenes do
 
     if visible && socket.assigns.current_scene do
       scene_id = socket.assigns.current_scene.id
-      Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
+      user = socket.assigns.current_user
+
+      # For smart_unread users, advance the mark to the most recent post currently
+      # loaded so the last_read_post_id cursor is preserved. For non-smart_unread
+      # users (or when there are no posts), fall back to a timestamp-only mark.
+      if user.smart_unread do
+        case List.first(socket.assigns.posts) do
+          nil -> Scenes.upsert_read_mark(user.id, scene_id)
+          post -> Scenes.advance_read_mark(user.id, scene_id, post.id, post.posted_at)
+        end
+      else
+        Scenes.upsert_read_mark(user.id, scene_id)
+      end
+
       unread_counts = Map.delete(socket.assigns.unread_counts, scene_id)
       unread_count = calculate_total_unread(unread_counts)
 
@@ -732,6 +745,7 @@ defmodule StrangepathsWeb.Scenes do
        socket
        |> assign(:unread_counts, unread_counts)
        |> assign(:unread_count, unread_count)
+       |> assign(:first_unread_post_id, nil)
        |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
     else
       {:noreply, socket}

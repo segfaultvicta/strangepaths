@@ -2628,11 +2628,6 @@ a:hover{
   border-color: rgb(129 140 248 / var(--tw-border-opacity));
 }
 
-.border-white{
-  --tw-border-opacity: 1;
-  border-color: rgb(255 255 255 / var(--tw-border-opacity));
-}
-
 .border-gray-500{
   --tw-border-opacity: 1;
   border-color: rgb(107 114 128 / var(--tw-border-opacity));
@@ -2656,6 +2651,11 @@ a:hover{
 .border-yellow-500{
   --tw-border-opacity: 1;
   border-color: rgb(234 179 8 / var(--tw-border-opacity));
+}
+
+.border-white{
+  --tw-border-opacity: 1;
+  border-color: rgb(255 255 255 / var(--tw-border-opacity));
 }
 
 .bg-green-600{
@@ -3676,10 +3676,6 @@ a:hover{
 .shadow-purple-500\/50{
   --tw-shadow-color: rgb(168 85 247 / 0.5);
   --tw-shadow: var(--tw-shadow-colored);
-}
-
-.outline{
-  outline-style: solid;
 }
 
 .ring-2{
