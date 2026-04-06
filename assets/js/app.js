@@ -86,15 +86,23 @@ Hooks.ChatScrollManager = {
         this._trackReadPosts = () => {
             if (this.el.dataset.smartUnread !== 'true') return;
             const posts = this.el.querySelectorAll('[data-post-id]');
-            const containerBottom = this.el.scrollTop + this.el.clientHeight;
+            // Use getBoundingClientRect for sub-pixel-accurate coordinates.
+            // The old approach (offsetTop + offsetHeight <= scrollTop + clientHeight)
+            // mixed integer layout values with a potentially-fractional scrollTop,
+            // causing the bottommost post to fail the check by a fraction of a pixel
+            // and its post_id to be excluded from maxId — leading to mark_posts_read
+            // being sent with an older post_id and the read mark regressing.
+            // A post counts as seen if its top has entered the container's visible
+            // area (includes posts already scrolled fully past).
+            const containerBottom = this.el.getBoundingClientRect().bottom;
             let maxId = null;
             for (const post of posts) {
-                if (post.offsetTop + post.offsetHeight <= containerBottom) {
+                if (post.getBoundingClientRect().top < containerBottom) {
                     const id = parseInt(post.dataset.postId, 10);
                     if (!maxId || id > maxId) maxId = id;
                 }
             }
-            if (maxId && maxId > this._lastReportedPostId) {
+            if (maxId && maxId > (this._lastReportedPostId || 0)) {
                 this._lastReportedPostId = maxId;
                 this.pushEvent('mark_posts_read', { post_id: maxId });
             }

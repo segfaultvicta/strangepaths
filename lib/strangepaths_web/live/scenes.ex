@@ -406,26 +406,35 @@ defmodule StrangepathsWeb.Scenes do
     scene = socket.assigns.current_scene
 
     if scene && user.smart_unread do
-      # Find the post in memory to get its posted_at timestamp. We must use
-      # the post's own timestamp (not DateTime.utc_now()) so that the unread
-      # query `p.posted_at > rm.last_read_at` still sees newer posts as unread.
-      post = Enum.find(socket.assigns.posts, fn p -> p.id == post_id end)
+      # Guard: never regress the read mark. If the scroll tracker reports a post_id
+      # older than what we've already marked (e.g. due to the sub-pixel float issue
+      # where the bottommost post is excluded from the visibility check), silently
+      # ignore it rather than calling advance_read_mark with a stale value.
+      current_lrpid = socket.assigns.last_read_post_id
+      if is_nil(current_lrpid) || post_id >= current_lrpid do
+        # Find the post in memory to get its posted_at timestamp. We must use
+        # the post's own timestamp (not DateTime.utc_now()) so that the unread
+        # query `p.posted_at > rm.last_read_at` still sees newer posts as unread.
+        post = Enum.find(socket.assigns.posts, fn p -> p.id == post_id end)
 
-      if post do
-        Scenes.advance_read_mark(user.id, scene.id, post.id, post.posted_at)
-        new_unread = Scenes.unread_count_for_scene(user.id, scene.id)
-        unread_counts = Map.put(socket.assigns.unread_counts, scene.id, new_unread)
-        unread_count = calculate_total_unread(unread_counts)
+        if post do
+          Scenes.advance_read_mark(user.id, scene.id, post.id, post.posted_at)
+          new_unread = Scenes.unread_count_for_scene(user.id, scene.id)
+          unread_counts = Map.put(socket.assigns.unread_counts, scene.id, new_unread)
+          unread_count = calculate_total_unread(unread_counts)
 
-        first_unread = Enum.find(socket.assigns.posts, fn p -> p.id > post_id end)
+          first_unread = Enum.find(socket.assigns.posts, fn p -> p.id > post_id end)
 
-        {:noreply,
-         socket
-         |> assign(:last_read_post_id, post_id)
-         |> assign(:first_unread_post_id, first_unread && first_unread.id)
-         |> assign(:unread_counts, unread_counts)
-         |> assign(:unread_count, unread_count)
-         |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
+          {:noreply,
+           socket
+           |> assign(:last_read_post_id, post_id)
+           |> assign(:first_unread_post_id, first_unread && first_unread.id)
+           |> assign(:unread_counts, unread_counts)
+           |> assign(:unread_count, unread_count)
+           |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
+        else
+          {:noreply, socket}
+        end
       else
         {:noreply, socket}
       end
@@ -1890,11 +1899,14 @@ defmodule StrangepathsWeb.Scenes do
             post.id,
             post.posted_at
           )
+
+          # Keep last_read_post_id in sync so the mark_posts_read regression
+          # guard has an accurate high-water mark to compare against.
+          {:noreply, assign(socket, :last_read_post_id, post.id)}
         else
           Scenes.upsert_read_mark(socket.assigns.current_user.id, scene_id)
+          {:noreply, socket}
         end
-
-        {:noreply, socket}
       else
         # Tab is hidden — count this scene as unread
         unread_counts = Map.update(socket.assigns.unread_counts, scene_id, 1, &(&1 + 1))
