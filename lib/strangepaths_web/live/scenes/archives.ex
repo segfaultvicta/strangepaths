@@ -16,6 +16,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
     if socket.assigns.current_user do
       # Load archived scenes
       archived_scenes = Scenes.list_archived_scenes(socket.assigns.current_user)
+      chapter_view = build_chapter_view(archived_scenes)
 
       # Check if there's an Elsewhere scene to show weekly archives
       elsewhere_scene = Scenes.get_elsewhere_scene()
@@ -34,6 +35,8 @@ defmodule StrangepathsWeb.Scenes.Archives do
       {:ok,
        socket
        |> assign(:archived_scenes, archived_scenes)
+       |> assign(:chapter_view, chapter_view)
+       |> assign(:view_mode, :list)
        |> assign(:elsewhere_scene, elsewhere_scene)
        |> assign(:elsewhere_weeks, elsewhere_weeks)
        |> assign(:page_title, "Sanctuary - Archive")
@@ -277,6 +280,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
              socket
              |> assign(:selected_scene, updated_scene)
              |> assign(:archived_scenes, archived_scenes)
+             |> assign(:chapter_view, build_chapter_view(archived_scenes))
              |> put_flash(:info, "Scene unlocked! It is now publicly viewable.")}
 
           {:error, _changeset} ->
@@ -379,6 +383,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
           {:noreply,
            socket
            |> assign(:archived_scenes, archived_scenes)
+           |> assign(:chapter_view, build_chapter_view(archived_scenes))
            |> assign(:editing_scene_id, nil)
            |> assign(:editing_scene_name, "")
            |> put_flash(:info, "Scene name updated successfully")}
@@ -408,6 +413,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
           socket =
             socket
             |> assign(:archived_scenes, archived_scenes)
+            |> assign(:chapter_view, build_chapter_view(archived_scenes))
             |> assign(:all_tags, all_tags)
             |> assign(:adding_tag_to, nil)
 
@@ -449,6 +455,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
             socket =
               socket
               |> assign(:archived_scenes, archived_scenes)
+              |> assign(:chapter_view, build_chapter_view(archived_scenes))
               |> assign(:all_tags, all_tags)
 
             socket =
@@ -525,6 +532,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
              socket
              |> assign(:selected_scene, updated_scene)
              |> assign(:archived_scenes, archived_scenes)
+             |> assign(:chapter_view, build_chapter_view(archived_scenes))
              |> assign(:locking_scene, false)
              |> assign(:lock_user_ids, [])
              |> put_flash(:info, "Scene locked to #{length(user_ids)} user(s)")}
@@ -557,6 +565,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
             {:noreply,
              socket
              |> assign(:archived_scenes, archived_scenes)
+             |> assign(:chapter_view, build_chapter_view(archived_scenes))
              |> put_flash(:info, "Scene deleted permanently")}
 
           {:error, _} ->
@@ -586,8 +595,72 @@ defmodule StrangepathsWeb.Scenes.Archives do
     {:noreply, push_event(socket, "copy_to_clipboard", %{text: text})}
   end
 
+  defp handle_archive_event("set_view_mode", %{"mode" => mode}, socket) do
+    {:noreply, assign(socket, :view_mode, String.to_atom(mode))}
+  end
+
   defp handle_archive_event(_event, _params, socket) do
     {:noreply, socket}
+  end
+
+  defp build_chapter_view(archived_scenes) do
+    scenes = Enum.reject(archived_scenes, & &1.is_elsewhere)
+    scenes_asc = Enum.sort_by(scenes, & &1.archived_at, {:asc, DateTime})
+
+    {full_cast, inserts} = Enum.split_with(scenes_asc, fn s -> "full cast session" in s.tags end)
+
+    if full_cast == [] do
+      []
+    else
+      indexed = Enum.with_index(full_cast)
+
+      sessions_with_inserts =
+        Enum.map(indexed, fn {fcs, i} ->
+          next = Enum.at(full_cast, i + 1)
+
+          assigned =
+            Enum.filter(inserts, fn ins ->
+              after_this = DateTime.compare(ins.archived_at, fcs.archived_at) == :gt
+              before_next =
+                if next,
+                  do: DateTime.compare(ins.archived_at, next.archived_at) == :lt,
+                  else: true
+
+              after_this && before_next
+            end)
+
+          {fcs, assigned}
+        end)
+
+      sessions_with_inserts
+      |> Enum.group_by(fn {fcs, _} -> chapter_tag_for(fcs) end)
+      |> Enum.map(fn {tag, sessions} ->
+        sorted = Enum.sort_by(sessions, fn {fcs, _} -> fcs.archived_at end, {:asc, DateTime})
+
+        %{
+          chapter_tag: tag,
+          chapter_title: format_chapter_tag(tag),
+          sessions:
+            Enum.map(sorted, fn {fcs, scene_inserts} ->
+              %{scene: fcs, inserts: scene_inserts}
+            end)
+        }
+      end)
+      |> Enum.sort_by(fn chapter -> hd(chapter.sessions).scene.archived_at end, {:asc, DateTime})
+    end
+  end
+
+  defp chapter_tag_for(scene) do
+    Enum.find(scene.tags, fn t -> String.starts_with?(t, "chapter ") end) || "uncategorized"
+  end
+
+  defp format_chapter_tag("uncategorized"), do: "Uncategorized"
+
+  defp format_chapter_tag(tag) do
+    tag
+    |> String.split(" ")
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
   end
 
   defp generate_plaintext(posts) do

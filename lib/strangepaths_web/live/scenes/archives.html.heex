@@ -413,6 +413,67 @@
         </div>
       <% end %>
 
+      <!-- View Mode Toggle -->
+      <div class="flex items-center gap-2 mb-5">
+        <button
+          phx-click="set_view_mode"
+          phx-value-mode="list"
+          class={"px-4 py-1.5 rounded-lg text-sm font-semibold transition " <>
+            if @view_mode == :list,
+              do: "bg-purple-600 text-white",
+              else: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"}
+        >List</button>
+        <button
+          phx-click="set_view_mode"
+          phx-value-mode="chapters"
+          class={"px-4 py-1.5 rounded-lg text-sm font-semibold transition " <>
+            if @view_mode == :chapters,
+              do: "bg-purple-600 text-white",
+              else: "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"}
+        >Chapters</button>
+      </div>
+
+      <%= if @view_mode == :chapters do %>
+        <!-- Chapter View -->
+        <%= if length(@chapter_view) == 0 do %>
+          <p class="text-gray-400">No chapters found. Tag full-cast sessions with "full cast session" and "chapter N: title" to build chapters.</p>
+        <% else %>
+          <div class="space-y-8">
+            <%= for chapter <- @chapter_view do %>
+              <div class="bg-indigo-200 dark:bg-gray-900 rounded p-6">
+                <div class="flex items-center gap-3 mb-5">
+                  <div class="flex-1 border-t border-indigo-400 dark:border-gray-600"></div>
+                  <h2 class="text-lg font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap tracking-wide">
+                    <%= chapter.chapter_title %>
+                  </h2>
+                  <div class="flex-1 border-t border-indigo-400 dark:border-gray-600"></div>
+                </div>
+                <div class="space-y-4">
+                  <%= for session <- chapter.sessions do %>
+                    <div>
+                      <%= live_patch to: "/scenes/archives/#{session.scene.slug}",
+                          class: "block p-3 bg-indigo-300 dark:bg-gray-800 hover:bg-indigo-400 dark:hover:bg-gray-700 rounded cursor-pointer transition font-semibold" do %>
+                        <%= session.scene.name %>
+                      <% end %>
+                      <%= if length(session.inserts) > 0 do %>
+                        <div class="flex flex-wrap gap-2 mt-2 ml-4">
+                          <%= for insert <- session.inserts do %>
+                            <%= live_patch to: "/scenes/archives/#{insert.slug}",
+                                class: "px-3 py-1.5 bg-indigo-100 dark:bg-gray-700 hover:bg-indigo-200 dark:hover:bg-gray-600 rounded cursor-pointer transition text-sm" do %>
+                              <%= insert.name %>
+                            <% end %>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Elsewhere Archives -->
       <%= if @elsewhere_scene && length(@elsewhere_weeks) > 0 do %>
@@ -559,6 +620,7 @@
         <% end %>
       </div>
       </div>
+      <% end %>
     <% end %>
   <% end %>
 </div>

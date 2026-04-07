@@ -3347,6 +3347,10 @@ a:hover{
   line-height: 1;
 }
 
+.tracking-wide{
+  letter-spacing: 0.025em;
+}
+
 .text-gray-300{
   --tw-text-opacity: 1;
   color: rgb(209 213 219 / var(--tw-text-opacity));
