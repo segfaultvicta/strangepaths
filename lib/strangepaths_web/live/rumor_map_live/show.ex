@@ -23,6 +23,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:visible_layer_ids, MapSet.new())
       |> assign(:layer_panel_open, false)
       |> assign(:creating_layer, false)
+      |> assign(:connection_sort_mode, :distance)
 
     subscribe_to_music(socket)
 
@@ -834,6 +835,13 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
   end
 
+  defp handle_rumormap_event("toggle_connection_sort", _params, socket) do
+    new_mode =
+      if socket.assigns.connection_sort_mode == :distance, do: :alpha, else: :distance
+
+    {:noreply, assign(socket, :connection_sort_mode, new_mode)}
+  end
+
   defp handle_rumormap_event("create_connection_from_modal", params, socket) do
     from_node_id = String.to_integer(params["from-node-id"])
     to_node_id = String.to_integer(params["to-node-id"])
@@ -1367,8 +1375,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   end
 
   # Get available nodes for creating a connection from the given node
-  # Filters out self and already-connected nodes, sorted by proximity
-  defp get_available_connection_targets(from_node, all_nodes, connections) do
+  # Filters out self and already-connected nodes, sorted by proximity or alphabetically
+  defp get_available_connection_targets(from_node, all_nodes, connections, sort_mode \\ :distance) do
     # Get IDs of nodes already connected to
     connected_node_ids =
       connections
@@ -1376,16 +1384,21 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> Enum.map(& &1.to_node_id)
       |> MapSet.new()
 
-    # Filter and sort by distance
-    all_nodes
-    |> Enum.reject(fn node ->
-      node.id == from_node.id || MapSet.member?(connected_node_ids, node.id)
-    end)
-    |> Enum.sort_by(fn node ->
-      # Calculate Euclidean distance
-      dx = node.x - from_node.x
-      dy = node.y - from_node.y
-      :math.sqrt(dx * dx + dy * dy)
-    end)
+    filtered =
+      Enum.reject(all_nodes, fn node ->
+        node.id == from_node.id || MapSet.member?(connected_node_ids, node.id)
+      end)
+
+    case sort_mode do
+      :alpha ->
+        Enum.sort_by(filtered, &String.downcase(&1.title))
+
+      _ ->
+        Enum.sort_by(filtered, fn node ->
+          dx = node.x - from_node.x
+          dy = node.y - from_node.y
+          :math.sqrt(dx * dx + dy * dy)
+        end)
+    end
   end
 end

@@ -688,8 +688,19 @@
 
             <!-- Create New Connection -->
             <div class="bg-gray-700 rounded-lg p-3">
-              <div class="text-sm font-semibold text-gray-300 mb-2">Create New Connection:</div>
-              <% available_targets = get_available_connection_targets(@selected_node, @nodes, @connections) %>
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-semibold text-gray-300">Create New Connection:</div>
+                <button type="button"
+                        phx-click="toggle_connection_sort"
+                        class="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 transition">
+                  <%= if @connection_sort_mode == :alpha do %>
+                    <i class="fa-solid fa-arrow-down-a-z"></i> A–Z
+                  <% else %>
+                    <i class="fa-solid fa-arrow-down-1-9"></i> Distance
+                  <% end %>
+                </button>
+              </div>
+              <% available_targets = get_available_connection_targets(@selected_node, @nodes, @connections, @connection_sort_mode) %>
               <%= if Enum.any?(available_targets) do %>
                 <div class="flex gap-2">
                   <input type="hidden" id="connection-from-node-id" value={@selected_node.id} />
