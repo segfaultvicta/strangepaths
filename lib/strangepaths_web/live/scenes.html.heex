@@ -1289,9 +1289,9 @@
                 </div>
                 <div class="techne-list">
                   <%= if length(user.techne) > 0 do %>
-                    <span class="mt-2">
-                      <%= for {techne, idx} <- Enum.with_index(user.techne) do %>
-                        <span id={"rhs-techne-#{user.id}-#{idx}"} x-data x-tooltip.raw={techne.desc} class="text-md"><%= techne.name %></span><%= if techne != List.last(user.techne), do: ", " %>
+                    <span id={"rhs-techne-#{user.id}-#{:erlang.phash2(user.techne)}"} class="mt-2">
+                      <%= for techne <- user.techne do %>
+                        <span x-data x-tooltip.raw={techne.desc} class="text-md"><%= techne.name %></span><%= if techne != List.last(user.techne), do: ", " %>
                       <% end %>
                     </span>
                   <% end %>

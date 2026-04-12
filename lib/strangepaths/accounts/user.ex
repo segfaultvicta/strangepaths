@@ -26,7 +26,7 @@ defmodule Strangepaths.Accounts.User do
     field(:alethic_black, :integer, default: 0)
     field(:alethic_void, :integer, default: 0)
     field(:techne, {:array, :string}, default: [])
-    field(:color_category, :string, default: "redacted", virtual: true)
+    field(:color_category, :string, default: "redacted")
     field(:theme, :string, default: "dark")
     field(:action_default, :string, default: "action")
     field(:smart_unread, :boolean, default: true)
