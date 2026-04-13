@@ -1630,22 +1630,21 @@ Hooks.RumorMapNode = {
 
 Hooks.RumorMap = {
     mounted() {
-        this.lines = {}; // Track LeaderLine instances by connection ID
+        this.lines = {};    // connId -> { instance, startNodeId, endNodeId, conn, isMerged, partner }
+        this.pairIndex = {}; // pairKey -> { primaryId, secondaryId }
 
-        // Method to update all line positions
+        // Method to update all line positions (skip merged secondaries — they share an instance)
         this.updateAllLines = () => {
-            Object.entries(this.lines).forEach(([connId, lineData]) => {
-                lineData.instance.position();
+            Object.values(this.lines).forEach(lineData => {
+                if (lineData.instance) lineData.instance.position();
             });
         };
 
         // Listen for node movement to update lines
         window.addEventListener('node-moved', (e) => {
             const nodeId = e.detail.nodeId;
-
-            // Update all lines connected to this node
-            Object.entries(this.lines).forEach(([connId, lineData]) => {
-                if (lineData.startNodeId == nodeId || lineData.endNodeId == nodeId) {
+            Object.values(this.lines).forEach(lineData => {
+                if (lineData.instance && (lineData.startNodeId == nodeId || lineData.endNodeId == nodeId)) {
                     lineData.instance.position();
                 }
             });
@@ -1656,122 +1655,174 @@ Hooks.RumorMap = {
             this.updateAllLines();
         });
 
-        // Draw a new connection
+        // Draw a new connection (handles bidirectional merging automatically)
         this.handleEvent('draw_connection', (conn) => {
-            const startEl = document.getElementById(`node-${conn.from_id}`);
-            const endEl = document.getElementById(`node-${conn.to_id}`);
-
-            if (!startEl || !endEl) {
-                console.error('Could not find nodes for connection', conn);
-                return;
-            }
-
-            // Get line style from connection data
-            const lineStyle = conn.line_style || {};
-
-            // Determine color: use line_style color if present, otherwise default from category
-            const color = lineStyle.color || this.getColorForCategory(conn.category);
-
-            // Build line options
-            const lineOpts = {
-                color: color,
-                size: lineStyle.size || 2,
-                path: 'fluid',
-                startPlug: 'inside',
-                endPlug: 'arrow2'
-            };
-
-            // Add dash style if specified
-            if (lineStyle.dash === 'dashed') {
-                lineOpts.dash = { animation: true };
-            } else if (lineStyle.dash === 'dotted') {
-                lineOpts.dash = true;
-            }
-
-            const line = new LeaderLine(startEl, endEl, lineOpts);
-
-            this.lines[conn.id] = {
-                instance: line,
-                startNodeId: conn.from_id.toString(),
-                endNodeId: conn.to_id.toString(),
-                conn: conn  // Store connection data for updates
-            };
+            this.drawConnectionFromData(conn);
         });
 
-        // Update a connection (remove and redraw with new style)
+        // Update a connection: remove old then redraw (naturally handles merge/unmerge)
         this.handleEvent('update_connection', (conn) => {
-            // Remove old line if it exists
-            if (this.lines[conn.id]) {
-                this.lines[conn.id].instance.remove();
-                delete this.lines[conn.id];
-            }
-
-            // Redraw with new style (reuse draw_connection logic)
-            const startEl = document.getElementById(`node-${conn.from_id}`);
-            const endEl = document.getElementById(`node-${conn.to_id}`);
-
-            if (!startEl || !endEl) {
-                console.error('Could not find nodes for connection update', conn);
-                return;
-            }
-
-            // Get line style from connection data
-            const lineStyle = conn.line_style || {};
-
-            // Determine color: use line_style color if present, otherwise default from category
-            const color = lineStyle.color || this.getColorForCategory(conn.category);
-
-            // Build line options
-            const lineOpts = {
-                color: color,
-                size: lineStyle.size || 2,
-                path: 'fluid',
-                startPlug: 'disc',
-                endPlug: 'arrow2'
-            };
-
-            // Add dash style if specified
-            if (lineStyle.dash === 'dashed') {
-                lineOpts.dash = { animation: true };
-            } else if (lineStyle.dash === 'dotted') {
-                lineOpts.dash = true;
-            }
-
-            const line = new LeaderLine(startEl, endEl, lineOpts);
-
-            this.lines[conn.id] = {
-                instance: line,
-                startNodeId: conn.from_id.toString(),
-                endNodeId: conn.to_id.toString(),
-                conn: conn
-            };
+            this.removeConnection(conn.id);
+            this.drawConnectionFromData(conn, 'disc');
         });
 
-        // Remove a connection
+        // Remove a connection (handles merged pair cleanup)
         this.handleEvent('remove_connection', ({ connection_id }) => {
-            if (this.lines[connection_id]) {
-                this.lines[connection_id].instance.remove();
-                delete this.lines[connection_id];
-            }
+            this.removeConnection(connection_id);
         });
 
-        // Remove all connections to/from a deleted node
+        // Remove all connections to/from a deleted node (skip promotion — node is going away)
         this.handleEvent('remove_deleted_node_connections', ({ node_id }) => {
-            Object.entries(this.lines).forEach(([connId, lineData]) => {
-                if (lineData.startNodeId == node_id.toString() || lineData.endNodeId == node_id.toString()) {
-                    lineData.instance.remove();
-                    delete this.lines[connId];
-                }
+            const nodeIdStr = node_id.toString();
+            const toRemove = Object.keys(this.lines).filter(connId => {
+                const ld = this.lines[connId];
+                return ld.startNodeId === nodeIdStr || ld.endNodeId === nodeIdStr;
+            });
+            toRemove.forEach(connId => {
+                if (this.lines[connId]) this.removeConnection(connId, true);
             });
         });
 
         // Remove a node from DOM
         this.handleEvent('remove_node_element', ({ node_id }) => {
             const nodeEl = document.getElementById(`node-${node_id}`);
-            if (nodeEl) {
-                nodeEl.remove();
-            }
+            if (nodeEl) nodeEl.remove();
         });
+
+        // Layer persistence: restore saved visibility on mount
+        const savedHidden = localStorage.getItem('rumor_hidden_layers');
+        if (savedHidden) {
+            try {
+                const hiddenIds = JSON.parse(savedHidden);
+                if (Array.isArray(hiddenIds) && hiddenIds.length > 0) {
+                    this.pushEvent('restore_layer_visibility', { hidden_ids: hiddenIds });
+                }
+            } catch (_e) {
+                // Ignore malformed localStorage data
+            }
+        }
+
+        // Persist layer visibility changes to localStorage
+        this.handleEvent('layer_visibility_saved', ({ hidden_ids }) => {
+            localStorage.setItem('rumor_hidden_layers', JSON.stringify(hidden_ids));
+        });
+    },
+
+    getPairKey(a, b) {
+        const na = Number(a), nb = Number(b);
+        return [Math.min(na, nb), Math.max(na, nb)].join('-');
+    },
+
+    getConnColor(conn) {
+        return (conn.line_style && conn.line_style.color) || this.getColorForCategory(conn.category);
+    },
+
+    // Draw a connection, merging into a bidirectional line when a same-colour reverse exists.
+    // startPlug is only used when the connection ends up drawn as a standalone line.
+    drawConnectionFromData(conn, startPlug = 'inside') {
+        const pairKey = this.getPairKey(conn.from_id, conn.to_id);
+        const existing = this.pairIndex[pairKey];
+
+        // Check for a merge opportunity: existing primary with no secondary and matching colour
+        if (existing && !existing.secondaryId) {
+            const primaryEntry = this.lines[existing.primaryId];
+            if (primaryEntry && !primaryEntry.isMerged &&
+                this.getConnColor(primaryEntry.conn) === this.getConnColor(conn)) {
+                // Upgrade the primary line to bidirectional and register as merged secondary
+                primaryEntry.instance.setOptions({ startPlug: 'arrow2', endPlug: 'arrow2' });
+                primaryEntry.partner = conn.id;
+                this.lines[conn.id] = {
+                    instance: null,
+                    startNodeId: conn.from_id.toString(),
+                    endNodeId: conn.to_id.toString(),
+                    conn: conn,
+                    isMerged: true,
+                    partner: existing.primaryId
+                };
+                this.pairIndex[pairKey].secondaryId = conn.id;
+                return;
+            }
+        }
+
+        // Normal draw
+        const startEl = document.getElementById(`node-${conn.from_id}`);
+        const endEl = document.getElementById(`node-${conn.to_id}`);
+        if (!startEl || !endEl) {
+            console.error('Could not find nodes for connection', conn);
+            return;
+        }
+
+        const lineStyle = conn.line_style || {};
+        const color = this.getConnColor(conn);
+        const lineOpts = {
+            color: color,
+            size: lineStyle.size || 2,
+            path: 'fluid',
+            startPlug: startPlug,
+            endPlug: 'arrow2'
+        };
+        if (lineStyle.dash === 'dashed') {
+            lineOpts.dash = { animation: true };
+        } else if (lineStyle.dash === 'dotted') {
+            lineOpts.dash = true;
+        }
+
+        const line = new LeaderLine(startEl, endEl, lineOpts);
+        this.lines[conn.id] = {
+            instance: line,
+            startNodeId: conn.from_id.toString(),
+            endNodeId: conn.to_id.toString(),
+            conn: conn,
+            isMerged: false,
+            partner: null
+        };
+        this.pairIndex[pairKey] = { primaryId: conn.id, secondaryId: null };
+    },
+
+    // Remove a connection, correctly handling merged bidirectional pairs.
+    // skipPromotion: when true (e.g. node deletion), both sides of a merge are dropped
+    // without trying to redraw the surviving connection.
+    removeConnection(connId, skipPromotion = false) {
+        const entry = this.lines[connId];
+        if (!entry) return;
+
+        const pairKey = this.getPairKey(entry.startNodeId, entry.endNodeId);
+
+        if (entry.isMerged) {
+            // Removing the secondary — revert the primary to a single-direction arrow
+            const primary = this.lines[entry.partner];
+            if (primary && primary.instance) {
+                primary.instance.setOptions({ startPlug: 'inside', endPlug: 'arrow2' });
+                primary.partner = null;
+            }
+            if (this.pairIndex[pairKey]) this.pairIndex[pairKey].secondaryId = null;
+            delete this.lines[connId];
+            return;
+        }
+
+        if (entry.partner) {
+            if (skipPromotion) {
+                // Node deletion path: just remove both entries cleanly
+                delete this.lines[entry.partner];
+                entry.instance.remove();
+                delete this.lines[connId];
+                delete this.pairIndex[pairKey];
+            } else {
+                // Normal removal of primary: promote the secondary to a standalone line
+                const secondaryConn = this.lines[entry.partner].conn;
+                entry.instance.remove();
+                delete this.lines[entry.partner];
+                delete this.lines[connId];
+                delete this.pairIndex[pairKey];
+                this.drawConnectionFromData(secondaryConn);
+            }
+            return;
+        }
+
+        // Normal standalone removal
+        entry.instance.remove();
+        delete this.lines[connId];
+        delete this.pairIndex[pairKey];
     },
 
     getColorForCategory(category) {
@@ -1788,13 +1839,11 @@ Hooks.RumorMap = {
     },
 
     destroyed() {
-        // Clean up all LeaderLine instances when the hook is destroyed
         Object.values(this.lines).forEach(lineData => {
-            if (lineData.instance && lineData.instance.remove) {
-                lineData.instance.remove();
-            }
+            if (lineData.instance) lineData.instance.remove();
         });
         this.lines = {};
+        this.pairIndex = {};
     }
 }
 

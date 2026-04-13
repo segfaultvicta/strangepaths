@@ -914,6 +914,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       socket
       |> assign(:visible_layer_ids, new_visible)
       |> sync_connection_visibility(visible, new_visible)
+      |> push_layer_visibility_saved()
 
     {:noreply, socket}
   end
@@ -926,6 +927,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       socket
       |> assign(:visible_layer_ids, new_visible)
       |> sync_connection_visibility(old_visible, new_visible)
+      |> push_layer_visibility_saved()
 
     {:noreply, socket}
   end
@@ -933,6 +935,22 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
   defp handle_rumormap_event("hide_all_layers", _params, socket) do
     old_visible = socket.assigns.visible_layer_ids
     new_visible = MapSet.new()
+
+    socket =
+      socket
+      |> assign(:visible_layer_ids, new_visible)
+      |> sync_connection_visibility(old_visible, new_visible)
+      |> push_layer_visibility_saved()
+
+    {:noreply, socket}
+  end
+
+  defp handle_rumormap_event("restore_layer_visibility", %{"hidden_ids" => hidden_ids}, socket) do
+    all_layer_ids = socket.assigns.layers |> Enum.map(& &1.id) |> MapSet.new()
+    # Only keep IDs that correspond to layers that still exist
+    hidden_valid = hidden_ids |> Enum.filter(&MapSet.member?(all_layer_ids, &1)) |> MapSet.new()
+    old_visible = socket.assigns.visible_layer_ids
+    new_visible = MapSet.difference(all_layer_ids, hidden_valid)
 
     socket =
       socket
@@ -1362,6 +1380,12 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         end
       end)
     end
+  end
+
+  defp push_layer_visibility_saved(socket) do
+    all_ids = socket.assigns.layers |> Enum.map(& &1.id) |> MapSet.new()
+    hidden_ids = MapSet.difference(all_ids, socket.assigns.visible_layer_ids) |> MapSet.to_list()
+    push_event(socket, "layer_visibility_saved", %{hidden_ids: hidden_ids})
   end
 
   defp can_manage_layer?(socket, layer) do
