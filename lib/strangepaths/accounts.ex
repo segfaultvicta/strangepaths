@@ -608,6 +608,23 @@ defmodule Strangepaths.Accounts do
     end
   end
 
+  @doc """
+  Admin override: sets a user's password without requiring the current password.
+  Invalidates all existing sessions for the user.
+  """
+  def admin_set_user_password(user, attrs) do
+    changeset = User.password_changeset(user, attrs)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:user, changeset)
+    |> Ecto.Multi.delete_all(:tokens, UserToken.user_and_contexts_query(user, :all))
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      {:error, :user, changeset, _} -> {:error, changeset}
+    end
+  end
+
   ## Session
 
   @doc """
