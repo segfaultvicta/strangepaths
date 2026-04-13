@@ -11,7 +11,7 @@ defmodule StrangepathsWeb.UserAdminLive do
       users =
         Accounts.list_users()
         |> Enum.reject(&(&1.role == :dragon))
-        |> Enum.sort_by(&String.downcase(&1.nickname))
+        |> Enum.sort_by(&String.downcase(&1.nickname || ""))
 
       {:ok,
        socket
