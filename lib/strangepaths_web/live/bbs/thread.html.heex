@@ -9,22 +9,22 @@
   </div>
 
   <!-- Thread Header -->
-  <div class="bbs-panel mb-6 p-4 rounded">
+  <div class="bbs-panel mb-6 p-4">
     <div class="flex justify-between items-start">
       <div>
-        <h1 class="text-2xl font-bold text-gray-100"><%= @thread.title %></h1>
-        <div class="text-sm text-gray-400 mt-2">
+        <h1 class="font-bold text-purple-400"><%= @thread.title %></h1>
+        <div class="bbs-meta mt-2">
           Started by <span class="text-purple-400"><%= @thread.user.nickname %></span>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <%= if @thread.is_locked do %>
-          <div class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
+          <div class="bbs-button bbs-button--sm">
             🔒 Locked
           </div>
         <% end %>
         <%= if @thread.is_pinned do %>
-          <div class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
+          <div class="bbs-button bbs-button--sm">
             📌 Pinned
           </div>
         <% end %>
@@ -34,19 +34,19 @@
           <div class="flex gap-2 ml-4 border-l border-gray-600 pl-4">
             <button
               phx-click="toggle_lock"
-              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+              class="bbs-button bbs-button--secondary bbs-button--sm"
             >
               <%= if @thread.is_locked, do: "Unlock", else: "Lock" %>
             </button>
             <button
               phx-click="toggle_pin"
-              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+              class="bbs-button bbs-button--secondary bbs-button--sm"
             >
               <%= if @thread.is_pinned, do: "Unpin", else: "Pin" %>
             </button>
             <button
               phx-click="show_delete_confirm"
-              class="px-3 py-1 bg-red-700 hover:bg-red-600 text-gray-300 text-xs rounded transition"
+              class="bbs-button bbs-button--danger bbs-button--sm"
             >
               Delete
             </button>
@@ -65,13 +65,13 @@
           <button
             phx-click="delete_thread"
             phx-disable-with="Deleting..."
-            class="px-3 py-1 bg-red-700 hover:bg-red-600 text-white text-xs rounded transition"
+            class="bbs-button bbs-button--danger bbs-button--sm"
           >
             Yes, Delete
           </button>
           <button
             phx-click="cancel_delete_confirm"
-            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+            class="bbs-button bbs-button--secondary bbs-button--sm"
           >
             Cancel
           </button>
@@ -90,7 +90,7 @@
         </div>
       <% end %>
 
-      <div id={"post-#{post.id}"} class="bbs-post rounded">
+      <div id={"post-#{post.id}"} class="bbs-post">
         <!-- Post Header -->
         <div class="flex justify-between items-start mb-3">
           <div class="bbs-byline">
@@ -115,20 +115,20 @@
             <textarea
               name="content"
               required
-              class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              class="bbs-input w-full resize-none"
               rows="6"
             ><%= post.content %></textarea>
             <div class="flex gap-2">
               <button
                 type="submit"
-                class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition"
+                class="bbs-button bbs-button--sm"
               >
                 Save
               </button>
               <button
                 type="button"
                 phx-click="cancel_edit"
-                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+                class="bbs-button bbs-button--secondary bbs-button--sm"
               >
                 Cancel
               </button>
@@ -142,9 +142,9 @@
         <% end %>
 
         <!-- Post Actions -->
-        <div class="flex gap-2 text-xs bbs-dragon-controls">
+        <div class="flex gap-2 bbs-dragon-controls">
           <button
-            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
+            class="bbs-button bbs-button--secondary bbs-button--sm"
             onclick="(function(btn) { const postId = btn.closest('[id^=post-]')?.id; if(postId) navigator.clipboard.writeText(window.location.href.split('#')[0] + '#' + postId); })(this)"
           >
             Copy link
@@ -153,7 +153,7 @@
             <button
               phx-click="quote_post"
               phx-value-post_id={post.id}
-              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
+              class="bbs-button bbs-button--secondary bbs-button--sm"
             >
               Quote
             </button>
@@ -165,7 +165,7 @@
               <button
                 phx-click="start_edit_post"
                 phx-value-post_id={post.id}
-                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
+                class="bbs-button bbs-button--secondary bbs-button--sm"
               >
                 Edit
               </button>
@@ -173,7 +173,7 @@
                 phx-click="delete_post"
                 phx-value-post_id={post.id}
                 phx-disable-with="Deleting..."
-                class="px-3 py-1 bg-red-700 hover:bg-red-600 text-gray-300 rounded transition"
+                class="bbs-button bbs-button--danger bbs-button--sm"
               >
                 Delete
               </button>
@@ -187,7 +187,7 @@
   <!-- Reply Form -->
   <%= if !@thread.is_locked && @current_user do %>
     <div class="bbs-form mt-8">
-      <h2 class="mb-4">Reply to Thread</h2>
+      <h2 class="bbs-panel-header mb-4">Reply to Thread</h2>
       <form id="bbs-reply-form" phx-submit="create_reply" phx-change="validate_reply" phx-hook="BBSReplyForm" class="space-y-4">
         <!-- Display Name Field -->
         <div>
@@ -196,10 +196,10 @@
             type="text"
             name="post[display_name]"
             value={@reply_changeset.changes[:display_name] || @current_user.nickname}
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            class="bbs-input w-full"
           />
           <%= if @reply_changeset.errors[:display_name] do %>
-            <div class="text-red-400 text-sm mt-1">
+            <div class="bbs-error mt-1">
               <%= elem(@reply_changeset.errors[:display_name], 0) %>
             </div>
           <% end %>
@@ -222,13 +222,13 @@
               name="post[content]"
               placeholder="Write your reply..."
               required
-              class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              class="bbs-input w-full resize-none"
               rows="6"
               phx-hook="PostContentInput"
             ><%= @reply_changeset.changes[:content] %></textarea>
           </div>
           <%= if @reply_changeset.errors[:content] do %>
-            <div class="text-red-400 text-sm mt-1">
+            <div class="bbs-error mt-1">
               <%= elem(@reply_changeset.errors[:content], 0) %>
             </div>
           <% end %>
@@ -238,7 +238,7 @@
         <div class="flex gap-2">
           <button
             type="submit"
-            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+            class="bbs-button"
           >
             Post Reply
           </button>

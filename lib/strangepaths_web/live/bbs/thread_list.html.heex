@@ -9,7 +9,7 @@
   <!-- New Thread Button -->
   <%= if @current_user do %>
     <div class="mb-6">
-      <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug, action: :new), class: "px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition inline-block" do %>
+      <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug, action: :new), class: "bbs-button inline-block" do %>
         New Thread
       <% end %>
     </div>
@@ -18,7 +18,7 @@
   <!-- New Thread Form -->
   <%= if @live_action == :new && @current_user do %>
     <div class="bbs-form mb-8">
-      <h2 class="mb-4">Create New Thread</h2>
+      <h2 class="bbs-panel-header mb-4">Create New Thread</h2>
       <form phx-submit="create_thread" phx-change="validate_thread" class="space-y-4">
         <!-- Display Name Field -->
         <div>
@@ -27,10 +27,10 @@
             type="text"
             name="thread[display_name]"
             value={@changeset.changes[:display_name] || @current_user.nickname}
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            class="bbs-input w-full"
           />
           <%= if @changeset.errors[:display_name] do %>
-            <div class="text-red-400 text-sm mt-1">
+            <div class="bbs-error mt-1">
               <%= elem(@changeset.errors[:display_name], 0) %>
             </div>
           <% end %>
@@ -45,10 +45,10 @@
             value={@changeset.changes[:title]}
             placeholder="Thread subject..."
             required
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            class="bbs-input w-full"
           />
           <%= if @changeset.errors[:title] do %>
-            <div class="text-red-400 text-sm mt-1">
+            <div class="bbs-error mt-1">
               <%= elem(@changeset.errors[:title], 0) %>
             </div>
           <% end %>
@@ -71,13 +71,13 @@
               name="thread[content]"
               placeholder="Write your thread..."
               required
-              class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              class="bbs-input w-full resize-none"
               rows="6"
               phx-hook="PostContentInput"
             ><%= @changeset.changes[:content] %></textarea>
           </div>
           <%= if @changeset.errors[:content] do %>
-            <div class="text-red-400 text-sm mt-1">
+            <div class="bbs-error mt-1">
               <%= elem(@changeset.errors[:content], 0) %>
             </div>
           <% end %>
@@ -87,11 +87,11 @@
         <div class="flex gap-2">
           <button
             type="submit"
-            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+            class="bbs-button"
           >
             Create Thread
           </button>
-          <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug), class: "px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition" do %>
+          <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug), class: "bbs-button bbs-button--secondary" do %>
             Cancel
           <% end %>
         </div>
@@ -102,7 +102,7 @@
   <!-- Thread List -->
   <div class="space-y-2">
     <%= if Enum.empty?(@thread_rows) do %>
-      <div class="text-center py-12 text-gray-400">
+      <div class="text-center py-12 bbs-meta">
         No threads yet. Be the first to create one!
       </div>
     <% else %>
@@ -128,7 +128,7 @@
               </div>
 
               <!-- Metadata -->
-              <div class="text-sm text-gray-500 flex flex-wrap gap-3">
+              <div class="bbs-meta flex flex-wrap gap-3">
                 <span><%= thread.post_count %> post<%= if thread.post_count != 1, do: "s" %></span>
                 <span>By <%= thread.user.nickname %></span>
                 <span><%= format_relative_time(thread.last_post_at) %></span>
@@ -152,7 +152,7 @@
                 </button>
               <% end %>
               <%= if unread_count > 0 do %>
-                <div class="bbs-badge-new px-3 py-1 rounded whitespace-nowrap">
+                <div class="bbs-badge-new px-3 py-1 whitespace-nowrap">
                   <%= unread_count %> new
                 </div>
               <% end %>

@@ -1,21 +1,21 @@
 <div class="bbs-root p-6 max-w-4xl mx-auto">
   <!-- NPC Header Panel -->
   <div class="bbs-npc-header mb-8">
-┌──────────────────────────────────────┐
-│ AETHERNET NODE // v0.0.3-BETA        │
-│ cross-planar relay — unstable        │
-└──────────────────────────────────────┘
+┌──────────────────────────────────┐
+│ AETHERNET NODE // v0.0.3-BETA    │
+│ cross-planar relay — unstable    │
+└──────────────────────────────────┘
   </div>
 
   <!-- Page Title -->
-  <h1 class="text-3xl font-bold mb-6 text-gray-100">The Aethernet</h1>
+  <h1 class="bbs-panel-header mb-6">The Aethernet</h1>
 
   <!-- New Board Button (Dragon only) -->
   <%= if @current_user && @current_user.role == :dragon do %>
     <div class="mb-6">
       <button
         phx-click="toggle_new_board_form"
-        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+        class="bbs-button"
       >
         <%= if @show_new_board_form, do: "Cancel", else: "New Board" %>
       </button>
@@ -23,38 +23,38 @@
 
     <!-- New Board Form -->
     <%= if @show_new_board_form && @changeset do %>
-      <form phx-submit="create_board" phx-change="validate_board" class="mb-8 p-4 bg-gray-800 border border-gray-700 rounded">
+      <form phx-submit="create_board" phx-change="validate_board" class="bbs-form mb-8">
         <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-semibold mb-2">Board Name</label>
+          <label class="block mb-2">Board Name</label>
           <input
             type="text"
             name="board[name]"
             value={@changeset.changes[:name] || ""}
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded focus:outline-none focus:border-purple-500"
+            class="bbs-input w-full"
             placeholder="e.g., The Marketplace"
             required
           />
           <%= if errors = @changeset.errors[:name] do %>
-            <span class="text-red-400 text-sm"><%= translate_error(List.first(errors)) %></span>
+            <span class="bbs-error block mt-1"><%= translate_error(List.first(errors)) %></span>
           <% end %>
         </div>
 
         <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-semibold mb-2">Description</label>
+          <label class="block mb-2">Description</label>
           <textarea
             name="board[description]"
-            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded focus:outline-none focus:border-purple-500"
+            class="bbs-input w-full"
             rows="3"
             placeholder="Optional description"
           ><%= @changeset.changes[:description] || "" %></textarea>
           <%= if errors = @changeset.errors[:description] do %>
-            <span class="text-red-400 text-sm"><%= translate_error(List.first(errors)) %></span>
+            <span class="bbs-error block mt-1"><%= translate_error(List.first(errors)) %></span>
           <% end %>
         </div>
 
         <button
           type="submit"
-          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition"
+          class="bbs-button"
         >
           Create Board
         </button>
@@ -65,7 +65,7 @@
   <!-- Board List -->
   <div class="space-y-4">
     <%= if Enum.empty?(@boards) do %>
-      <div class="text-center py-12 text-gray-400">
+      <div class="text-center py-12 bbs-meta">
         No boards available yet.
       </div>
     <% else %>
@@ -74,15 +74,15 @@
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, board.slug) do %>
-                <h2 class="text-xl font-semibold text-purple-400 hover:text-purple-300 cursor-pointer">
+                <h2 class="font-semibold text-purple-400 hover:text-purple-300 cursor-pointer">
                   <%= board.name %>
                 </h2>
               <% end %>
               <%= if board.description do %>
-                <p class="text-gray-400 text-sm mt-1"><%= board.description %></p>
+                <p class="bbs-meta mt-1"><%= board.description %></p>
               <% end %>
             </div>
-            <div class="text-right text-sm text-gray-500">
+            <div class="text-right bbs-meta">
               <div><%= thread_count %> thread<%= if thread_count != 1, do: "s" %></div>
               <%= if last_post_at do %>
                 <div class="text-xs mt-1"><%= format_relative_time(last_post_at) %></div>

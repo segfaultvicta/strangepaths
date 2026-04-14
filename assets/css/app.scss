@@ -1385,6 +1385,76 @@ input[type="range"].slider-purple {
   }
 }
 
+/* BBS Button styles */
+.bbs-button {
+  background: #1a1a5a;
+  color: #9090e0;
+  border: 1px solid #4040a0;
+  padding: 0.4rem 1rem;
+  font-family: var(--bbs-font);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: background 0.1s;
+
+  &:hover {
+    background: #25256a;
+  }
+}
+
+.bbs-button--secondary {
+  background: #0d0d1a;
+  color: #5050a0;
+  border: 1px solid #2a2a4a;
+
+  &:hover {
+    background: #111128;
+  }
+}
+
+.bbs-button--danger {
+  background: #3a1a1a;
+  color: #d4a8a8;
+  border: 1px solid #4a2a2a;
+
+  &:hover {
+    background: #5a2a2a;
+    color: #e8c8c8;
+  }
+}
+
+.bbs-button--sm {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.7rem;
+}
+
+/* BBS Input/Textarea styles */
+.bbs-input {
+  background: #06060f;
+  border: 1px solid #2a2a4a;
+  color: #c8c8d4;
+  font-family: var(--bbs-font);
+  padding: 0.5rem;
+
+  &:focus {
+    border-color: #5050a0;
+    outline: none;
+  }
+}
+
+/* BBS Error message styles */
+.bbs-error {
+  color: #d4a8a8;
+  font-size: 0.75rem;
+}
+
+/* BBS Metadata text (timestamps, edit markers) */
+.bbs-meta {
+  color: #5050a0;
+  font-size: 0.75rem;
+}
+
 /* Dragon controls — muted by default, visible only on hover */
 .bbs-dragon-controls {
   opacity: 0.4;
