@@ -282,8 +282,81 @@ Three LiveViews in `lib/strangepaths_web/live/bbs/`:
 - `render_bbs_post_content(content, current_thread_id)` — Renders post content with quote block processing and XSS protection
 - `render_quote_block/6` (private) — Generates HTML for individual quote blocks
 
-### Not Implemented Yet (Phases 4+)
+## BBS Forum System (Phase 4: Dragon Moderation)
 
-- Dragon moderation controls: pin/lock/delete threads (Phase 4)
-- Edit/delete posts by author or dragon (Phase 4)
-- CSS/SCSS styling refinement (Phase 5)
+### Moderation Features
+
+- **Thread moderation:** Pin (dragon only), Lock (dragon only), Delete (dragon only)
+- **Post moderation:** Edit (by author or dragon), Delete (by author or dragon)
+- **Moderation buttons** appear in post/thread headers with reduced opacity (hover reveals)
+- **Edit tracking:** Posts show "[edited by dragon]" timestamp marker if edited
+
+## BBS Forum System (Phase 5: Aesthetic Polish)
+
+### Styling Overview
+
+The BBS uses a retro terminal aesthetic with monospace fonts and a dark purple/blue color scheme. All BBS-specific styles are in a dedicated SCSS block at the end of `assets/css/app.scss`.
+
+### CSS Classes and Components
+
+**Root & Layout:**
+- `.bbs-root` — Applied to outermost wrapper. Sets monospace font, dark background (#0a0a0f), subtle scanline texture. All BBS pages get this class.
+
+**Panels & Headers:**
+- `.bbs-panel` — Dark panel with border (#0d0d1a background, #2a2a4a border)
+- `.bbs-panel-header` — Panel header with uppercase text, purple color, letter-spacing
+- `.bbs-npc-header` — Special style for ASCII art NPC header (preserves whitespace with `white-space: pre`)
+
+**Thread Rows (ThreadList):**
+- `.bbs-thread-row` — Base thread row with hover effect
+- `.bbs-thread-row--pinned` — Left border in purple (#5050c0) for pinned threads
+- `.bbs-thread-row--sticky` — Left border in green (#308030) for user-stickied threads
+- `.bbs-pin-indicator` — Colored indicator text for pins (purple)
+- `.bbs-sticky-indicator` — Colored indicator text for stickies (green)
+- `.bbs-badge-new` — Badge for unread post count (blue background, outlined)
+
+**Posts (Thread):**
+- `.bbs-post` — Individual post container with bottom border
+- `.bbs-byline` — Post header area (smaller font)
+- `.bbs-display-name` — Poster's display name (bold, light purple #9090e0)
+- `.bbs-character-name` — Character name (italic, muted purple #4a4a7a)
+- `.bbs-timestamp` — Post timestamp (very dark purple #3a3a6a)
+- `.bbs-edited-marker` — "[edited by dragon]" text marker
+- `.bbs-post-content` — Post body with proper line-height and text color. Nested styles for `<p>`, `<code>`, and `<pre>` elements.
+- `.bbs-unread-divider` — "── new replies ──" divider with subtle coloring
+
+**Forms:**
+- `.bbs-form` — Form container for creating threads or posting replies. Dark background, styled inputs/buttons with monospace font.
+
+**Dragon Controls:**
+- `.bbs-dragon-controls` — Container for moderation buttons. Set to low opacity (0.4) by default, visible on post hover or focus-within.
+
+**Quote Blocks:**
+- `.bbs-quote-block` — Container for quoted post excerpts. Dark background with left border, nested styles for header/excerpt.
+- `.bbs-quote-cross-thread` — Variant for cross-thread quotes with hover effects and popover link.
+
+**Breadcrumb:**
+- `.bbs-breadcrumb` — Navigation breadcrumb styling with muted color and hover effects on links.
+
+### CSS Variables
+
+- `--bbs-font` — Single point of control for monospace font. Currently `"Courier New", "Lucida Console", monospace`. Update this variable to change BBS typography globally without touching individual classes.
+
+### Tippy Theme
+
+- `.tippy-box[data-theme~="bbs"]` — Custom Tippy popover theme for quote popovers, matching BBS colors and font.
+
+### Design Rationale
+
+- **Monospace throughout:** Reinforces retro/terminal aesthetic
+- **Purple/blue color palette:** Mystical, tech-like feel matching Strangepaths lore (aethernet as magical network)
+- **Scanlines:** Subtle background texture adds visual depth without distraction
+- **Hover states:** Dragon controls hidden by default (non-intrusive), revealed on interaction
+- **Indicator colors:** Pinned (purple) vs. sticky (green) creates clear visual distinction
+
+### Notes for Future Work
+
+- The `--bbs-font` CSS variable makes it trivial to swap fonts (e.g., to "IBM Plex Mono" or custom font) by editing a single line
+- All classes use `.bbs-` prefix to avoid conflicts with Tailwind utilities
+- Styling is self-contained in SCSS block; no Tailwind classes in BBS templates (except utility layout like `p-6`, `gap-2`)
+- Dragon control opacity handled via CSS `:hover` pseudo-selector on parent post, not JavaScript

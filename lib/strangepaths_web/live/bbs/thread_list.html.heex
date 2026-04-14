@@ -1,6 +1,6 @@
-<div class="p-6 max-w-6xl mx-auto">
+<div class="bbs-root p-6 max-w-6xl mx-auto">
   <!-- Breadcrumb -->
-  <div class="mb-6 text-gray-400 text-sm">
+  <div class="bbs-breadcrumb mb-6">
     <%= live_redirect "The Aethernet", to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.BoardList) %>
     <span class="mx-2">/</span>
     <span><%= @board.name %></span>
@@ -17,7 +17,7 @@
 
   <!-- New Thread Form -->
   <%= if @live_action == :new && @current_user do %>
-    <div class="mb-8 p-4 bg-gray-800 border border-gray-700 rounded">
+    <div class="bbs-form mb-8 rounded">
       <h2 class="text-lg font-semibold text-gray-100 mb-4">Create New Thread</h2>
       <form phx-submit="create_thread" phx-change="validate_thread" class="space-y-4">
         <!-- Display Name Field -->
@@ -107,18 +107,18 @@
       </div>
     <% else %>
       <%= for %{thread: thread, unread_count: unread_count, is_stickied: is_stickied} <- @thread_rows do %>
-        <div class="p-4 bg-gray-800 border border-gray-700 rounded hover:border-gray-600 transition">
+        <div class={["bbs-thread-row bbs-panel p-4 rounded hover:border-gray-600 transition", thread.is_pinned && "bbs-thread-row--pinned", is_stickied && "bbs-thread-row--sticky"]}>
           <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-2">
                 <!-- Pin indicator -->
                 <%= if thread.is_pinned do %>
-                  <span class="text-yellow-500 text-lg" title="Pinned">📌</span>
+                  <span class="bbs-pin-indicator text-lg" title="Pinned">📌</span>
                 <% end %>
 
                 <!-- Sticky indicator -->
                 <%= if is_stickied do %>
-                  <span class="text-blue-400 text-lg" title="Stickied by you">⭐</span>
+                  <span class="bbs-sticky-indicator text-lg" title="Stickied by you">⭐</span>
                 <% end %>
 
                 <!-- Thread title -->
@@ -152,7 +152,7 @@
                 </button>
               <% end %>
               <%= if unread_count > 0 do %>
-                <div class="px-3 py-1 bg-red-600 text-white text-sm rounded whitespace-nowrap">
+                <div class="bbs-badge-new px-3 py-1 rounded whitespace-nowrap">
                   <%= unread_count %> new
                 </div>
               <% end %>

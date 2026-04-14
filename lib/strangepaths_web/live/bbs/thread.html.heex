@@ -1,6 +1,6 @@
-<div class="p-6 max-w-4xl mx-auto">
+<div class="bbs-root p-6 max-w-4xl mx-auto">
   <!-- Breadcrumb -->
-  <div class="mb-6 text-gray-400 text-sm">
+  <div class="bbs-breadcrumb mb-6">
     <%= live_redirect "The Aethernet", to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.BoardList) %>
     <span class="mx-2">/</span>
     <%= live_redirect @board.name, to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug) %>
@@ -9,7 +9,7 @@
   </div>
 
   <!-- Thread Header -->
-  <div class="mb-6 p-4 bg-gray-800 border border-gray-700 rounded">
+  <div class="bbs-panel mb-6 p-4 rounded">
     <div class="flex justify-between items-start">
       <div>
         <h1 class="text-2xl font-bold text-gray-100"><%= @thread.title %></h1>
@@ -57,7 +57,7 @@
 
     <!-- Delete Confirmation (Alpine-style with show_confirm assign) -->
     <%= if @show_delete_confirm do %>
-      <div class="mt-4 p-3 bg-red-900 border border-red-700 rounded">
+      <div class="bbs-locked-notice mt-4 p-3 rounded">
         <div class="text-sm text-red-200 mb-3">
           Are you sure you want to delete this thread? This action cannot be undone.
         </div>
@@ -85,24 +85,24 @@
     <%= for {post, index} <- Enum.with_index(@posts) do %>
       <!-- Unread divider (sibling, not inside post) -->
       <%= if @unread_boundary_index && index == @unread_boundary_index do %>
-        <div class="text-center text-gray-500 text-sm py-2 border-t border-b border-yellow-600">
+        <div class="bbs-unread-divider text-sm py-2">
           ── new replies ──
         </div>
       <% end %>
 
-      <div id={"post-#{post.id}"} class="p-4 bg-gray-800 border border-gray-700 rounded">
+      <div id={"post-#{post.id}"} class="bbs-post rounded">
         <!-- Post Header -->
         <div class="flex justify-between items-start mb-3">
-          <div>
-            <div class="font-semibold text-gray-100"><%= post.display_name %></div>
+          <div class="bbs-byline">
+            <div class="bbs-display-name"><%= post.display_name %></div>
             <%= if post.user && post.user.role != :dragon do %>
-              <div class="text-xs text-gray-500"><%= post.character_name %></div>
+              <div class="bbs-character-name"><%= post.character_name %></div>
             <% end %>
           </div>
-          <div class="text-xs text-gray-500">
+          <div class="bbs-timestamp">
             <%= format_timestamp(post.posted_at) %>
             <%= if post.edited_at do %>
-              <span class="text-gray-600 ml-2">[edited by dragon]</span>
+              <span class="bbs-edited-marker ml-2">[edited by dragon]</span>
             <% end %>
           </div>
         </div>
@@ -136,13 +136,13 @@
           </form>
         <% else %>
           <!-- Post Content -->
-          <div class="text-gray-200 mb-3 prose prose-invert max-w-none">
+          <div class="bbs-post-content mb-3 prose prose-invert max-w-none">
             <%= render_bbs_post_content(post.content, @thread.id) |> raw %>
           </div>
         <% end %>
 
         <!-- Post Actions -->
-        <div class="flex gap-2 text-xs">
+        <div class="flex gap-2 text-xs bbs-dragon-controls">
           <button
             class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
             onclick="(function(btn) { const postId = btn.closest('[id^=post-]')?.id; if(postId) navigator.clipboard.writeText(window.location.href.split('#')[0] + '#' + postId); })(this)"
@@ -186,7 +186,7 @@
 
   <!-- Reply Form -->
   <%= if !@thread.is_locked && @current_user do %>
-    <div class="mt-8 p-4 bg-gray-800 border border-gray-700 rounded">
+    <div class="bbs-form mt-8 rounded">
       <h2 class="text-lg font-semibold text-gray-100 mb-4">Reply to Thread</h2>
       <form id="bbs-reply-form" phx-submit="create_reply" phx-change="validate_reply" phx-hook="BBSReplyForm" class="space-y-4">
         <!-- Display Name Field -->

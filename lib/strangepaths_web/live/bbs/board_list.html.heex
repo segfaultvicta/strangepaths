@@ -1,6 +1,6 @@
-<div class="p-6 max-w-4xl mx-auto">
+<div class="bbs-root p-6 max-w-4xl mx-auto">
   <!-- NPC Header Panel -->
-  <div class="mb-8 p-4 bg-gray-900 border border-gray-700 rounded font-mono text-gray-300 text-sm whitespace-pre">
+  <div class="bbs-npc-header mb-8">
 ┌──────────────────────────────────────┐
 │  AETHERNET NODE // v0.0.3-BETA       │
 │  cross-planar relay — unstable       │
@@ -70,7 +70,7 @@
       </div>
     <% else %>
       <%= for %{board: board, thread_count: thread_count, last_post_at: last_post_at} <- @boards do %>
-        <div class="p-4 bg-gray-800 border border-gray-700 rounded hover:border-gray-600 transition">
+        <div class="bbs-panel p-4 rounded hover:border-gray-600 transition">
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, board.slug) do %>
