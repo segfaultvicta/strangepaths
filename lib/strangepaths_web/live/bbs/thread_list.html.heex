@@ -122,7 +122,7 @@
                 <% end %>
 
                 <!-- Thread title -->
-                <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.Thread, @board.slug, thread.id), class: "text-purple-400 hover:text-purple-300 font-semibold break-words" do %>
+                <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.Thread, @board.slug, thread.id), class: "bbs-title font-semibold break-words" do %>
                   <%= thread.title %>
                 <% end %>
               </div>
@@ -141,7 +141,7 @@
                 <button
                   phx-click="toggle_sticky"
                   phx-value-thread_id={thread.id}
-                  class="p-1 text-gray-400 hover:text-blue-400 transition"
+                  class="bbs-icon-button"
                   title={if is_stickied, do: "Remove from sticky", else: "Add to sticky"}
                 >
                   <%= if is_stickied do %>

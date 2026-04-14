@@ -12,7 +12,7 @@
   <div class="bbs-panel mb-6 p-4">
     <div class="flex justify-between items-start">
       <div>
-        <h1 class="font-bold text-purple-400"><%= @thread.title %></h1>
+        <h1 class="font-bold bbs-title"><%= @thread.title %></h1>
         <div class="bbs-meta mt-2">
           Started by <span class="text-purple-400"><%= @thread.user.nickname %></span>
         </div>
@@ -31,7 +31,7 @@
 
         <!-- Dragon Controls -->
         <%= if @current_user && @current_user.role == :dragon do %>
-          <div class="flex gap-2 ml-4 border-l border-gray-600 pl-4">
+          <div class="flex gap-2 bbs-divider-left">
             <button
               phx-click="toggle_lock"
               class="bbs-button bbs-button--secondary bbs-button--sm"
@@ -161,7 +161,7 @@
 
           <!-- Dragon Controls -->
           <%= if @current_user && @current_user.role == :dragon do %>
-            <div class="border-l border-gray-600 pl-2 ml-2 flex gap-2">
+            <div class="bbs-divider-left flex gap-2" style="margin-left: 0.5rem; padding-left: 0.5rem;">
               <button
                 phx-click="start_edit_post"
                 phx-value-post_id={post.id}

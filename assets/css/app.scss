@@ -1480,6 +1480,36 @@ input[type="range"].slider-purple {
   }
 }
 
+/* BBS divider for separating control sections */
+.bbs-divider-left {
+  border-left: 1px solid #2a2a4a;
+  padding-left: 1rem;
+  margin-left: 1rem;
+}
+
+/* BBS icon button for interactive elements like sticky toggle */
+.bbs-icon-button {
+  background: transparent;
+  border: none;
+  color: #5050a0;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.15s;
+
+  &:hover {
+    color: #7070d0;
+  }
+}
+
+/* BBS title styling for content headings */
+.bbs-title {
+  color: #7070d0;
+
+  &:hover {
+    color: #9090e0;
+  }
+}
+
 /* Tippy theme for cross-thread quote popovers */
 .tippy-box[data-theme~="bbs"] {
   background-color: #0d0d1a;

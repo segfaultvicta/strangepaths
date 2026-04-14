@@ -74,7 +74,7 @@
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, board.slug) do %>
-                <h2 class="font-semibold text-purple-400 hover:text-purple-300 cursor-pointer">
+                <h2 class="font-semibold bbs-title cursor-pointer">
                   <%= board.name %>
                 </h2>
               <% end %>
