@@ -76,6 +76,26 @@ defmodule StrangepathsWeb.BBSHelpersTest do
       assert result =~ "Second"
     end
 
+    test "handles duplicate (identical) quote blocks without corruption" do
+      q = "[quote id=1 author=\"Alice\" thread_id=1 board=\"general\"]Same excerpt[/quote]"
+      content = q <> "\n\n" <> q
+      result = render_bbs_post_content(content, 1)
+
+      # No unreplaced placeholders
+      refute result =~ "___QUOTE_BLOCK_"
+
+      # Both quote blocks rendered (3 parts when split on the class = 2 quote instances + 1 prefix)
+      assert result |> String.split("bbs-quote-block") |> length() == 3
+    end
+
+    test "does not substitute user text matching a placeholder pattern" do
+      content = "___QUOTE_BLOCK_0___ is a weird thing to type"
+      result = render_bbs_post_content(content, 1)
+
+      # The literal placeholder text should be escaped/present as-is (not consumed as a quote block)
+      assert result =~ "___QUOTE_BLOCK_0___"
+    end
+
     test "processes markdown after quote processing" do
       content =
         "[quote id=1 author=\"Alice\" thread_id=1 board=\"general\"]quoted[/quote]\n\n**bold text**"
