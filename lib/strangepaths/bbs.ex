@@ -387,7 +387,9 @@ defmodule Strangepaths.BBS do
       on_conflict: [
         set: [
           last_read_at: now,
-          last_read_post_id: {:raw, "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
+          last_read_post_id:
+            {:raw,
+             "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
         ]
       ],
       conflict_target: [:user_id, :thread_id]
@@ -415,7 +417,9 @@ defmodule Strangepaths.BBS do
       on_conflict: [
         set: [
           last_read_at: posted_at_trunc,
-          last_read_post_id: {:raw, "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
+          last_read_post_id:
+            {:raw,
+             "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
         ]
       ],
       conflict_target: [:user_id, :thread_id]
