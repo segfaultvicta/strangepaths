@@ -34,6 +34,8 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
   end
 
   defp apply_action(socket, :new, _params) do
+    # NOTE: mount already loaded thread_rows before this auth check fires.
+    # This is intentional in LiveView for :new actions — load-then-redirect is acceptable.
     if socket.assigns.current_user do
       changeset = BBS.change_thread()
       assign(socket, :changeset, changeset)

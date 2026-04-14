@@ -2053,6 +2053,36 @@ Hooks.BBSQuotePopover = {
     }
 };
 
+Hooks.BBSCopyLink = {
+    mounted() {
+        this.handleClick = async (e) => {
+            e.preventDefault();
+            const postId = this.el.closest('[id^=post-]')?.id;
+            if (postId) {
+                const url = window.location.href.split('#')[0] + '#' + postId;
+                try {
+                    await navigator.clipboard.writeText(url);
+                    // Optional: show brief success feedback
+                    const originalText = this.el.textContent;
+                    this.el.textContent = "Copied!";
+                    setTimeout(() => {
+                        this.el.textContent = originalText;
+                    }, 1500);
+                } catch (err) {
+                    console.error("Failed to copy link:", err);
+                }
+            }
+        };
+        this.el.addEventListener("click", this.handleClick);
+    },
+
+    destroyed() {
+        if (this.handleClick) {
+            this.el.removeEventListener("click", this.handleClick);
+        }
+    }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {

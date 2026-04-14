@@ -144,8 +144,9 @@
         <!-- Post Actions -->
         <div class="flex gap-2 bbs-dragon-controls">
           <button
+            id={"copy-link-btn-#{post.id}"}
+            phx-hook="BBSCopyLink"
             class="bbs-button bbs-button--secondary bbs-button--sm"
-            onclick="(function(btn) { const postId = btn.closest('[id^=post-]')?.id; if(postId) navigator.clipboard.writeText(window.location.href.split('#')[0] + '#' + postId); })(this)"
           >
             Copy link
           </button>

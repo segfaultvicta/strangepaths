@@ -230,6 +230,9 @@ defmodule Strangepaths.BBS do
 
     result =
       Repo.transaction(fn ->
+        # Lock the thread row to prevent concurrent post_count drift
+        Repo.one!(from(t in Thread, where: t.id == ^thread.id, lock: "FOR UPDATE"))
+
         post =
           %Post{}
           |> Post.create_changeset(post_attrs)
@@ -284,6 +287,10 @@ defmodule Strangepaths.BBS do
     else
       Repo.transaction(fn ->
         thread_id = post.thread_id
+
+        # Lock the thread row to prevent concurrent post_count drift
+        Repo.one!(from(t in Thread, where: t.id == ^thread_id, lock: "FOR UPDATE"))
+
         Repo.delete!(post)
 
         from(t in Thread, where: t.id == ^thread_id)
