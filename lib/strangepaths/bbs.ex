@@ -260,6 +260,10 @@ defmodule Strangepaths.BBS do
         from(t in Thread, where: t.id == ^thread_id)
         |> Repo.update_all(set: [last_post_at: new_last])
       end
+
+      # Note: if this was the only post, the thread now has post_count = 0 and
+      # a stale last_post_at. Callers (Dragon moderation) should call delete_thread/1
+      # instead of delete_post/1 when thread.post_count == 1.
     end)
   end
 
@@ -381,17 +385,24 @@ defmodule Strangepaths.BBS do
       last_read_post_id: latest_post_id
     }
 
+    update_query =
+      from(rm in ThreadReadMark,
+        update: [
+          set: [
+            last_read_at: ^now,
+            last_read_post_id:
+              fragment(
+                "GREATEST(EXCLUDED.last_read_post_id, ?)",
+                rm.last_read_post_id
+              )
+          ]
+        ]
+      )
+
     %ThreadReadMark{}
     |> ThreadReadMark.changeset(fields)
     |> Repo.insert(
-      on_conflict: [
-        set: [
-          last_read_at: now,
-          last_read_post_id:
-            {:raw,
-             "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
-        ]
-      ],
+      on_conflict: update_query,
       conflict_target: [:user_id, :thread_id]
     )
   end
@@ -411,17 +422,24 @@ defmodule Strangepaths.BBS do
       last_read_post_id: post_id
     }
 
+    update_query =
+      from(rm in ThreadReadMark,
+        update: [
+          set: [
+            last_read_at: ^posted_at_trunc,
+            last_read_post_id:
+              fragment(
+                "GREATEST(EXCLUDED.last_read_post_id, ?)",
+                rm.last_read_post_id
+              )
+          ]
+        ]
+      )
+
     %ThreadReadMark{}
     |> ThreadReadMark.changeset(fields)
     |> Repo.insert(
-      on_conflict: [
-        set: [
-          last_read_at: posted_at_trunc,
-          last_read_post_id:
-            {:raw,
-             "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
-        ]
-      ],
+      on_conflict: update_query,
       conflict_target: [:user_id, :thread_id]
     )
   end
