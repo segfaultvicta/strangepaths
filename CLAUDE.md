@@ -46,6 +46,7 @@ mix assets.deploy             # Production build with minification
 Business logic is organized into Phoenix contexts:
 
 - **Accounts** — Users, authentication (bcrypt), character data (dice pools, arete, techne), avatars, character presets. Two roles: `user` and `dragon` (admin).
+- **BBS** — Forum system with boards, threads, posts. Supports pinning/locking (dragon only), personal thread stickies, and smart unread tracking via read marks.
 - **Cards** — Three card types (Rite/Grace/Status) organized by Aspects. Decks use a 5-color mana balance (15-point total). Cards have art, rules text, flavor text.
 - **Scenes** — Collaborative roleplay scenes with IC/OOC posts, slug-based URLs, locking, and archiving. A special "Elsewhere" scene (only one allowed).
 - **Site** — Static content pages (markdown via Earmark) and music/song management.
@@ -76,6 +77,7 @@ Four GenServers run under the application supervisor:
 
 | Path | Purpose |
 |------|---------|
+| `/bbs` | Forum boards and threads (Phase 2) |
 | `/scenes` | Active collaborative scenes |
 | `/ost` | Music player (two discs) |
 | `/cosmos` | Card browser/admin |
@@ -94,3 +96,72 @@ Four GenServers run under the application supervisor:
 - Tailwind config safelists rumor map node colors (dynamic classes)
 - Post drafts auto-saved to browser localStorage
 - Music player volume persisted in localStorage
+
+## BBS Forum System (Phase 1: Data Layer)
+
+### Schema Overview
+
+The BBS context manages a forum with five tables:
+
+- **bbs_boards** — Forum boards (name, slug, description). Slugs auto-generated from board names.
+- **bbs_threads** — Discussion threads within boards. Track `is_pinned` (dragon only), `is_locked` (dragon only), `last_post_at`, and `post_count`.
+- **bbs_posts** — Individual posts within threads. Support edit tracking (`edited_at`, `edited_by_id`). Store `display_name` and `character_name` separately (allow character aliases in posts).
+- **bbs_user_thread_stickies** — Per-user thread favorites. Unique constraint on (user_id, thread_id).
+- **bbs_thread_read_marks** — Smart unread tracking. Store `last_read_post_id` (nullable, post may be deleted) and `last_read_at` (wall-clock time). Unique constraint on (user_id, thread_id).
+
+### API Functions (Strangepaths.BBS)
+
+**Boards**
+- `list_boards()` — All boards with thread counts and last post times
+- `get_board!(id)`, `get_board_by_slug!(slug)` — Board by id or slug
+- `create_board(attrs)`, `change_board(board, attrs)` — Create and changeset
+
+**Threads**
+- `list_threads(board, user)` — Threads ordered: pinned, stickied (if user), then by last_post_at
+- `list_threads_with_unread_counts(board, user)` — Same, with unread post counts per thread
+- `get_thread!(id)` — Thread by id (preloaded with board)
+- `create_thread(board, user, attrs)` — Create thread and first post (atomically)
+- `change_thread(thread, attrs)` — Changeset for thread creation
+
+**Posts**
+- `list_posts(thread_id)` — Posts ordered by posted_at ascending
+- `get_post!(id)` — Post by id
+- `create_post(thread, user, attrs)` — Create post and update thread (atomically). Broadcasts "new_post" on `bbs_thread:{id}`.
+- `update_post(post, editor, attrs)` — Edit post and mark edited_at/edited_by
+- `delete_post(post)` — Delete post and decrement thread post_count
+- `get_post_for_quote(post_id)` — Post with quote context (board slug, thread id, content)
+
+**Stickies**
+- `toggle_sticky(user_id, thread_id)` — Create or delete sticky
+- `user_sticky_thread_ids(user_id)` — MapSet of thread ids stickied by user
+
+**Dragon Moderation**
+- `pin_thread(thread)`, `unpin_thread(thread)` — Toggle is_pinned
+- `lock_thread(thread)`, `unlock_thread(thread)` — Toggle is_locked
+- `delete_thread(thread)` — Delete thread (cascades to posts)
+
+**Read Marks**
+- `upsert_read_mark(user_id, thread_id)` — Mark all posts in thread as read (sets last_read_post_id to max)
+- `advance_read_mark(user_id, thread_id, post_id, posted_at)` — Mark posts up to specific post as read (preserves unread count for newer posts)
+- `get_read_mark(user_id, thread_id)` — Retrieve read mark or nil
+
+### Design Notes
+
+- Threads are created with the user's first post atomically (no empty threads).
+- Posts include `display_name` and `character_name` to support IC character aliases without breaking post history if a user later changes their character.
+- Read marks use `last_read_post_id` (nullable) for smart unread: unread = posts where `id > last_read_post_id`. If no read mark exists, all posts are unread.
+- Unread counts calculated server-side via subquery; frontend receives precalculated counts.
+- Dragon-only operations (pin, lock, delete) have no permission checks in the data layer — LiveView/Controller must enforce.
+- Future LiveViews will use PubSub for real-time "new post" notifications (broadcast happens on `create_post`).
+
+### Migrations
+
+Five numbered migrations (20260413120001–20260413120005) in `priv/repo/migrations/`:
+
+1. `20260413120001_create_bbs_boards.exs` — bbs_boards table
+2. `20260413120002_create_bbs_threads.exs` — bbs_threads table with board_id FK
+3. `20260413120003_create_bbs_posts.exs` — bbs_posts table with thread_id FK
+4. `20260413120004_create_bbs_user_thread_stickies.exs` — bbs_user_thread_stickies table
+5. `20260413120005_create_bbs_thread_read_marks.exs` — bbs_thread_read_marks table
+
+All migrations use `:delete_all` for cascade deletes. Indexes created for query performance (board/pinned/last_post_at on threads; thread/posted_at on posts).
