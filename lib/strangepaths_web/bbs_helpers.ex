@@ -6,6 +6,13 @@ defmodule StrangepathsWeb.BBSHelpers do
   import StrangepathsWeb.SceneHelpers
 
   @doc """
+  Formats a datetime for BBS post display (e.g., "Apr 13, 2026 at 03:45 PM").
+  """
+  def format_timestamp(datetime) do
+    Calendar.strftime(datetime, "%b %d, %Y at %I:%M %p")
+  end
+
+  @doc """
   Renders BBS post content with quote block processing.
   Pre-processes [quote ...] blocks to HTML before markdown rendering.
 

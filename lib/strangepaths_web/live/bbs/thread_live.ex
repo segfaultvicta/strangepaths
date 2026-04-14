@@ -110,25 +110,30 @@ defmodule StrangepathsWeb.BBSLive.Thread do
   @impl true
   def handle_event("quote_post", %{"post_id" => post_id_str}, socket) do
     if socket.assigns.current_user do
-      post_id = String.to_integer(post_id_str)
-      quote_data = BBS.get_post_for_quote(post_id)
+      case Integer.parse(post_id_str) do
+        {post_id, ""} ->
+          quote_data = BBS.get_post_for_quote(post_id)
 
-      if quote_data do
-        # Truncate excerpt to 200 chars
-        excerpt = String.slice(quote_data.content, 0, 200)
-        same_thread = quote_data.thread_id == socket.assigns.thread.id
+          if quote_data do
+            # Truncate excerpt to 200 chars
+            excerpt = String.slice(quote_data.content, 0, 200)
+            same_thread = quote_data.thread_id == socket.assigns.thread.id
 
-        push_event(socket, "bbs-insert-quote", %{
-          post_id: quote_data.id,
-          author: quote_data.display_name,
-          thread_id: quote_data.thread_id,
-          board: quote_data.board_slug,
-          excerpt: excerpt,
-          same_thread: same_thread
-        })
-        |> then(&{:noreply, &1})
-      else
-        {:noreply, put_flash(socket, :error, "Post not found.")}
+            {:noreply,
+             push_event(socket, "bbs-insert-quote", %{
+               post_id: quote_data.id,
+               author: quote_data.display_name,
+               thread_id: quote_data.thread_id,
+               board: quote_data.board_slug,
+               excerpt: excerpt,
+               same_thread: same_thread
+             })}
+          else
+            {:noreply, put_flash(socket, :error, "Post not found.")}
+          end
+
+        _ ->
+          {:noreply, put_flash(socket, :error, "Invalid post ID.")}
       end
     else
       {:noreply, put_flash(socket, :error, "You must be logged in to quote.")}
@@ -141,9 +146,5 @@ defmodule StrangepathsWeb.BBSLive.Thread do
     else
       nil
     end
-  end
-
-  def format_timestamp(datetime) do
-    Calendar.strftime(datetime, "%b %d, %Y at %I:%M %p")
   end
 end

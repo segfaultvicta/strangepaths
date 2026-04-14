@@ -1974,7 +1974,10 @@ Hooks.BBSReplyForm = {
             const textarea = this.el.querySelector("textarea[name*='content']");
             if (!textarea) return;
 
-            const quoteTag = `[quote id=${post_id} author="${author}" thread_id=${thread_id} board="${board}"]\n${excerpt}\n[/quote]\n\n`;
+            // Sanitize author before inserting into quote tag — remove quote marks, brackets, and newlines
+            // to prevent tag injection and parsing errors
+            const safeAuthor = author.replace(/["[\]\n]/g, "");
+            const quoteTag = `[quote id=${post_id} author="${safeAuthor}" thread_id=${thread_id} board="${board}"]\n${excerpt}\n[/quote]\n\n`;
 
             // Insert at cursor if possible, else append
             const start = textarea.selectionStart;
@@ -2018,9 +2021,29 @@ Hooks.BBSQuotePopover = {
             const excerpt = el.dataset.quoteExcerpt || "";
             const url = el.dataset.quoteUrl || "#";
 
+            // Build content with DOM APIs — never use innerHTML or template strings
+            // for user-controlled values to prevent XSS
+            const wrap = document.createElement("div");
+            wrap.className = "bbs-popover";
+
+            const strong = document.createElement("strong");
+            strong.textContent = author;  // textContent = safe, no HTML injection
+
+            const p = document.createElement("p");
+            p.textContent = excerpt;  // textContent = safe
+
+            const a = document.createElement("a");
+            a.textContent = "↗ go to post";
+            // Validate URL before assigning — must start with /bbs/
+            if (/^\/bbs\//.test(url)) {
+                a.href = url;
+            }
+
+            wrap.append(strong, p, a);
+
             window.tippy(el, {
-                content: `<div class="bbs-popover"><strong>${author}</strong><p>${excerpt}</p><a href="${url}">↗ go to post</a></div>`,
-                allowHTML: true,
+                content: wrap,
+                allowHTML: true,  // Safe here because content is a real DOM node
                 interactive: true,
                 theme: "bbs",
                 trigger: "click",

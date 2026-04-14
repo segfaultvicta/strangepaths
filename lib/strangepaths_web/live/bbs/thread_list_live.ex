@@ -89,12 +89,17 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
   @impl true
   def handle_event("toggle_sticky", %{"thread_id" => thread_id_str}, socket) do
     if socket.assigns.current_user do
-      thread_id = String.to_integer(thread_id_str)
-      BBS.toggle_sticky(socket.assigns.current_user.id, thread_id)
-      # Reload threads to reflect new sticky state
-      board = socket.assigns.board
-      thread_rows = BBS.list_threads_with_unread_counts(board, socket.assigns.current_user)
-      {:noreply, assign(socket, :thread_rows, thread_rows)}
+      case Integer.parse(thread_id_str) do
+        {thread_id, ""} ->
+          BBS.toggle_sticky(socket.assigns.current_user.id, thread_id)
+          # Reload threads to reflect new sticky state
+          board = socket.assigns.board
+          thread_rows = BBS.list_threads_with_unread_counts(board, socket.assigns.current_user)
+          {:noreply, assign(socket, :thread_rows, thread_rows)}
+
+        _ ->
+          {:noreply, put_flash(socket, :error, "Invalid thread ID.")}
+      end
     else
       {:noreply, socket}
     end

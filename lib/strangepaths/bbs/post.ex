@@ -27,6 +27,9 @@ defmodule Strangepaths.BBS.Post do
       :posted_at
     ])
     |> validate_length(:display_name, min: 1, max: 100)
+    |> validate_format(:display_name, ~r/\A[^"\[\]\n]*\z/,
+      message: "cannot contain quotes, brackets, or newlines"
+    )
     |> validate_length(:content, min: 1, max: 10_000)
   end
 
