@@ -207,10 +207,83 @@ Three LiveViews in `lib/strangepaths_web/live/bbs/`:
 - Dragon detection: check `@current_user && @current_user.role == :dragon`
 - Locked threads show 🔒 icon; reply form hidden if locked or not logged in
 
-### Not Implemented Yet (Phases 3+)
+## BBS Forum System (Phase 3: Posting, Quoting, Stickies)
 
-- Posting/reply forms (Phase 3)
-- Quote functionality (Phase 3)
-- Glyph toolbar for posts (Phase 3)
+### New Thread Form (ThreadList LiveView)
+
+- **Location:** `/bbs/:board_slug/new` (`:new` action in `BBSLive.ThreadList`)
+- **Fields:** `display_name` (text input, defaults to current_user.nickname), `title` (text input, required), `content` (textarea with glyph toolbar)
+- **Glyph Toolbar:** Integrated via `Grimoire` hook (already in app.js), copied from scenes implementation
+- **Event Handlers:**
+  - `validate_thread` (phx-change) — Updates changeset assign for live validation
+  - `create_thread` (phx-submit) — Calls `BBS.create_thread(board, user, attrs)`, redirects to thread view on success, shows flash on error
+- **Form Logic:** Only shown if user logged in; clicking Cancel redirects back to thread list
+
+### Reply Form (Thread LiveView)
+
+- **Location:** `/bbs/:board_slug/:thread_id` (`:show` action in `BBSLive.Thread`)
+- **Fields:** `display_name` (defaults to current_user.nickname), `content` (textarea with glyph toolbar)
+- **Only shown if:** Thread not locked AND user logged in
+- **Event Handlers:**
+  - `validate_reply` (phx-change) — Updates changeset for live validation
+  - `create_reply` (phx-submit) — Calls `BBS.create_post(thread, user, attrs)`, clears form on success, shows error on failure
+- **Form Hook:** `BBSReplyForm` (in app.js) listens for `bbs-insert-quote` event to inject quote tags into textarea
+
+### Quote Feature
+
+#### Server-Side (thread_live.ex)
+
+- **Event Handler:** `quote_post` (phx-click on Quote button)
+  - Validates user is logged in
+  - Calls `BBS.get_post_for_quote(post_id)` to retrieve post with context (board slug, thread id, content)
+  - Truncates excerpt to 200 chars
+  - Pushes `bbs-insert-quote` event to client with: post_id, author, thread_id, board, excerpt, same_thread flag
+
+#### Client-Side (assets/js/app.js)
+
+- **Hook:** `BBSReplyForm` (mounted on reply form)
+  - Listens for `bbs-insert-quote` event
+  - Inserts quote tag into textarea: `[quote id=N author="..." thread_id=M board="slug"]\nexcerpt\n[/quote]\n\n`
+  - Positions cursor after quote, scrolls form into view
+  - Also handles `bbs-reply-form-clear` event to reset textarea after successful post
+
+#### Quote Rendering (bbs_helpers.ex)
+
+- **Function:** `render_bbs_post_content(content, current_thread_id \\ nil)` in `StrangepathsWeb.BBSHelpers`
+  - Processes `[quote ...]...[/quote]` blocks BEFORE markdown pass (via regex replacement)
+  - HTML-escapes all user-provided values (author, board, excerpt) to prevent XSS
+  - **Same-thread quotes:** Rendered as anchor links (`<a href="#post-N">`) with class `bbs-quote-same-thread`
+  - **Cross-thread quotes:** Rendered as divs with popover data attributes, class `bbs-quote-cross-thread`
+  - Passes processed content to `render_post_content/2` for markdown + glyph handling
+  - Returns HTML safe for raw interpolation in templates
+
+#### Quote Popovers (assets/js/app.js)
+
+- **Hook:** `BBSQuotePopover` (mounted on posts container)
+  - Finds all elements with `data-bbs-popover="true"` attribute
+  - Initializes Tippy.js instances with content from data attributes
+  - Supports click-triggered popovers with author, excerpt, and link to quoted post
+  - Re-initializes on updates (mounted + updated hooks)
+
+### Sticky Toggle Feature
+
+- **Button:** Star icon (⭐ filled or ☆ empty) in thread rows, only visible if user logged in
+- **Event Handler:** `toggle_sticky` in `BBSLive.ThreadList` (phx-click on star button)
+  - Calls `BBS.toggle_sticky(user_id, thread_id)` to create or delete sticky record
+  - Reloads thread rows via `BBS.list_threads_with_unread_counts/2` to reflect new state
+  - If sticky exists, star shows filled (⭐); otherwise empty (☆)
+
+### Helper Functions
+
+**In Strangepaths.BBS context:**
+- `change_post(post \\ %Post{}, attrs \\ %{})` — Returns changeset for post validation (used in reply form)
+
+**In StrangepathsWeb.BBSHelpers module:**
+- `render_bbs_post_content(content, current_thread_id)` — Renders post content with quote block processing and XSS protection
+- `render_quote_block/6` (private) — Generates HTML for individual quote blocks
+
+### Not Implemented Yet (Phases 4+)
+
 - Dragon moderation controls: pin/lock/delete threads (Phase 4)
+- Edit/delete posts by author or dragon (Phase 4)
 - CSS/SCSS styling refinement (Phase 5)

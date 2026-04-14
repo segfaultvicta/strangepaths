@@ -26,7 +26,7 @@
   </div>
 
   <!-- Posts -->
-  <div id="posts-container" class="space-y-4" phx-hook="BBSScrollManager">
+  <div id="posts-container" class="space-y-4" phx-hook="BBSQuotePopover">
     <%= for {post, index} <- Enum.with_index(@posts) do %>
       <!-- Unread divider (sibling, not inside post) -->
       <%= if @unread_boundary_index && index == @unread_boundary_index do %>
@@ -54,7 +54,7 @@
 
         <!-- Post Content -->
         <div class="text-gray-200 mb-3 prose prose-invert max-w-none">
-          <%= render_post_content(post.content) |> raw %>
+          <%= render_bbs_post_content(post.content, @thread.id) |> raw %>
         </div>
 
         <!-- Post Actions -->
@@ -67,8 +67,9 @@
           </button>
           <%= if @current_user do %>
             <button
+              phx-click="quote_post"
+              phx-value-post_id={post.id}
               class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
-              title="Quote (Phase 3)"
             >
               Quote
             </button>
@@ -82,9 +83,62 @@
   <%= if !@thread.is_locked && @current_user do %>
     <div class="mt-8 p-4 bg-gray-800 border border-gray-700 rounded">
       <h2 class="text-lg font-semibold text-gray-100 mb-4">Reply to Thread</h2>
-      <div class="text-gray-400">
-        <em>Reply form coming in Phase 3</em>
-      </div>
+      <form id="bbs-reply-form" phx-submit="create_reply" phx-change="validate_reply" phx-hook="BBSReplyForm" class="space-y-4">
+        <!-- Display Name Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Posting as:</label>
+          <input
+            type="text"
+            name="post[display_name]"
+            value={@reply_changeset.changes[:display_name] || @current_user.nickname}
+            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <%= if @reply_changeset.errors[:display_name] do %>
+            <div class="text-red-400 text-sm mt-1">
+              <%= elem(@reply_changeset.errors[:display_name], 0) %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Content Field with Glyph Toolbar -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Message:</label>
+          <div class="relative">
+            <div id="bbs-reply-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-reply-content" tabindex="-1">
+              <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
+              <div class="grimoire-popover" style="display:none;">
+                <div class="grimoire-glyphs"></div>
+                <button type="button" class="grimoire-add-btn">+</button>
+                <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+              </div>
+            </div>
+            <textarea
+              id="bbs-reply-content"
+              name="post[content]"
+              placeholder="Write your reply..."
+              required
+              class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              rows="6"
+              phx-hook="PostContentInput"
+            ><%= @reply_changeset.changes[:content] %></textarea>
+          </div>
+          <%= if @reply_changeset.errors[:content] do %>
+            <div class="text-red-400 text-sm mt-1">
+              <%= elem(@reply_changeset.errors[:content], 0) %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex gap-2">
+          <button
+            type="submit"
+            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+          >
+            Post Reply
+          </button>
+        </div>
+      </form>
     </div>
   <% end %>
 </div>

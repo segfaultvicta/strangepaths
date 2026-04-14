@@ -189,6 +189,13 @@ defmodule Strangepaths.BBS do
     Thread.create_changeset(thread, attrs)
   end
 
+  @doc """
+  Returns a changeset for post creation/validation.
+  """
+  def change_post(post \\ %Post{}, attrs \\ %{}) do
+    Post.create_changeset(post, attrs)
+  end
+
   # === POSTS ===
 
   @doc """

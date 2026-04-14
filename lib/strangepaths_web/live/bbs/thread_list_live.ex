@@ -35,15 +35,68 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
 
   defp apply_action(socket, :new, _params) do
     if socket.assigns.current_user do
-      socket
+      changeset = BBS.change_thread()
+      assign(socket, :changeset, changeset)
     else
       socket
       |> put_flash(:error, "You must be logged in to create a thread")
-      |> push_patch(to: Routes.live_path(socket, StrangepathsWeb.BBSLive.ThreadList, socket.assigns.board.slug))
+      |> push_patch(
+        to:
+          Routes.live_path(socket, StrangepathsWeb.BBSLive.ThreadList, socket.assigns.board.slug)
+      )
     end
   end
 
   defp apply_action(socket, :index, _params) do
     socket
+  end
+
+  @impl true
+  def handle_event("validate_thread", %{"thread" => attrs}, socket) do
+    changeset = BBS.change_thread(%{}, attrs) |> Map.put(:action, :validate)
+    {:noreply, assign(socket, :changeset, changeset)}
+  end
+
+  @impl true
+  def handle_event("create_thread", %{"thread" => attrs}, socket) do
+    if socket.assigns.current_user do
+      case BBS.create_thread(socket.assigns.board, socket.assigns.current_user, attrs) do
+        {:ok, {thread, _post}} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Thread created successfully")
+           |> push_redirect(
+             to:
+               Routes.live_path(
+                 socket,
+                 StrangepathsWeb.BBSLive.Thread,
+                 socket.assigns.board.slug,
+                 thread.id
+               )
+           )}
+
+        {:error, changeset} ->
+          {:noreply,
+           socket
+           |> put_flash(:error, "Failed to create thread")
+           |> assign(:changeset, changeset)}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You must be logged in to post.")}
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_sticky", %{"thread_id" => thread_id_str}, socket) do
+    if socket.assigns.current_user do
+      thread_id = String.to_integer(thread_id_str)
+      BBS.toggle_sticky(socket.assigns.current_user.id, thread_id)
+      # Reload threads to reflect new sticky state
+      board = socket.assigns.board
+      thread_rows = BBS.list_threads_with_unread_counts(board, socket.assigns.current_user)
+      {:noreply, assign(socket, :thread_rows, thread_rows)}
+    else
+      {:noreply, socket}
+    end
   end
 end

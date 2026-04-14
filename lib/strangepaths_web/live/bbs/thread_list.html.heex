@@ -15,13 +15,87 @@
     </div>
   <% end %>
 
-  <!-- New Thread Form (Phase 3 placeholder) -->
+  <!-- New Thread Form -->
   <%= if @live_action == :new && @current_user do %>
     <div class="mb-8 p-4 bg-gray-800 border border-gray-700 rounded">
       <h2 class="text-lg font-semibold text-gray-100 mb-4">Create New Thread</h2>
-      <div class="text-gray-400">
-        <em>Reply form coming in Phase 3</em>
-      </div>
+      <form phx-submit="create_thread" phx-change="validate_thread" class="space-y-4">
+        <!-- Display Name Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Posting as:</label>
+          <input
+            type="text"
+            name="thread[display_name]"
+            value={@changeset.changes[:display_name] || @current_user.nickname}
+            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <%= if @changeset.errors[:display_name] do %>
+            <div class="text-red-400 text-sm mt-1">
+              <%= elem(@changeset.errors[:display_name], 0) %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Title Field -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Subject:</label>
+          <input
+            type="text"
+            name="thread[title]"
+            value={@changeset.changes[:title]}
+            placeholder="Thread subject..."
+            required
+            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <%= if @changeset.errors[:title] do %>
+            <div class="text-red-400 text-sm mt-1">
+              <%= elem(@changeset.errors[:title], 0) %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Content Field with Glyph Toolbar -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Message:</label>
+          <div class="relative">
+            <div id="bbs-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-thread-content" tabindex="-1">
+              <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
+              <div class="grimoire-popover" style="display:none;">
+                <div class="grimoire-glyphs"></div>
+                <button type="button" class="grimoire-add-btn">+</button>
+                <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+              </div>
+            </div>
+            <textarea
+              id="bbs-thread-content"
+              name="thread[content]"
+              placeholder="Write your thread..."
+              required
+              class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              rows="6"
+              phx-hook="PostContentInput"
+            ><%= @changeset.changes[:content] %></textarea>
+          </div>
+          <%= if @changeset.errors[:content] do %>
+            <div class="text-red-400 text-sm mt-1">
+              <%= elem(@changeset.errors[:content], 0) %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-2">
+          <button
+            type="submit"
+            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+          >
+            Create Thread
+          </button>
+          <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug), class: "px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition" do %>
+            Cancel
+          <% end %>
+        </div>
+      </form>
     </div>
   <% end %>
 
@@ -61,12 +135,28 @@
               </div>
             </div>
 
-            <!-- Unread badge -->
-            <%= if unread_count > 0 do %>
-              <div class="px-3 py-1 bg-red-600 text-white text-sm rounded whitespace-nowrap">
-                <%= unread_count %> new
-              </div>
-            <% end %>
+            <!-- Unread badge and sticky button -->
+            <div class="flex items-center gap-2">
+              <%= if @current_user do %>
+                <button
+                  phx-click="toggle_sticky"
+                  phx-value-thread_id={thread.id}
+                  class="p-1 text-gray-400 hover:text-blue-400 transition"
+                  title={if is_stickied, do: "Remove from sticky", else: "Add to sticky"}
+                >
+                  <%= if is_stickied do %>
+                    ⭐
+                  <% else %>
+                    ☆
+                  <% end %>
+                </button>
+              <% end %>
+              <%= if unread_count > 0 do %>
+                <div class="px-3 py-1 bg-red-600 text-white text-sm rounded whitespace-nowrap">
+                  <%= unread_count %> new
+                </div>
+              <% end %>
+            </div>
           </div>
         </div>
       <% end %>

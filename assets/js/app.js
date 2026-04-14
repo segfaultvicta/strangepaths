@@ -1968,6 +1968,68 @@ Hooks.BBSScrollManager = {
     }
 };
 
+Hooks.BBSReplyForm = {
+    mounted() {
+        this.handleEvent("bbs-insert-quote", ({post_id, author, thread_id, board, excerpt, same_thread}) => {
+            const textarea = this.el.querySelector("textarea[name*='content']");
+            if (!textarea) return;
+
+            const quoteTag = `[quote id=${post_id} author="${author}" thread_id=${thread_id} board="${board}"]\n${excerpt}\n[/quote]\n\n`;
+
+            // Insert at cursor if possible, else append
+            const start = textarea.selectionStart;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(textarea.selectionEnd);
+            textarea.value = before + quoteTag + after;
+            textarea.selectionStart = textarea.selectionEnd = start + quoteTag.length;
+            textarea.focus();
+
+            // Scroll form into view
+            this.el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+
+        this.handleEvent("bbs-reply-form-clear", () => {
+            const textarea = this.el.querySelector("textarea[name*='content']");
+            if (textarea) {
+                textarea.value = "";
+            }
+        });
+    }
+};
+
+Hooks.BBSQuotePopover = {
+    mounted() {
+        this.initPopovers();
+    },
+
+    updated() {
+        this.initPopovers();
+    },
+
+    initPopovers() {
+        if (!window.tippy) return;
+
+        this.el.querySelectorAll("[data-bbs-popover]").forEach(el => {
+            if (el._tippy) {
+                el._tippy.destroy();
+            }
+
+            const author = el.dataset.quoteAuthor || "Unknown";
+            const excerpt = el.dataset.quoteExcerpt || "";
+            const url = el.dataset.quoteUrl || "#";
+
+            window.tippy(el, {
+                content: `<div class="bbs-popover"><strong>${author}</strong><p>${excerpt}</p><a href="${url}">↗ go to post</a></div>`,
+                allowHTML: true,
+                interactive: true,
+                theme: "bbs",
+                trigger: "click",
+                placement: "top"
+            });
+        });
+    }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {
