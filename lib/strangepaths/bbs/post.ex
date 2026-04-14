@@ -34,10 +34,17 @@ defmodule Strangepaths.BBS.Post do
   end
 
   def edit_changeset(post, attrs) do
-    post
-    |> cast(attrs, [:content, :edited_by_id])
-    |> validate_required([:content])
-    |> validate_length(:content, min: 1, max: 10_000)
-    |> put_change(:edited_at, DateTime.utc_now() |> DateTime.truncate(:second))
+    changeset =
+      post
+      |> cast(attrs, [:content, :edited_by_id])
+      |> validate_required([:content])
+      |> validate_length(:content, min: 1, max: 10_000)
+
+    # Only stamp edited_at if content actually changed
+    if get_change(changeset, :content) do
+      put_change(changeset, :edited_at, DateTime.utc_now() |> DateTime.truncate(:second))
+    else
+      changeset
+    end
   end
 end

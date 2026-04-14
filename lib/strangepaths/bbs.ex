@@ -253,41 +253,58 @@ defmodule Strangepaths.BBS do
 
   @doc """
   Updates a post with new content and marks it as edited.
+  Preloads user and edited_by associations on the updated post.
+  Returns {:ok, updated_post} on success.
   """
   def update_post(%Post{} = post, editor, attrs) do
-    edit_attrs = Map.put(attrs, :edited_by_id, editor.id)
+    # Normalize all keys to strings to match changeset expectations
+    edit_attrs =
+      attrs
+      |> Map.new(fn {k, v} -> {to_string(k), v} end)
+      |> Map.put("edited_by_id", editor.id)
 
-    post
-    |> Post.edit_changeset(edit_attrs)
-    |> Repo.update()
+    case post |> Post.edit_changeset(edit_attrs) |> Repo.update() do
+      {:ok, updated_post} ->
+        {:ok, Repo.preload(updated_post, [:user, :edited_by])}
+
+      error ->
+        error
+    end
   end
 
   @doc """
   Deletes a post and decrements the thread's post_count.
   Recomputes last_post_at from remaining posts.
+  Returns {:error, :would_empty_thread} if this is the only post in the thread.
   """
   def delete_post(%Post{} = post) do
-    Repo.transaction(fn ->
-      thread_id = post.thread_id
-      Repo.delete!(post)
+    # Check if this is the only post in the thread
+    if post_is_only_one?(post.thread_id) do
+      {:error, :would_empty_thread}
+    else
+      Repo.transaction(fn ->
+        thread_id = post.thread_id
+        Repo.delete!(post)
 
-      from(t in Thread, where: t.id == ^thread_id)
-      |> Repo.update_all(inc: [post_count: -1])
-
-      # Recompute last_post_at from remaining posts
-      new_last =
-        from(p in Post, where: p.thread_id == ^thread_id, select: max(p.posted_at))
-        |> Repo.one()
-
-      if new_last do
         from(t in Thread, where: t.id == ^thread_id)
-        |> Repo.update_all(set: [last_post_at: new_last])
-      end
+        |> Repo.update_all(inc: [post_count: -1])
 
-      # Note: if this was the only post, the thread now has post_count = 0 and
-      # a stale last_post_at. Callers (Dragon moderation) should call delete_thread/1
-      # instead of delete_post/1 when thread.post_count == 1.
-    end)
+        # Recompute last_post_at from remaining posts
+        new_last =
+          from(p in Post, where: p.thread_id == ^thread_id, select: max(p.posted_at))
+          |> Repo.one()
+
+        if new_last do
+          from(t in Thread, where: t.id == ^thread_id)
+          |> Repo.update_all(set: [last_post_at: new_last])
+        end
+      end)
+    end
+  end
+
+  defp post_is_only_one?(thread_id) do
+    from(p in Post, where: p.thread_id == ^thread_id, select: count(p.id))
+    |> Repo.one() == 1
   end
 
   @doc """

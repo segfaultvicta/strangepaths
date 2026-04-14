@@ -186,6 +186,30 @@ defmodule Strangepaths.BBSTest do
       assert updated_post.content == "Updated content"
       assert updated_post.edited_by_id == user.id
       refute is_nil(updated_post.edited_at)
+      # Verify associations are preloaded
+      refute match?(%Ecto.Association.NotLoaded{}, updated_post.user)
+      refute match?(%Ecto.Association.NotLoaded{}, updated_post.edited_by)
+    end
+
+    test "update_post/3 with identical content doesn't stamp edited_at" do
+      post = post_fixture()
+      user = user_fixture()
+
+      {:ok, updated_post} = BBS.update_post(post, user, %{"content" => post.content})
+
+      # If content didn't change, edited_at should not be set
+      assert is_nil(updated_post.edited_at)
+    end
+
+    test "update_post/3 handles string keys in attrs" do
+      post = post_fixture()
+      user = user_fixture()
+
+      # Caller passes string keys
+      {:ok, updated_post} = BBS.update_post(post, user, %{"content" => "New content"})
+
+      assert updated_post.content == "New content"
+      assert updated_post.edited_by_id == user.id
     end
 
     test "delete_post/1 deletes post and decrements thread count" do
@@ -193,10 +217,36 @@ defmodule Strangepaths.BBSTest do
       post = post_fixture(thread)
 
       initial_count = thread.post_count
-      BBS.delete_post(post)
+      {:ok, _} = BBS.delete_post(post)
       updated_thread = BBS.get_thread!(thread.id)
 
       assert updated_thread.post_count == initial_count - 1
+    end
+
+    test "delete_post/1 on only post returns error" do
+      thread = thread_fixture()
+      # thread_fixture creates a post, so we have exactly 1
+      [only_post] = BBS.list_posts(thread.id)
+
+      result = BBS.delete_post(only_post)
+
+      assert result == {:error, :would_empty_thread}
+      # Verify post still exists
+      refute is_nil(BBS.get_post!(only_post.id))
+    end
+
+    test "delete_post/1 recomputes last_post_at" do
+      thread = thread_fixture()
+      post1 = BBS.list_posts(thread.id) |> List.first()
+      :timer.sleep(10)
+      {:ok, post2} = BBS.create_post(thread, user_fixture(), %{"content" => "Post 2"})
+
+      # Delete the last post
+      {:ok, _} = BBS.delete_post(post2)
+
+      updated_thread = BBS.get_thread!(thread.id)
+      # last_post_at should be recomputed to post1's time
+      assert updated_thread.last_post_at == post1.posted_at
     end
 
     test "get_post_for_quote/1 returns post with quote context" do

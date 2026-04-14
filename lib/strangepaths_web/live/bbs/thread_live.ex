@@ -147,32 +147,32 @@ defmodule StrangepathsWeb.BBSLive.Thread do
     with :dragon <- check_dragon(socket),
          {post_id, ""} <- Integer.parse(post_id_str),
          post when not is_nil(post) <- Enum.find(socket.assigns.posts, &(&1.id == post_id)) do
-      if length(socket.assigns.posts) == 1 do
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           "Cannot delete the only post — use 'Delete Thread' to remove the whole thread."
-         )}
-      else
-        case BBS.delete_post(post) do
-          {:ok, _} ->
-            new_posts = Enum.reject(socket.assigns.posts, &(&1.id == post_id))
-            thread = %{socket.assigns.thread | post_count: socket.assigns.thread.post_count - 1}
+      case BBS.delete_post(post) do
+        {:ok, _} ->
+          new_posts = Enum.reject(socket.assigns.posts, &(&1.id == post_id))
+          thread = %{socket.assigns.thread | post_count: socket.assigns.thread.post_count - 1}
 
-            {:noreply,
-             socket
-             |> assign(:posts, new_posts)
-             |> assign(:thread, thread)
-             |> put_flash(:info, "Post deleted.")}
+          {:noreply,
+           socket
+           |> assign(:posts, new_posts)
+           |> assign(:thread, thread)
+           |> put_flash(:info, "Post deleted.")}
 
-          {:error, _} ->
-            {:noreply, put_flash(socket, :error, "Failed to delete post.")}
-        end
+        {:error, :would_empty_thread} ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             "Cannot delete the only post. Use 'Delete Thread' to remove the whole thread."
+           )}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete post.")}
       end
     else
       :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
-      _ -> {:noreply, put_flash(socket, :error, "Post not found.")}
+      {_, _} -> {:noreply, put_flash(socket, :error, "Invalid post ID.")}
+      nil -> {:noreply, put_flash(socket, :error, "Post not found.")}
     end
   end
 
@@ -226,16 +226,20 @@ defmodule StrangepathsWeb.BBSLive.Thread do
   @impl true
   def handle_event("toggle_lock", _params, socket) do
     with :dragon <- check_dragon(socket) do
-      new_thread =
+      result =
         if socket.assigns.thread.is_locked do
-          {:ok, thread} = BBS.unlock_thread(socket.assigns.thread)
-          thread
+          BBS.unlock_thread(socket.assigns.thread)
         else
-          {:ok, thread} = BBS.lock_thread(socket.assigns.thread)
-          thread
+          BBS.lock_thread(socket.assigns.thread)
         end
 
-      {:noreply, assign(socket, :thread, new_thread)}
+      case result do
+        {:ok, updated_thread} ->
+          {:noreply, assign(socket, :thread, updated_thread)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to update thread lock status.")}
+      end
     else
       :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
@@ -244,16 +248,20 @@ defmodule StrangepathsWeb.BBSLive.Thread do
   @impl true
   def handle_event("toggle_pin", _params, socket) do
     with :dragon <- check_dragon(socket) do
-      new_thread =
+      result =
         if socket.assigns.thread.is_pinned do
-          {:ok, thread} = BBS.unpin_thread(socket.assigns.thread)
-          thread
+          BBS.unpin_thread(socket.assigns.thread)
         else
-          {:ok, thread} = BBS.pin_thread(socket.assigns.thread)
-          thread
+          BBS.pin_thread(socket.assigns.thread)
         end
 
-      {:noreply, assign(socket, :thread, new_thread)}
+      case result do
+        {:ok, updated_thread} ->
+          {:noreply, assign(socket, :thread, updated_thread)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to update thread pin status.")}
+      end
     else
       :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
