@@ -19,31 +19,33 @@ defmodule Strangepaths.BBSFixtures do
 
   def thread_fixture(board \\ nil, user \\ nil, attrs \\ %{}) do
     board = board || board_fixture()
-    user = user || Accounts.get_user!(1) || user_fixture()
+    user = user || user_fixture()
 
-    {:ok, {thread, _post}} =
+    merged_attrs =
       attrs
       |> Enum.into(%{
         "title" => "Test Thread",
         "content" => "Test content",
         "display_name" => user.nickname
       })
-      |> Strangepaths.BBS.create_thread(board, user)
+
+    {:ok, {thread, _post}} = Strangepaths.BBS.create_thread(board, user, merged_attrs)
 
     thread
   end
 
   def post_fixture(thread \\ nil, user \\ nil, attrs \\ %{}) do
     thread = thread || thread_fixture()
-    user = user || Accounts.get_user!(1) || user_fixture()
+    user = user || user_fixture()
 
-    {:ok, post} =
+    merged_attrs =
       attrs
       |> Enum.into(%{
         "content" => "Test post content",
         "display_name" => user.nickname
       })
-      |> Strangepaths.BBS.create_post(thread, user)
+
+    {:ok, post} = Strangepaths.BBS.create_post(thread, user, merged_attrs)
 
     post
   end

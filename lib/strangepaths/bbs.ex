@@ -15,7 +15,8 @@ defmodule Strangepaths.BBS do
   """
   def list_boards() do
     from(b in Board,
-      left_join: t in Thread, on: t.board_id == b.id,
+      left_join: t in Thread,
+      on: t.board_id == b.id,
       group_by: b.id,
       select: %{board: b, thread_count: count(t.id), last_post_at: max(t.last_post_at)},
       order_by: [asc: b.name]
@@ -74,7 +75,7 @@ defmodule Strangepaths.BBS do
 
     from(t in Thread,
       left_join: s in UserThreadSticky,
-        on: s.thread_id == t.id and s.user_id == ^user_id,
+      on: s.thread_id == t.id and s.user_id == ^user_id,
       where: t.board_id == ^board.id,
       order_by: [desc: t.is_pinned, desc: not is_nil(s.id), desc: t.last_post_at],
       preload: [:user]
@@ -88,8 +89,13 @@ defmodule Strangepaths.BBS do
   For authenticated users: unread count calculated as posts after last_read_post_id or total count if no read mark.
   """
   def list_threads_with_unread_counts(%Board{} = board, nil) do
-    threads = list_threads(board, nil)
-    Enum.map(threads, &Map.put(&1, :unread_count, 0))
+    from(t in Thread,
+      where: t.board_id == ^board.id,
+      order_by: [desc: t.is_pinned, desc: t.last_post_at],
+      preload: [:user]
+    )
+    |> Repo.all()
+    |> Enum.map(fn thread -> %{thread: thread, is_stickied: false, unread_count: 0} end)
   end
 
   def list_threads_with_unread_counts(%Board{} = board, user) do
@@ -97,9 +103,9 @@ defmodule Strangepaths.BBS do
 
     from(t in Thread,
       left_join: s in UserThreadSticky,
-        on: s.thread_id == t.id and s.user_id == ^user_id,
+      on: s.thread_id == t.id and s.user_id == ^user_id,
       left_join: rm in ThreadReadMark,
-        on: rm.thread_id == t.id and rm.user_id == ^user_id,
+      on: rm.thread_id == t.id and rm.user_id == ^user_id,
       where: t.board_id == ^board.id,
       order_by: [desc: t.is_pinned, desc: not is_nil(s.id), desc: t.last_post_at],
       select: %{
@@ -226,7 +232,7 @@ defmodule Strangepaths.BBS do
   Updates a post with new content and marks it as edited.
   """
   def update_post(%Post{} = post, editor, attrs) do
-    edit_attrs = Map.put(attrs, "edited_by_id", editor.id)
+    edit_attrs = Map.put(attrs, :edited_by_id, editor.id)
 
     post
     |> Post.edit_changeset(edit_attrs)
@@ -235,21 +241,33 @@ defmodule Strangepaths.BBS do
 
   @doc """
   Deletes a post and decrements the thread's post_count.
+  Recomputes last_post_at from remaining posts.
   """
   def delete_post(%Post{} = post) do
     Repo.transaction(fn ->
+      thread_id = post.thread_id
       Repo.delete!(post)
 
-      from(t in Thread, where: t.id == ^post.thread_id)
+      from(t in Thread, where: t.id == ^thread_id)
       |> Repo.update_all(inc: [post_count: -1])
+
+      # Recompute last_post_at from remaining posts
+      new_last =
+        from(p in Post, where: p.thread_id == ^thread_id, select: max(p.posted_at))
+        |> Repo.one()
+
+      if new_last do
+        from(t in Thread, where: t.id == ^thread_id)
+        |> Repo.update_all(set: [last_post_at: new_last])
+      end
     end)
   end
 
   @doc """
-  Gets a single post by id.
+  Gets a single post by id with user and edited_by preloaded.
   Raises Ecto.NoResultsError if not found.
   """
-  def get_post!(id), do: Repo.get!(Post, id)
+  def get_post!(id), do: Repo.get!(Post, id) |> Repo.preload([:user, :edited_by])
 
   @doc """
   Gets a post for quote context (board slug, thread id, content, etc.).
@@ -258,8 +276,10 @@ defmodule Strangepaths.BBS do
   def get_post_for_quote(post_id) do
     from(p in Post,
       where: p.id == ^post_id,
-      join: t in Thread, on: t.id == p.thread_id,
-      join: b in Board, on: b.id == t.board_id,
+      join: t in Thread,
+      on: t.id == p.thread_id,
+      join: b in Board,
+      on: b.id == t.board_id,
       select: %{
         id: p.id,
         display_name: p.display_name,
@@ -364,7 +384,12 @@ defmodule Strangepaths.BBS do
     %ThreadReadMark{}
     |> ThreadReadMark.changeset(fields)
     |> Repo.insert(
-      on_conflict: [set: [last_read_at: now, last_read_post_id: latest_post_id]],
+      on_conflict: [
+        set: [
+          last_read_at: now,
+          last_read_post_id: {:raw, "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
+        ]
+      ],
       conflict_target: [:user_id, :thread_id]
     )
   end
@@ -387,7 +412,12 @@ defmodule Strangepaths.BBS do
     %ThreadReadMark{}
     |> ThreadReadMark.changeset(fields)
     |> Repo.insert(
-      on_conflict: [set: [last_read_at: posted_at_trunc, last_read_post_id: post_id]],
+      on_conflict: [
+        set: [
+          last_read_at: posted_at_trunc,
+          last_read_post_id: {:raw, "GREATEST(EXCLUDED.last_read_post_id, bbs_thread_read_marks.last_read_post_id)"}
+        ]
+      ],
       conflict_target: [:user_id, :thread_id]
     )
   end

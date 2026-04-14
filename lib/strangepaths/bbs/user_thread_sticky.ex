@@ -3,8 +3,8 @@ defmodule Strangepaths.BBS.UserThreadSticky do
   import Ecto.Changeset
 
   schema "bbs_user_thread_stickies" do
-    belongs_to :user, Strangepaths.Accounts.User
-    belongs_to :thread, Strangepaths.BBS.Thread
+    belongs_to(:user, Strangepaths.Accounts.User)
+    belongs_to(:thread, Strangepaths.BBS.Thread)
 
     timestamps(updated_at: false)
   end

@@ -3,10 +3,10 @@ defmodule Strangepaths.BBS.Board do
   import Ecto.Changeset
 
   schema "bbs_boards" do
-    field :name, :string
-    field :slug, :string
-    field :description, :string
-    has_many :threads, Strangepaths.BBS.Thread
+    field(:name, :string)
+    field(:slug, :string)
+    field(:description, :string)
+    has_many(:threads, Strangepaths.BBS.Thread)
 
     timestamps()
   end

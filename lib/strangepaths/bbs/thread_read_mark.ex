@@ -3,10 +3,10 @@ defmodule Strangepaths.BBS.ThreadReadMark do
   import Ecto.Changeset
 
   schema "bbs_thread_read_marks" do
-    field :last_read_post_id, :integer
-    field :last_read_at, :utc_datetime
-    belongs_to :user, Strangepaths.Accounts.User
-    belongs_to :thread, Strangepaths.BBS.Thread
+    field(:last_read_post_id, :integer)
+    field(:last_read_at, :utc_datetime)
+    belongs_to(:user, Strangepaths.Accounts.User)
+    belongs_to(:thread, Strangepaths.BBS.Thread)
 
     timestamps()
   end

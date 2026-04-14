@@ -98,7 +98,7 @@ defmodule Strangepaths.BBSTest do
 
       # Should have at least the thread we created
       thread_result = Enum.find(results, &(&1.thread.id == thread.id))
-      assert thread_result is not nil
+      refute is_nil(thread_result)
     end
 
     test "get_thread!/1 returns thread by id" do
@@ -144,7 +144,8 @@ defmodule Strangepaths.BBSTest do
 
       posts = BBS.list_posts(thread.id)
 
-      assert Enum.count(posts) == 3  # 1 from thread creation + 2 new posts
+      # 1 from thread creation + 2 new posts
+      assert Enum.count(posts) == 3
       contents = Enum.map(posts, & &1.content)
       assert "Post 1" in contents
       assert "Post 2" in contents
@@ -172,7 +173,8 @@ defmodule Strangepaths.BBSTest do
       assert post.user_id == user.id
 
       updated_thread = BBS.get_thread!(thread.id)
-      assert updated_thread.post_count == 2  # 1 from creation + 1 new
+      # 1 from creation + 1 new
+      assert updated_thread.post_count == 2
     end
 
     test "update_post/3 updates post content and marks as edited" do
@@ -183,7 +185,7 @@ defmodule Strangepaths.BBSTest do
 
       assert updated_post.content == "Updated content"
       assert updated_post.edited_by_id == user.id
-      assert updated_post.edited_at is not nil
+      refute is_nil(updated_post.edited_at)
     end
 
     test "delete_post/1 deletes post and decrements thread count" do
@@ -229,7 +231,7 @@ defmodule Strangepaths.BBSTest do
 
       # Verify it was deleted by trying to toggle again (should create new)
       {:ok, new_sticky} = BBS.toggle_sticky(user.id, thread.id)
-      assert new_sticky.id is not nil
+      refute is_nil(new_sticky.id)
     end
 
     test "user_sticky_thread_ids/1 returns set of stickied thread ids" do
@@ -302,7 +304,7 @@ defmodule Strangepaths.BBSTest do
 
       assert mark.user_id == user.id
       assert mark.thread_id == thread.id
-      assert mark.last_read_at is not nil
+      refute is_nil(mark.last_read_at)
     end
 
     test "upsert_read_mark/2 updates existing read mark" do
@@ -335,7 +337,7 @@ defmodule Strangepaths.BBSTest do
       {:ok, _mark} = BBS.upsert_read_mark(user.id, thread.id)
       retrieved = BBS.get_read_mark(user.id, thread.id)
 
-      assert retrieved is not nil
+      refute is_nil(retrieved)
       assert retrieved.user_id == user.id
       assert retrieved.thread_id == thread.id
     end
@@ -346,7 +348,7 @@ defmodule Strangepaths.BBSTest do
 
       result = BBS.get_read_mark(user.id, thread.id)
 
-      assert result is nil
+      assert is_nil(result)
     end
   end
 end
