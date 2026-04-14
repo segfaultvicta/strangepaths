@@ -1398,3 +1398,14 @@ Strangepaths.Cards.create_card(%{
   aspect_id: 14,
   rules: "Does nothing, but clogs your deck to limit your options."
 })
+
+# BBS default board
+Strangepaths.Repo.insert!(
+  %Strangepaths.BBS.Board{
+    name: "The Aethernet",
+    slug: "aethernet",
+    description: "Cross-planar communication relay. Signal quality: marginal."
+  },
+  on_conflict: :nothing,
+  conflict_target: :slug
+)
