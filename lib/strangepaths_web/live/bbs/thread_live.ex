@@ -14,7 +14,7 @@ defmodule StrangepathsWeb.BBSLive.Thread do
         {:ok,
          socket
          |> put_flash(:error, "Thread not found")
-         |> push_redirect(to: Routes.live_path(socket, StrangepathsWeb.BBSLive.BoardList))}
+         |> push_redirect(to: Routes.bbs_board_list_path(socket, :index))}
 
       thread ->
         # Load read mark if user is logged in
@@ -79,7 +79,7 @@ defmodule StrangepathsWeb.BBSLive.Thread do
 
   @impl true
   def handle_event("validate_reply", %{"post" => attrs}, socket) do
-    changeset = BBS.change_post(%{}, attrs) |> Map.put(:action, :validate)
+    changeset = BBS.change_post(%BBS.Post{}, attrs) |> Map.put(:action, :validate)
     {:noreply, assign(socket, :reply_changeset, changeset)}
   end
 
@@ -95,7 +95,8 @@ defmodule StrangepathsWeb.BBSLive.Thread do
             {:noreply,
              socket
              |> assign(:reply_changeset, BBS.change_post())
-             |> push_event("bbs-reply-form-clear", %{})}
+             |> push_event("bbs-reply-form-clear", %{})
+             |> push_event("post_submitted", %{})}
 
           {:error, changeset} ->
             {:noreply,
@@ -117,8 +118,16 @@ defmodule StrangepathsWeb.BBSLive.Thread do
           quote_data = BBS.get_post_for_quote(post_id)
 
           if quote_data do
-            # Truncate excerpt to 200 chars
-            excerpt = String.slice(quote_data.content, 0, 200)
+            # Strip any nested [quote...][/quote] blocks (and stray tags) from the excerpt
+            # so that only the plain text of the quoted post is embedded. This prevents
+            # deeply-nested quote markup from accumulating and breaking the parser.
+            excerpt =
+              quote_data.content
+              |> String.replace(~r/\[quote[^\]]*\].*?\[\/quote\]/s, "")
+              |> String.replace(~r/\[quote[^\]]*\]/, "")
+              |> String.replace("[/quote]", "")
+              |> String.trim()
+              |> String.slice(0, 200)
             same_thread = quote_data.thread_id == socket.assigns.thread.id
 
             {:noreply,
@@ -139,6 +148,38 @@ defmodule StrangepathsWeb.BBSLive.Thread do
       end
     else
       {:noreply, put_flash(socket, :error, "You must be logged in to quote.")}
+    end
+  end
+
+  @impl true
+  def handle_event("copy_quote", %{"post_id" => post_id_str}, socket) do
+    if socket.assigns.current_user do
+      case Integer.parse(post_id_str) do
+        {post_id, ""} ->
+          quote_data = BBS.get_post_for_quote(post_id)
+
+          if quote_data do
+            excerpt =
+              quote_data.content
+              |> String.replace(~r/\[quote[^\]]*\].*?\[\/quote\]/s, "")
+              |> String.replace(~r/\[quote[^\]]*\]/, "")
+              |> String.replace("[/quote]", "")
+              |> String.trim()
+              |> String.slice(0, 200)
+
+            quote_text =
+              ~s([quote id=#{quote_data.id} author="#{quote_data.display_name}" thread_id=#{quote_data.thread_id} board="#{quote_data.board_slug}"]\n#{excerpt}\n[/quote]\n\n)
+
+            {:noreply, push_event(socket, "bbs-copy-quote", %{text: quote_text})}
+          else
+            {:noreply, put_flash(socket, :error, "Post not found.")}
+          end
+
+        _ ->
+          {:noreply, put_flash(socket, :error, "Invalid post ID.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "You must be logged in to copy a quote.")}
     end
   end
 
@@ -291,11 +332,7 @@ defmodule StrangepathsWeb.BBSLive.Thread do
            |> assign(:show_delete_confirm, false)
            |> push_redirect(
              to:
-               Routes.live_path(
-                 socket,
-                 StrangepathsWeb.BBSLive.ThreadList,
-                 socket.assigns.board.slug
-               )
+               Routes.bbs_thread_list_path(socket, :index, socket.assigns.board.slug)
            )}
 
         {:error, _} ->
@@ -305,6 +342,10 @@ defmodule StrangepathsWeb.BBSLive.Thread do
       :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
+
+  # Grimoire glyph toolbar fires typing_state — no-op here
+  @impl true
+  def handle_event("typing_state", _params, socket), do: {:noreply, socket}
 
   defp check_dragon(socket) do
     if socket.assigns.current_user && socket.assigns.current_user.role == :dragon do

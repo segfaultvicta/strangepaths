@@ -47,7 +47,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
           {:noreply,
            socket
            |> push_redirect(
-             to: Routes.live_path(socket, StrangepathsWeb.BBSLive.ThreadList, board.slug)
+             to: Routes.bbs_thread_list_path(socket, :index, board.slug)
            )
            |> put_flash(:info, "Board created successfully.")}
 

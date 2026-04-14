@@ -2083,6 +2083,33 @@ Hooks.BBSCopyLink = {
     }
 };
 
+Hooks.BBSCopyQuote = {
+    mounted() {
+        this.handleClick = (e) => {
+            e.preventDefault();
+            this.pushEvent("copy_quote", { post_id: this.el.dataset.postId });
+        };
+        this.el.addEventListener("click", this.handleClick);
+
+        this.handleEvent("bbs-copy-quote", async ({ text }) => {
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalText = this.el.textContent;
+                this.el.textContent = "✓";
+                setTimeout(() => { this.el.textContent = originalText; }, 1500);
+            } catch (err) {
+                console.error("Failed to copy quote:", err);
+            }
+        });
+    },
+
+    destroyed() {
+        if (this.handleClick) {
+            this.el.removeEventListener("click", this.handleClick);
+        }
+    }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {

@@ -5,6 +5,7 @@ defmodule Strangepaths.Site do
 
   import Ecto.Query, warn: false
   alias Strangepaths.Repo
+  alias Strangepaths.Site.SiteSettings
 
   alias Strangepaths.Site.MusicQueue
   alias Strangepaths.Site.Song
@@ -611,6 +612,21 @@ defmodule Strangepaths.Site do
         |> String.slice(0, max_length)
         |> then(fn s -> if String.length(content) > max_length, do: s <> "...", else: s end)
     end
+  end
+
+  def get_site_settings do
+    case Repo.one(SiteSettings) do
+      nil -> %SiteSettings{}
+      settings -> settings
+    end
+  end
+
+  def update_site_settings(attrs) do
+    settings = get_site_settings()
+
+    settings
+    |> SiteSettings.changeset(attrs)
+    |> Repo.update()
   end
 
   def get_devour_count do

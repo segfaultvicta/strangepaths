@@ -1,9 +1,9 @@
 <div class="bbs-root p-6 max-w-4xl mx-auto">
   <!-- Breadcrumb -->
   <div class="bbs-breadcrumb mb-6">
-    <%= live_redirect "The Aethernet", to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.BoardList) %>
+    <%= live_redirect "Linkpearl", to: Routes.bbs_board_list_path(@socket, :index) %>
     <span class="mx-2">/</span>
-    <%= live_redirect @board.name, to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug) %>
+    <%= live_redirect @board.name, to: Routes.bbs_thread_list_path(@socket, :index, @board.slug) %>
     <span class="mx-2">/</span>
     <span><%= @thread.title %></span>
   </div>
@@ -14,13 +14,13 @@
       <div>
         <h1 class="font-bold bbs-title"><%= @thread.title %></h1>
         <div class="bbs-meta mt-2">
-          Started by <span class="bbs-display-name"><%= @thread.user.nickname %></span>
+          Cast by <span class="bbs-display-name"><%= hd(@posts).display_name %></span>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <%= if @thread.is_locked do %>
           <div class="bbs-button bbs-button--sm">
-            🔒 Locked
+            🔒 Frozen
           </div>
         <% end %>
         <%= if @thread.is_pinned do %>
@@ -81,36 +81,59 @@
   </div>
 
   <!-- Posts -->
-  <div id="posts-container" class="space-y-4" phx-hook="BBSQuotePopover">
+  <div id="posts-container" class="space-y-1" phx-hook="BBSQuotePopover">
     <%= for {post, index} <- Enum.with_index(@posts) do %>
       <!-- Unread divider (sibling, not inside post) -->
       <%= if @unread_boundary_index && index == @unread_boundary_index do %>
-        <div class="bbs-unread-divider text-sm py-2">
+        <div class="bbs-unread-divider text-sm py-1">
           ── new replies ──
         </div>
       <% end %>
 
       <div id={"post-#{post.id}"} class="bbs-post">
         <!-- Post Header -->
-        <div class="flex justify-between items-start mb-3">
+        <div class="flex justify-between items-center mb-2">
           <div class="bbs-byline">
-            <div class="bbs-display-name"><%= post.display_name %></div>
+            <span class="bbs-display-name"><%= post.display_name %></span>
             <%= if post.user && post.user.role != :dragon do %>
-              <div class="bbs-character-name"><%= post.character_name %></div>
+              <span class="bbs-character-name ml-1"><%= post.character_name %></span>
             <% end %>
           </div>
-          <div class="bbs-timestamp">
-            <%= format_timestamp(post.posted_at) %>
-            <%= if post.edited_at do %>
-              <span class="bbs-edited-marker ml-2">[edited by dragon]</span>
+          <div class="flex items-center gap-2">
+            <!-- Per-post actions as inline icons -->
+            <button
+              id={"copy-link-btn-#{post.id}"}
+              phx-hook="BBSCopyLink"
+              class="bbs-post-icon"
+              title="Copy link to ripple"
+            >¶</button>
+            <%= if @current_user do %>
+              <button
+                id={"copy-quote-btn-#{post.id}"}
+                phx-hook="BBSCopyQuote"
+                data-post-id={post.id}
+                class="bbs-post-icon"
+                title="Copy quote to clipboard"
+              >❮❝❯</button>
+              <button
+                phx-click="quote_post"
+                phx-value-post_id={post.id}
+                class="bbs-post-icon"
+                title="Quote into reply"
+              >❝</button>
             <% end %>
+            <div class="bbs-timestamp" title={format_timestamp(post.posted_at)}>
+              <%= format_relative_time(post.posted_at) %>
+              <%= if post.edited_at do %>
+                <span class="bbs-edited-marker ml-1">[edited]</span>
+              <% end %>
+            </div>
           </div>
         </div>
 
         <!-- Post Content or Edit Form -->
         <%= if @editing_post_id == post.id do %>
-          <!-- Edit Form -->
-          <form phx-submit="save_edit_post" class="space-y-3 mb-3">
+          <form phx-submit="save_edit_post" class="space-y-2 mb-2">
             <input type="hidden" name="post_id" value={post.id} />
             <textarea
               name="content"
@@ -119,130 +142,87 @@
               rows="6"
             ><%= post.content %></textarea>
             <div class="flex gap-2">
-              <button
-                type="submit"
-                class="bbs-button bbs-button--sm"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                phx-click="cancel_edit"
-                class="bbs-button bbs-button--secondary bbs-button--sm"
-              >
-                Cancel
-              </button>
+              <button type="submit" class="bbs-button bbs-button--sm">Save</button>
+              <button type="button" phx-click="cancel_edit" class="bbs-button bbs-button--secondary bbs-button--sm">Cancel</button>
             </div>
           </form>
         <% else %>
-          <!-- Post Content -->
-          <div class="bbs-post-content mb-3">
+          <div class="bbs-post-content">
             <%= render_bbs_post_content(post.content, @thread.id) |> raw %>
           </div>
         <% end %>
 
-        <!-- Post Actions -->
-        <div class="flex gap-2 bbs-dragon-controls">
-          <button
-            id={"copy-link-btn-#{post.id}"}
-            phx-hook="BBSCopyLink"
-            class="bbs-button bbs-button--secondary bbs-button--sm"
-          >
-            Copy link
-          </button>
-          <%= if @current_user do %>
+        <!-- Dragon Controls -->
+        <%= if @current_user && @current_user.role == :dragon do %>
+          <div class="flex gap-2 mt-1 bbs-dragon-controls">
             <button
-              phx-click="quote_post"
+              phx-click="start_edit_post"
               phx-value-post_id={post.id}
               class="bbs-button bbs-button--secondary bbs-button--sm"
-            >
-              Quote
-            </button>
-          <% end %>
-
-          <!-- Dragon Controls -->
-          <%= if @current_user && @current_user.role == :dragon do %>
-            <div class="bbs-divider-left flex gap-2" style="margin-left: 0.5rem; padding-left: 0.5rem;">
-              <button
-                phx-click="start_edit_post"
-                phx-value-post_id={post.id}
-                class="bbs-button bbs-button--secondary bbs-button--sm"
-              >
-                Edit
-              </button>
-              <button
-                phx-click="delete_post"
-                phx-value-post_id={post.id}
-                phx-disable-with="Deleting..."
-                class="bbs-button bbs-button--danger bbs-button--sm"
-              >
-                Delete
-              </button>
-            </div>
-          <% end %>
-        </div>
+            >Edit</button>
+            <button
+              phx-click="delete_post"
+              phx-value-post_id={post.id}
+              phx-disable-with="Deleting..."
+              class="bbs-button bbs-button--danger bbs-button--sm"
+            >Delete</button>
+          </div>
+        <% end %>
       </div>
     <% end %>
   </div>
 
   <!-- Reply Form -->
   <%= if !@thread.is_locked && @current_user do %>
-    <div class="bbs-form mt-8">
-      <h2 class="bbs-panel-header mb-4">Reply to Thread</h2>
+    <div class="bbs-form mt-4">
       <form id="bbs-reply-form" phx-submit="create_reply" phx-change="validate_reply" phx-hook="BBSReplyForm" class="space-y-4">
         <!-- Display Name Field -->
         <div>
-          <label class="block mb-1">Posting as:</label>
+          <label class="block mb-1">Casting as:</label>
           <input
             type="text"
             name="post[display_name]"
             value={@reply_changeset.changes[:display_name] || @current_user.nickname}
             class="bbs-input w-full"
           />
-          <%= if @reply_changeset.errors[:display_name] do %>
+          <%= if @reply_changeset.action && @reply_changeset.errors[:display_name] do %>
             <div class="bbs-error mt-1">
               <%= elem(@reply_changeset.errors[:display_name], 0) %>
             </div>
           <% end %>
         </div>
 
-        <!-- Content Field with Glyph Toolbar -->
+        <!-- Content Field -->
         <div>
           <label class="block mb-1">Message:</label>
-          <div class="relative">
-            <div id="bbs-reply-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-reply-content" tabindex="-1">
-              <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
-              <div class="grimoire-popover" style="display:none;">
-                <div class="grimoire-glyphs"></div>
-                <button type="button" class="grimoire-add-btn">+</button>
-                <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
-              </div>
-            </div>
-            <textarea
-              id="bbs-reply-content"
-              name="post[content]"
-              placeholder="Write your reply..."
-              required
-              class="bbs-input w-full resize-none"
-              rows="6"
-              phx-hook="PostContentInput"
-            ><%= @reply_changeset.changes[:content] %></textarea>
-          </div>
-          <%= if @reply_changeset.errors[:content] do %>
+          <textarea
+            id="bbs-reply-content"
+            name="post[content]"
+            placeholder="Write your reply..."
+            required
+            class="bbs-input w-full resize-none"
+            rows="6"
+            phx-hook="PostContentInput"
+            data-scene-id={"bbs-#{@thread.id}"}
+          ><%= @reply_changeset.changes[:content] %></textarea>
+          <%= if @reply_changeset.action && @reply_changeset.errors[:content] do %>
             <div class="bbs-error mt-1">
               <%= elem(@reply_changeset.errors[:content], 0) %>
             </div>
           <% end %>
         </div>
 
-        <!-- Submit Button -->
-        <div class="flex gap-2">
-          <button
-            type="submit"
-            class="bbs-button"
-          >
-            Post Reply
-          </button>
+        <!-- Buttons -->
+        <div class="flex gap-2 items-center flex-wrap">
+          <button type="submit" class="bbs-button">Cast Reply</button>
+          <div id="bbs-reply-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-reply-content">
+            <button type="button" class="grimoire-trigger bbs-button bbs-button--secondary" title="Insert glyph (Ctrl+G)">Esoterica</button>
+            <div class="grimoire-popover" style="display:none;">
+              <div class="grimoire-glyphs"></div>
+              <button type="button" class="grimoire-add-btn">+</button>
+              <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+            </div>
+          </div>
         </div>
       </form>
     </div>

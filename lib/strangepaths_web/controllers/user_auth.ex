@@ -110,6 +110,10 @@ defmodule StrangepathsWeb.UserAuth do
     assign(conn, :devour_count, Strangepaths.Site.get_devour_count())
   end
 
+  def fetch_site_settings(conn, _opts) do
+    assign(conn, :site_settings, Strangepaths.Site.get_site_settings())
+  end
+
   defp ensure_user_token(conn) do
     if user_token = get_session(conn, :user_token) do
       {user_token, conn}

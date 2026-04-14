@@ -108,6 +108,34 @@
       </.form>
     </div>
 
+    <!-- Dragon-only: Site Settings -->
+    <%= if @conn.assigns[:role] == :dragon do %>
+      <div class="section p-6 border-2 border-purple-700">
+        <h2 class="mb-2">Site Settings <span class="text-sm font-normal text-purple-400">(Dragon only)</span></h2>
+
+        <form action={Routes.user_settings_path(@conn, :update)} method="post" class="formstyle">
+          <%= hidden_input :site_settings, :action, name: "action", value: "update_site_settings" %>
+          <input type="hidden" name="_method" value="put" />
+          <%= csrf_input_tag(Routes.user_settings_path(@conn, :update)) %>
+
+          <label class="flex items-center gap-3 cursor-pointer mb-4">
+            <input
+              type="checkbox"
+              name="site_settings[bbs_enabled]"
+              value="true"
+              class="mr-2"
+              checked={@site_settings.bbs_enabled}
+            />
+            <span>Show Aethernet (BBS) in navigation for all users</span>
+          </label>
+
+          <div class="pt-2">
+            <button type="submit" class="submit">Save Site Settings</button>
+          </div>
+        </form>
+      </div>
+    <% end %>
+
     <!-- Change Password Section -->
     <div class="section p-6">
       <h2 class="mb-4">Change Password</h2>

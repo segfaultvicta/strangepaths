@@ -100,37 +100,79 @@ defmodule Strangepaths.BBS do
     from(t in Thread,
       where: t.board_id == ^board.id,
       order_by: [desc: t.is_pinned, desc: t.last_post_at],
-      preload: [:user]
+      select: %{
+        thread: t,
+        is_stickied: false,
+        unread_count: 0,
+        opener_display_name:
+          fragment(
+            "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at ASC LIMIT 1)",
+            t.id
+          ),
+        last_poster_display_name:
+          fragment(
+            "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at DESC LIMIT 1)",
+            t.id
+          )
+      }
     )
     |> Repo.all()
-    |> Enum.map(fn thread -> %{thread: thread, is_stickied: false, unread_count: 0} end)
   end
 
   def list_threads_with_unread_counts(%Board{} = board, user) do
     user_id = user.id
 
-    from(t in Thread,
-      left_join: s in UserThreadSticky,
-      on: s.thread_id == t.id and s.user_id == ^user_id,
-      left_join: rm in ThreadReadMark,
-      on: rm.thread_id == t.id and rm.user_id == ^user_id,
-      where: t.board_id == ^board.id,
-      order_by: [desc: t.is_pinned, desc: not is_nil(s.id), desc: t.last_post_at],
-      select: %{
-        thread: t,
-        is_stickied: not is_nil(s.id),
-        unread_count:
-          fragment(
-            "CASE WHEN ? IS NULL THEN ? ELSE (SELECT COUNT(*) FROM bbs_posts p WHERE p.thread_id = ? AND p.id > ?) END",
-            rm.id,
-            t.post_count,
-            t.id,
-            rm.last_read_post_id
-          )
-      },
-      preload: [thread: :user]
-    )
+    rows =
+      from(t in Thread,
+        left_join: s in UserThreadSticky,
+        on: s.thread_id == t.id and s.user_id == ^user_id,
+        left_join: rm in ThreadReadMark,
+        on: rm.thread_id == t.id and rm.user_id == ^user_id,
+        where: t.board_id == ^board.id,
+        order_by: [desc: t.is_pinned, desc: not is_nil(s.id), desc: t.last_post_at],
+        select: %{
+          thread: t,
+          is_stickied: not is_nil(s.id),
+          unread_count:
+            fragment(
+              "CASE WHEN ? IS NULL THEN ? ELSE (SELECT COUNT(*) FROM bbs_posts p WHERE p.thread_id = ? AND p.id > ?) END",
+              rm.id,
+              t.post_count,
+              t.id,
+              rm.last_read_post_id
+            ),
+          opener_display_name:
+            fragment(
+              "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at ASC LIMIT 1)",
+              t.id
+            ),
+          last_poster_display_name:
+            fragment(
+              "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at DESC LIMIT 1)",
+              t.id
+            )
+        }
+      )
+      |> Repo.all()
+
+    # Preload :user on all threads in a single query, then zip back into the rows
+    threads = Repo.preload(Enum.map(rows, & &1.thread), :user)
+
+    rows
+    |> Enum.zip(threads)
+    |> Enum.map(fn {row, thread} -> %{row | thread: thread} end)
+  end
+
+  @doc """
+  Returns a map of %{thread_id => title} for the given list of thread IDs.
+  Used for rendering cross-thread quote block headers.
+  """
+  def get_thread_titles([]), do: %{}
+
+  def get_thread_titles(thread_ids) do
+    from(t in Thread, where: t.id in ^thread_ids, select: {t.id, t.title})
     |> Repo.all()
+    |> Map.new()
   end
 
   @doc """
@@ -138,7 +180,7 @@ defmodule Strangepaths.BBS do
   Returns nil if not found.
   """
   def get_thread(id) do
-    Repo.get(Thread, id) |> Repo.preload(:board)
+    Repo.get(Thread, id) |> Repo.preload([:board, :user])
   end
 
   @doc """

@@ -13,6 +13,7 @@ defmodule StrangepathsWeb.Router do
     plug(:fetch_current_user)
     plug(:fetch_user_role)
     plug(:fetch_devour_count)
+    plug(:fetch_site_settings)
   end
 
   pipeline :api do

@@ -1121,6 +1121,7 @@ input[type=range].slider-purple::-moz-range-progress {
   background: #0a0a0f;
   color: #c8c8d4;
   min-height: 100vh;
+  padding-bottom: 6rem; /* clearance for fixed music player */
   /* Subtle scanline texture */
   background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 0, 0, 0.03) 1px, rgba(0, 0, 0, 0.03) 2px);
 }
@@ -1149,11 +1150,25 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 .bbs-thread-row {
+  position: relative; /* anchor for stretched link */
   border-bottom: 1px solid #1a1a2e;
   transition: background 0.1s;
 }
 .bbs-thread-row:hover {
   background: #111128;
+}
+
+/* Stretched link: ::after covers the entire row so the whole thing is clickable */
+.bbs-thread-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* Keep sticky button and unread badge above the stretched link overlay */
+.bbs-thread-row-actions {
+  position: relative;
+  z-index: 1;
 }
 
 .bbs-thread-row--pinned {
@@ -1170,12 +1185,12 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .bbs-post {
   border-bottom: 1px solid #1a1a2e;
-  padding: 1rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .bbs-byline {
   font-size: 0.75rem;
-  color: #5050a0;
+  color: #7070b0;
 }
 
 .bbs-display-name {
@@ -1184,18 +1199,34 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 .bbs-character-name {
-  color: #4a4a7a;
+  color: #7070a8;
   font-size: 0.7rem;
   font-style: italic;
 }
 
 .bbs-timestamp {
-  color: #3a3a6a;
+  color: #7070a8;
   font-size: 0.7rem;
 }
 
+.bbs-post-icon {
+  background: none;
+  border: none;
+  color: #5050a0;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+}
+.bbs-post-icon:hover {
+  color: #9090e0;
+  opacity: 1;
+}
+
 .bbs-post-content {
-  margin-top: 0.75rem;
+  margin-top: 0.4rem;
   line-height: 1.6;
   color: #b8b8cc;
   /* Preserve BBS formatting */
@@ -1361,6 +1392,20 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 .bbs-form button[type=submit]:hover {
   background: #25256a;
+}
+
+/* Grimoire trigger override when used as an inline BBS button (not overlaid on textarea) */
+.bbs-form .grimoire-trigger.bbs-button {
+  position: static;
+  opacity: 1;
+  font-size: 0.85rem;
+  color: #9090e0;
+  padding: 0.4rem 1rem;
+}
+
+/* Grimoire div as inline flex item — popover still anchors to it */
+.bbs-form [phx-hook=Grimoire] {
+  position: relative;
 }
 
 /* BBS Button styles */

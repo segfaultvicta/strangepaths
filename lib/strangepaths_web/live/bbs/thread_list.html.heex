@@ -1,7 +1,7 @@
 <div class="bbs-root p-6 max-w-6xl mx-auto">
   <!-- Breadcrumb -->
   <div class="bbs-breadcrumb mb-6">
-    <%= live_redirect "The Aethernet", to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.BoardList) %>
+    <%= live_redirect "Linkpearl", to: Routes.bbs_board_list_path(@socket, :index) %>
     <span class="mx-2">/</span>
     <span><%= @board.name %></span>
   </div>
@@ -9,8 +9,8 @@
   <!-- New Thread Button -->
   <%= if @current_user do %>
     <div class="mb-6">
-      <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug, action: :new), class: "bbs-button inline-block" do %>
-        New Thread
+      <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :new, @board.slug), class: "bbs-button inline-block" do %>
+        New Strand
       <% end %>
     </div>
   <% end %>
@@ -18,18 +18,17 @@
   <!-- New Thread Form -->
   <%= if @live_action == :new && @current_user do %>
     <div class="bbs-form mb-8">
-      <h2 class="bbs-panel-header mb-4">Create New Thread</h2>
       <form phx-submit="create_thread" phx-change="validate_thread" class="space-y-4">
         <!-- Display Name Field -->
         <div>
-          <label class="block mb-1">Posting as:</label>
+          <label class="block mb-1">Casting as:</label>
           <input
             type="text"
             name="thread[display_name]"
             value={@changeset.changes[:display_name] || @current_user.nickname}
             class="bbs-input w-full"
           />
-          <%= if @changeset.errors[:display_name] do %>
+          <%= if @changeset.action && @changeset.errors[:display_name] do %>
             <div class="bbs-error mt-1">
               <%= elem(@changeset.errors[:display_name], 0) %>
             </div>
@@ -43,40 +42,30 @@
             type="text"
             name="thread[title]"
             value={@changeset.changes[:title]}
-            placeholder="Thread subject..."
+            placeholder="Strand subject..."
             required
             class="bbs-input w-full"
           />
-          <%= if @changeset.errors[:title] do %>
+          <%= if @changeset.action && @changeset.errors[:title] do %>
             <div class="bbs-error mt-1">
               <%= elem(@changeset.errors[:title], 0) %>
             </div>
           <% end %>
         </div>
 
-        <!-- Content Field with Glyph Toolbar -->
+        <!-- Content Field -->
         <div>
           <label class="block mb-1">Message:</label>
-          <div class="relative">
-            <div id="bbs-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-thread-content" tabindex="-1">
-              <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
-              <div class="grimoire-popover" style="display:none;">
-                <div class="grimoire-glyphs"></div>
-                <button type="button" class="grimoire-add-btn">+</button>
-                <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
-              </div>
-            </div>
-            <textarea
-              id="bbs-thread-content"
-              name="thread[content]"
-              placeholder="Write your thread..."
-              required
-              class="bbs-input w-full resize-none"
-              rows="6"
-              phx-hook="PostContentInput"
-            ><%= @changeset.changes[:content] %></textarea>
-          </div>
-          <%= if @changeset.errors[:content] do %>
+          <textarea
+            id="bbs-thread-content"
+            name="thread[content]"
+            placeholder="Write your strand..."
+            required
+            class="bbs-input w-full resize-none"
+            rows="6"
+            phx-hook="PostContentInput"
+          ><%= @changeset.changes[:content] %></textarea>
+          <%= if @changeset.action && @changeset.errors[:content] do %>
             <div class="bbs-error mt-1">
               <%= elem(@changeset.errors[:content], 0) %>
             </div>
@@ -84,16 +73,19 @@
         </div>
 
         <!-- Buttons -->
-        <div class="flex gap-2">
-          <button
-            type="submit"
-            class="bbs-button"
-          >
-            Create Thread
-          </button>
-          <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug), class: "bbs-button bbs-button--secondary" do %>
+        <div class="flex gap-2 items-center flex-wrap">
+          <button type="submit" class="bbs-button">Create Strand</button>
+          <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :index, @board.slug), class: "bbs-button bbs-button--secondary" do %>
             Cancel
           <% end %>
+          <div id="bbs-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-thread-content">
+            <button type="button" class="grimoire-trigger bbs-button bbs-button--secondary" title="Insert glyph (Ctrl+G)">Esoterica</button>
+            <div class="grimoire-popover" style="display:none;">
+              <div class="grimoire-glyphs"></div>
+              <button type="button" class="grimoire-add-btn">+</button>
+              <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -106,11 +98,11 @@
         No threads yet. Be the first to create one!
       </div>
     <% else %>
-      <%= for %{thread: thread, unread_count: unread_count, is_stickied: is_stickied} <- @thread_rows do %>
+      <%= for %{thread: thread, unread_count: unread_count, is_stickied: is_stickied, opener_display_name: opener_display_name, last_poster_display_name: last_poster_display_name} <- @thread_rows do %>
         <div class={["bbs-thread-row bbs-panel p-4", thread.is_pinned && "bbs-thread-row--pinned", is_stickied && "bbs-thread-row--sticky"]}>
           <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="flex items-center gap-2 mb-1">
                 <!-- Pin indicator -->
                 <%= if thread.is_pinned do %>
                   <span class="bbs-pin-indicator text-lg" title="Pinned">📌</span>
@@ -121,22 +113,23 @@
                   <span class="bbs-sticky-indicator text-lg" title="Stickied by you">⭐</span>
                 <% end %>
 
-                <!-- Thread title -->
-                <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.Thread, @board.slug, thread.id), class: "bbs-title font-semibold break-words" do %>
+                <!-- Thread title + opener (stretched link covers entire row) -->
+                <%= live_redirect to: Routes.bbs_thread_path(@socket, :show, @board.slug, thread.id), class: "bbs-title bbs-thread-link font-semibold break-words" do %>
                   <%= thread.title %>
                 <% end %>
+                <span class="bbs-meta">cast by <span class="bbs-display-name" style="font-size:inherit"><%= opener_display_name %></span></span>
               </div>
 
               <!-- Metadata -->
-              <div class="bbs-meta flex flex-wrap gap-3">
-                <span><%= thread.post_count %> post<%= if thread.post_count != 1, do: "s" %></span>
-                <span>By <%= thread.user.nickname %></span>
+              <div class="bbs-meta flex flex-wrap gap-2">
+                <span><%= thread.post_count %> ripple<%= if thread.post_count != 1, do: "s" %>,</span>
+                <span>last by <span class="bbs-display-name" style="font-size:inherit"><%= last_poster_display_name %></span></span>
                 <span><%= format_relative_time(thread.last_post_at) %></span>
               </div>
             </div>
 
-            <!-- Unread badge and sticky button -->
-            <div class="flex items-center gap-2">
+            <!-- Unread badge and sticky button (z-index keeps these above the stretched link) -->
+            <div class="flex items-center gap-2 bbs-thread-row-actions">
               <%= if @current_user do %>
                 <button
                   phx-click="toggle_sticky"

@@ -13,7 +13,7 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
         {:ok,
          socket
          |> put_flash(:error, "Board not found")
-         |> push_redirect(to: Routes.live_path(socket, StrangepathsWeb.BBSLive.BoardList))}
+         |> push_redirect(to: Routes.bbs_board_list_path(socket, :index))}
 
       board ->
         thread_rows = BBS.list_threads_with_unread_counts(board, socket.assigns.current_user)
@@ -44,7 +44,7 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
       |> put_flash(:error, "You must be logged in to create a thread")
       |> push_patch(
         to:
-          Routes.live_path(socket, StrangepathsWeb.BBSLive.ThreadList, socket.assigns.board.slug)
+          Routes.bbs_thread_list_path(socket, :index, socket.assigns.board.slug)
       )
     end
   end
@@ -55,7 +55,7 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
 
   @impl true
   def handle_event("validate_thread", %{"thread" => attrs}, socket) do
-    changeset = BBS.change_thread(%{}, attrs) |> Map.put(:action, :validate)
+    changeset = BBS.change_thread(%BBS.Thread{}, attrs) |> Map.put(:action, :validate)
     {:noreply, assign(socket, :changeset, changeset)}
   end
 
@@ -69,12 +69,7 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
            |> put_flash(:info, "Thread created successfully")
            |> push_redirect(
              to:
-               Routes.live_path(
-                 socket,
-                 StrangepathsWeb.BBSLive.Thread,
-                 socket.assigns.board.slug,
-                 thread.id
-               )
+               Routes.bbs_thread_path(socket, :show, socket.assigns.board.slug, thread.id)
            )}
 
         {:error, changeset} ->
@@ -87,6 +82,10 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
       {:noreply, put_flash(socket, :error, "You must be logged in to post.")}
     end
   end
+
+  # Grimoire glyph toolbar fires typing_state — no-op here
+  @impl true
+  def handle_event("typing_state", _params, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("toggle_sticky", %{"thread_id" => thread_id_str}, socket) do

@@ -2,6 +2,7 @@ defmodule StrangepathsWeb.UserSettingsController do
   use StrangepathsWeb, :controller
 
   alias Strangepaths.Accounts
+  alias Strangepaths.Site
   alias StrangepathsWeb.UserAuth
 
   plug(:assign_email_and_password_changesets)
@@ -110,6 +111,28 @@ defmodule StrangepathsWeb.UserSettingsController do
     end
   end
 
+  def update(conn, %{"action" => "update_site_settings"} = params) do
+    if conn.assigns.current_user && conn.assigns.role == :dragon do
+      attrs = params["site_settings"] || %{}
+
+      case Site.update_site_settings(attrs) do
+        {:ok, _} ->
+          conn
+          |> put_flash(:info, "Site settings updated.")
+          |> redirect(to: Routes.user_settings_path(conn, :edit))
+
+        {:error, _changeset} ->
+          conn
+          |> put_flash(:error, "Failed to update site settings.")
+          |> redirect(to: Routes.user_settings_path(conn, :edit))
+      end
+    else
+      conn
+      |> put_flash(:error, "Unauthorized.")
+      |> redirect(to: Routes.user_settings_path(conn, :edit))
+    end
+  end
+
   def confirm_email(conn, %{"token" => token}) do
     case Accounts.update_user_email(conn.assigns.current_user, token) do
       :ok ->
@@ -134,5 +157,6 @@ defmodule StrangepathsWeb.UserSettingsController do
     |> assign(:action_default_changeset, Accounts.User.action_default_changeset(user, %{}))
     |> assign(:theme_changeset, Accounts.User.theme_changeset(user, %{}))
     |> assign(:smart_unread_changeset, Accounts.User.smart_unread_changeset(user, %{}))
+    |> assign(:site_settings, Site.get_site_settings())
   end
 end
