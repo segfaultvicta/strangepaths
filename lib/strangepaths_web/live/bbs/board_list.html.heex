@@ -34,8 +34,8 @@
             placeholder="e.g., The Marketplace"
             required
           />
-          <%= if errors = @changeset.errors[:name] do %>
-            <span class="bbs-error block mt-1"><%= translate_error(List.first(errors)) %></span>
+          <%= if error = @changeset.errors[:name] do %>
+            <span class="bbs-error block mt-1"><%= translate_error(error) %></span>
           <% end %>
         </div>
 
@@ -47,8 +47,8 @@
             rows="3"
             placeholder="Optional description"
           ><%= @changeset.changes[:description] || "" %></textarea>
-          <%= if errors = @changeset.errors[:description] do %>
-            <span class="bbs-error block mt-1"><%= translate_error(List.first(errors)) %></span>
+          <%= if error = @changeset.errors[:description] do %>
+            <span class="bbs-error block mt-1"><%= translate_error(error) %></span>
           <% end %>
         </div>
 
