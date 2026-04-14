@@ -47,6 +47,8 @@ defmodule StrangepathsWeb.BBSLive.Thread do
           |> assign(:unread_boundary_index, compute_unread_boundary(posts, read_mark))
           |> assign(:page_title, thread.title)
           |> assign(:reply_changeset, reply_changeset)
+          |> assign(:editing_post_id, nil)
+          |> assign(:show_delete_confirm, false)
 
         {:ok, socket}
     end
@@ -137,6 +139,170 @@ defmodule StrangepathsWeb.BBSLive.Thread do
       end
     else
       {:noreply, put_flash(socket, :error, "You must be logged in to quote.")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_post", %{"post_id" => post_id_str}, socket) do
+    with :dragon <- check_dragon(socket),
+         {post_id, ""} <- Integer.parse(post_id_str),
+         post when not is_nil(post) <- Enum.find(socket.assigns.posts, &(&1.id == post_id)) do
+      if length(socket.assigns.posts) == 1 do
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Cannot delete the only post — use 'Delete Thread' to remove the whole thread."
+         )}
+      else
+        case BBS.delete_post(post) do
+          {:ok, _} ->
+            new_posts = Enum.reject(socket.assigns.posts, &(&1.id == post_id))
+            thread = %{socket.assigns.thread | post_count: socket.assigns.thread.post_count - 1}
+
+            {:noreply,
+             socket
+             |> assign(:posts, new_posts)
+             |> assign(:thread, thread)
+             |> put_flash(:info, "Post deleted.")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Failed to delete post.")}
+        end
+      end
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+      _ -> {:noreply, put_flash(socket, :error, "Post not found.")}
+    end
+  end
+
+  @impl true
+  def handle_event("start_edit_post", %{"post_id" => post_id_str}, socket) do
+    with :dragon <- check_dragon(socket),
+         {post_id, ""} <- Integer.parse(post_id_str) do
+      {:noreply, assign(socket, :editing_post_id, post_id)}
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+      _ -> {:noreply, put_flash(socket, :error, "Invalid post ID.")}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_edit", _params, socket) do
+    {:noreply, assign(socket, :editing_post_id, nil)}
+  end
+
+  @impl true
+  def handle_event(
+        "save_edit_post",
+        %{"post_id" => post_id_str, "content" => new_content},
+        socket
+      ) do
+    with :dragon <- check_dragon(socket),
+         {post_id, ""} <- Integer.parse(post_id_str),
+         post when not is_nil(post) <- Enum.find(socket.assigns.posts, &(&1.id == post_id)) do
+      case BBS.update_post(post, socket.assigns.current_user, %{"content" => new_content}) do
+        {:ok, updated_post} ->
+          new_posts =
+            Enum.map(socket.assigns.posts, fn p ->
+              if p.id == post_id, do: updated_post, else: p
+            end)
+
+          {:noreply,
+           socket
+           |> assign(:posts, new_posts)
+           |> assign(:editing_post_id, nil)
+           |> put_flash(:info, "Post updated.")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to update post.")}
+      end
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+      _ -> {:noreply, put_flash(socket, :error, "Post not found.")}
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_lock", _params, socket) do
+    with :dragon <- check_dragon(socket) do
+      new_thread =
+        if socket.assigns.thread.is_locked do
+          {:ok, thread} = BBS.unlock_thread(socket.assigns.thread)
+          thread
+        else
+          {:ok, thread} = BBS.lock_thread(socket.assigns.thread)
+          thread
+        end
+
+      {:noreply, assign(socket, :thread, new_thread)}
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_pin", _params, socket) do
+    with :dragon <- check_dragon(socket) do
+      new_thread =
+        if socket.assigns.thread.is_pinned do
+          {:ok, thread} = BBS.unpin_thread(socket.assigns.thread)
+          thread
+        else
+          {:ok, thread} = BBS.pin_thread(socket.assigns.thread)
+          thread
+        end
+
+      {:noreply, assign(socket, :thread, new_thread)}
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  @impl true
+  def handle_event("show_delete_confirm", _params, socket) do
+    with :dragon <- check_dragon(socket) do
+      {:noreply, assign(socket, :show_delete_confirm, true)}
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_delete_confirm", _params, socket) do
+    {:noreply, assign(socket, :show_delete_confirm, false)}
+  end
+
+  @impl true
+  def handle_event("delete_thread", _params, socket) do
+    with :dragon <- check_dragon(socket) do
+      case BBS.delete_thread(socket.assigns.thread) do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> assign(:show_delete_confirm, false)
+           |> push_redirect(
+             to:
+               Routes.live_path(
+                 socket,
+                 StrangepathsWeb.BBSLive.ThreadList,
+                 socket.assigns.board.slug
+               )
+           )}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete thread.")}
+      end
+    else
+      :not_dragon -> {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  defp check_dragon(socket) do
+    if socket.assigns.current_user && socket.assigns.current_user.role == :dragon do
+      :dragon
+    else
+      :not_dragon
     end
   end
 

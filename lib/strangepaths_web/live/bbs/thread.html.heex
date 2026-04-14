@@ -17,12 +17,66 @@
           Started by <span class="text-purple-400"><%= @thread.user.nickname %></span>
         </div>
       </div>
-      <%= if @thread.is_locked do %>
-        <div class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
-          🔒 Locked
-        </div>
-      <% end %>
+      <div class="flex items-center gap-2">
+        <%= if @thread.is_locked do %>
+          <div class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
+            🔒 Locked
+          </div>
+        <% end %>
+        <%= if @thread.is_pinned do %>
+          <div class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
+            📌 Pinned
+          </div>
+        <% end %>
+
+        <!-- Dragon Controls -->
+        <%= if @current_user && @current_user.role == :dragon do %>
+          <div class="flex gap-2 ml-4 border-l border-gray-600 pl-4">
+            <button
+              phx-click="toggle_lock"
+              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+            >
+              <%= if @thread.is_locked, do: "Unlock", else: "Lock" %>
+            </button>
+            <button
+              phx-click="toggle_pin"
+              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+            >
+              <%= if @thread.is_pinned, do: "Unpin", else: "Pin" %>
+            </button>
+            <button
+              phx-click="show_delete_confirm"
+              class="px-3 py-1 bg-red-700 hover:bg-red-600 text-gray-300 text-xs rounded transition"
+            >
+              Delete
+            </button>
+          </div>
+        <% end %>
+      </div>
     </div>
+
+    <!-- Delete Confirmation (Alpine-style with show_confirm assign) -->
+    <%= if @show_delete_confirm do %>
+      <div class="mt-4 p-3 bg-red-900 border border-red-700 rounded">
+        <div class="text-sm text-red-200 mb-3">
+          Are you sure you want to delete this thread? This action cannot be undone.
+        </div>
+        <div class="flex gap-2">
+          <button
+            phx-click="delete_thread"
+            class="px-3 py-1 bg-red-700 hover:bg-red-600 text-white text-xs rounded transition"
+          >
+            Yes, Delete
+          </button>
+          <button
+            phx-click="cancel_delete_confirm"
+            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    <% end %>
   </div>
 
   <!-- Posts -->
@@ -46,16 +100,45 @@
           </div>
           <div class="text-xs text-gray-500">
             <%= format_timestamp(post.posted_at) %>
-            <%= if post.edited_by do %>
-              <span class="text-gray-600 ml-2">(edited)</span>
+            <%= if post.edited_at do %>
+              <span class="text-gray-600 ml-2">[edited by dragon]</span>
             <% end %>
           </div>
         </div>
 
-        <!-- Post Content -->
-        <div class="text-gray-200 mb-3 prose prose-invert max-w-none">
-          <%= render_bbs_post_content(post.content, @thread.id) |> raw %>
-        </div>
+        <!-- Post Content or Edit Form -->
+        <%= if @editing_post_id == post.id do %>
+          <!-- Edit Form -->
+          <form phx-submit="save_edit_post" class="space-y-3 mb-3">
+            <input type="hidden" name="post_id" value={post.id} />
+            <textarea
+              name="content"
+              required
+              class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+              rows="6"
+            ><%= post.content %></textarea>
+            <div class="flex gap-2">
+              <button
+                type="submit"
+                class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                phx-click="cancel_edit"
+                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        <% else %>
+          <!-- Post Content -->
+          <div class="text-gray-200 mb-3 prose prose-invert max-w-none">
+            <%= render_bbs_post_content(post.content, @thread.id) |> raw %>
+          </div>
+        <% end %>
 
         <!-- Post Actions -->
         <div class="flex gap-2 text-xs">
@@ -73,6 +156,26 @@
             >
               Quote
             </button>
+          <% end %>
+
+          <!-- Dragon Controls -->
+          <%= if @current_user && @current_user.role == :dragon do %>
+            <div class="border-l border-gray-600 pl-2 ml-2 flex gap-2">
+              <button
+                phx-click="start_edit_post"
+                phx-value-post_id={post.id}
+                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
+              >
+                Edit
+              </button>
+              <button
+                phx-click="delete_post"
+                phx-value-post_id={post.id}
+                class="px-3 py-1 bg-red-700 hover:bg-red-600 text-gray-300 rounded transition"
+              >
+                Delete
+              </button>
+            </div>
           <% end %>
         </div>
       </div>
