@@ -165,3 +165,52 @@ Five numbered migrations (20260413120001–20260413120005) in `priv/repo/migrati
 5. `20260413120005_create_bbs_thread_read_marks.exs` — bbs_thread_read_marks table
 
 All migrations use `:delete_all` for cascade deletes. Indexes created for query performance (board/pinned/last_post_at on threads; thread/posted_at on posts).
+
+## BBS Forum System (Phase 2: Read-Only LiveViews)
+
+### LiveView Modules
+
+Three LiveViews in `lib/strangepaths_web/live/bbs/`:
+
+1. **BBSLive.BoardList** (`board_list_live.ex` + `board_list.html.heex`)
+   - Route: `/bbs` (`:index` action)
+   - Displays all boards with thread counts and last activity time
+   - **Dragon-only features:** "New Board" button toggles inline form
+   - Form validation on `phx-change="validate_board"`, submit via `phx-create="create_board"`
+   - Helper function `format_relative_time/1` for timestamps (displays "just now", "5m ago", "2h ago", etc.)
+
+2. **BBSLive.ThreadList** (`thread_list_live.ex` + `thread_list.html.heex`)
+   - Routes: `/bbs/:board_slug` (`:index`) and `/bbs/:board_slug/new` (`:new`)
+   - Displays threads in a board with unread counts, pinned/stickied indicators
+   - **Logged-in features:** "New Thread" button (Phase 3 form placeholder), sticky indicators
+   - Thread rows show: pin icon (📌), sticky indicator (⭐), title, post count, author, last activity, unread badge (red if count > 0)
+   - Handles `Ecto.NoResultsError` from missing board with redirect + flash
+
+3. **BBSLive.Thread** (`thread_live.ex` + `thread.html.heex`)
+   - Route: `/bbs/:board_slug/:thread_id` (`:show` action)
+   - Displays single thread with all posts, one per container
+   - **Authenticated features:** Marks thread as read on mount, subscribes to `bbs_thread:{id}` for real-time new posts
+   - Posts include: display name (bold), character name (muted, if not dragon), timestamp, content (rendered via `render_post_content/1`)
+   - **Unread divider:** Renders "── new replies ──" before first post newer than `last_read_post_id`
+   - Post actions: "Copy link" button (JS copies anchor URL), "Quote" button (Phase 3 placeholder)
+   - **handle_info** listens for `new_post` events, advances read mark, appends post to list, pushes JS scroll event
+   - Handles `Ecto.NoResultsError` from missing thread with redirect + flash
+   - Reply form placeholder for Phase 3 (shows "Reply form coming soon" if thread not locked)
+
+### Key Patterns
+
+- All LiveViews call `assign_defaults(session, socket)` from `StrangepathsWeb.LiveHelpers` to load current user
+- Error handling uses `try/rescue` for `Ecto.NoResultsError`, redirects to previous page with flash
+- Breadcrumbs use `live_redirect` helper for navigation
+- Time formatting: `format_relative_time/1` in modules, or `Calendar.strftime/2` for detailed timestamps
+- Post content rendered with `render_post_content/1` from `StrangepathsWeb.SceneHelpers` (handles glyphs + markdown)
+- Dragon detection: check `@current_user && @current_user.role == :dragon`
+- Locked threads show 🔒 icon; reply form hidden if locked or not logged in
+
+### Not Implemented Yet (Phases 3+)
+
+- Posting/reply forms (Phase 3)
+- Quote functionality (Phase 3)
+- Glyph toolbar for posts (Phase 3)
+- Dragon moderation controls: pin/lock/delete threads (Phase 4)
+- CSS/SCSS styling refinement (Phase 5)

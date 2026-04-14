@@ -1,0 +1,75 @@
+<div class="p-6 max-w-6xl mx-auto">
+  <!-- Breadcrumb -->
+  <div class="mb-6 text-gray-400 text-sm">
+    <%= live_redirect "The Aethernet", to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.BoardList) %>
+    <span class="mx-2">/</span>
+    <span><%= @board.name %></span>
+  </div>
+
+  <!-- New Thread Button -->
+  <%= if @current_user do %>
+    <div class="mb-6">
+      <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug, action: :new), class: "px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition inline-block" do %>
+        New Thread
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- New Thread Form (Phase 3 placeholder) -->
+  <%= if @live_action == :new && @current_user do %>
+    <div class="mb-8 p-4 bg-gray-800 border border-gray-700 rounded">
+      <h2 class="text-lg font-semibold text-gray-100 mb-4">Create New Thread</h2>
+      <div class="text-gray-400">
+        <em>Reply form coming in Phase 3</em>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Thread List -->
+  <div class="space-y-2">
+    <%= if Enum.empty?(@thread_rows) do %>
+      <div class="text-center py-12 text-gray-400">
+        No threads yet. Be the first to create one!
+      </div>
+    <% else %>
+      <%= for %{thread: thread, unread_count: unread_count} <- @thread_rows do %>
+        <div class="p-4 bg-gray-800 border border-gray-700 rounded hover:border-gray-600 transition">
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-2">
+                <!-- Pin indicator -->
+                <%= if thread.is_pinned do %>
+                  <span class="text-yellow-500 text-lg" title="Pinned">📌</span>
+                <% end %>
+
+                <!-- Sticky indicator -->
+                <%= if MapSet.member?(@sticky_ids, thread.id) do %>
+                  <span class="text-blue-400 text-lg" title="Stickied by you">⭐</span>
+                <% end %>
+
+                <!-- Thread title -->
+                <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.Thread, @board.slug, thread.id), class: "text-purple-400 hover:text-purple-300 font-semibold break-words" do %>
+                  <%= thread.title %>
+                <% end %>
+              </div>
+
+              <!-- Metadata -->
+              <div class="text-sm text-gray-500 flex flex-wrap gap-3">
+                <span><%= thread.post_count %> post<%= if thread.post_count != 1, do: "s" %></span>
+                <span>By <%= thread.user.nickname %></span>
+                <span><%= format_relative_time(thread.last_post_at) %></span>
+              </div>
+            </div>
+
+            <!-- Unread badge -->
+            <%= if unread_count > 0 do %>
+              <div class="px-3 py-1 bg-red-600 text-white text-sm rounded whitespace-nowrap">
+                <%= unread_count %> new
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

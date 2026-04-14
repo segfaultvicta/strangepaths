@@ -1,0 +1,96 @@
+<div class="p-6 max-w-4xl mx-auto">
+  <!-- NPC Header Panel -->
+  <div class="mb-8 p-4 bg-gray-900 border border-gray-700 rounded font-mono text-gray-300 text-sm whitespace-pre">
+┌──────────────────────────────────────┐
+│  AETHERNET NODE // v0.0.3-BETA       │
+│  cross-planar relay — unstable       │
+└──────────────────────────────────────┘
+  </div>
+
+  <!-- Page Title -->
+  <h1 class="text-3xl font-bold mb-6 text-gray-100">The Aethernet</h1>
+
+  <!-- New Board Button (Dragon only) -->
+  <%= if @current_user && @current_user.role == :dragon do %>
+    <div class="mb-6">
+      <button
+        phx-click="toggle_new_board_form"
+        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition"
+      >
+        <%= if @show_new_board_form, do: "Cancel", else: "New Board" %>
+      </button>
+    </div>
+
+    <!-- New Board Form -->
+    <%= if @show_new_board_form && @changeset do %>
+      <form phx-submit="create_board" phx-change="validate_board" class="mb-8 p-4 bg-gray-800 border border-gray-700 rounded">
+        <div class="mb-4">
+          <label class="block text-gray-300 text-sm font-semibold mb-2">Board Name</label>
+          <input
+            type="text"
+            name="board[name]"
+            value={@changeset.changes[:name] || ""}
+            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded focus:outline-none focus:border-purple-500"
+            placeholder="e.g., The Marketplace"
+            required
+          />
+          <%= if errors = @changeset.errors[:name] do %>
+            <span class="text-red-400 text-sm"><%= elem(errors, 0) %></span>
+          <% end %>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-gray-300 text-sm font-semibold mb-2">Description</label>
+          <textarea
+            name="board[description]"
+            class="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-100 rounded focus:outline-none focus:border-purple-500"
+            rows="3"
+            placeholder="Optional description"
+          ><%= @changeset.changes[:description] || "" %></textarea>
+          <%= if errors = @changeset.errors[:description] do %>
+            <span class="text-red-400 text-sm"><%= elem(errors, 0) %></span>
+          <% end %>
+        </div>
+
+        <button
+          type="submit"
+          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition"
+        >
+          Create Board
+        </button>
+      </form>
+    <% end %>
+  <% end %>
+
+  <!-- Board List -->
+  <div class="space-y-4">
+    <%= if Enum.empty?(@boards) do %>
+      <div class="text-center py-12 text-gray-400">
+        No boards available yet.
+      </div>
+    <% else %>
+      <%= for %{board: board, thread_count: thread_count, last_post_at: last_post_at} <- @boards do %>
+        <div class="p-4 bg-gray-800 border border-gray-700 rounded hover:border-gray-600 transition">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, board.slug) do %>
+                <h2 class="text-xl font-semibold text-purple-400 hover:text-purple-300 cursor-pointer">
+                  <%= board.name %>
+                </h2>
+              <% end %>
+              <%= if board.description do %>
+                <p class="text-gray-400 text-sm mt-1"><%= board.description %></p>
+              <% end %>
+            </div>
+            <div class="text-right text-sm text-gray-500">
+              <div><%= thread_count %> thread<%= if thread_count != 1, do: "s" %></div>
+              <%= if last_post_at do %>
+                <div class="text-xs mt-1"><%= format_relative_time(last_post_at) %></div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

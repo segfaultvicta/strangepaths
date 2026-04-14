@@ -1,0 +1,108 @@
+<div class="p-6 max-w-4xl mx-auto">
+  <!-- Breadcrumb -->
+  <div class="mb-6 text-gray-400 text-sm">
+    <%= live_redirect "The Aethernet", to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.BoardList) %>
+    <span class="mx-2">/</span>
+    <%= live_redirect @board.name, to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, @board.slug) %>
+    <span class="mx-2">/</span>
+    <span><%= @thread.title %></span>
+  </div>
+
+  <!-- Thread Header -->
+  <div class="mb-6 p-4 bg-gray-800 border border-gray-700 rounded">
+    <div class="flex justify-between items-start">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-100"><%= @thread.title %></h1>
+        <div class="text-sm text-gray-400 mt-2">
+          Started by <span class="text-purple-400"><%= @thread.user.nickname %></span>
+        </div>
+      </div>
+      <%= if @thread.is_locked do %>
+        <div class="px-3 py-1 bg-gray-700 text-gray-300 text-sm rounded">
+          🔒 Locked
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Posts -->
+  <div id="posts-container" class="space-y-4">
+    <%= for {post, index} <- Enum.with_index(@posts) do %>
+      <div id={"post-#{post.id}"} class="p-4 bg-gray-800 border border-gray-700 rounded">
+        <!-- Unread divider -->
+        <%= if index > 0 && post_id_greater?(post.id, @last_read_post_id) && post_id_greater?(Enum.at(@posts, index - 1).id, @last_read_post_id) == false do %>
+          <div class="text-center text-gray-500 text-sm mb-4 py-2 border-t border-b border-yellow-600">
+            ── new replies ──
+          </div>
+        <% end %>
+
+        <!-- Post Header -->
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <div class="font-semibold text-gray-100"><%= post.display_name %></div>
+            <%= if post.user && post.user.role != :dragon do %>
+              <div class="text-xs text-gray-500"><%= post.character_name %></div>
+            <% end %>
+          </div>
+          <div class="text-xs text-gray-500">
+            <%= format_timestamp(post.posted_at) %>
+            <%= if post.edited_by do %>
+              <span class="text-gray-600 ml-2">(edited)</span>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Post Content -->
+        <div class="text-gray-200 mb-3 prose prose-invert max-w-none">
+          <%= render_post_content(post.content) |> raw %>
+        </div>
+
+        <!-- Post Actions -->
+        <div class="flex gap-2 text-xs">
+          <button
+            class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
+            data-post-id={post.id}
+            onclick="copyPostLink(this.getAttribute('data-post-id'))"
+          >
+            Copy link
+          </button>
+          <%= if @current_user do %>
+            <button
+              class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
+              title="Quote (Phase 3)"
+            >
+              Quote
+            </button>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Reply Form -->
+  <%= if !@thread.is_locked && @current_user do %>
+    <div class="mt-8 p-4 bg-gray-800 border border-gray-700 rounded">
+      <h2 class="text-lg font-semibold text-gray-100 mb-4">Reply to Thread</h2>
+      <div class="text-gray-400">
+        <em>Reply form coming in Phase 3</em>
+      </div>
+    </div>
+  <% end %>
+
+  <script>
+    window.addEventListener('phx:bbs-scroll-to-bottom', function(event) {
+      const container = document.getElementById('posts-container');
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    });
+
+    function copyPostLink(postId) {
+      const baseUrl = window.location.href.split('#')[0];
+      const fullUrl = baseUrl + '#post-' + postId;
+      navigator.clipboard.writeText(fullUrl).then(function() {
+        alert('Link copied to clipboard!');
+      });
+    }
+  </script>
+</div>
