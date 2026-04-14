@@ -26,16 +26,16 @@
   </div>
 
   <!-- Posts -->
-  <div id="posts-container" class="space-y-4">
+  <div id="posts-container" class="space-y-4" phx-hook="BBSScrollManager">
     <%= for {post, index} <- Enum.with_index(@posts) do %>
-      <div id={"post-#{post.id}"} class="p-4 bg-gray-800 border border-gray-700 rounded">
-        <!-- Unread divider -->
-        <%= if index > 0 && post_id_greater?(post.id, @last_read_post_id) && post_id_greater?(Enum.at(@posts, index - 1).id, @last_read_post_id) == false do %>
-          <div class="text-center text-gray-500 text-sm mb-4 py-2 border-t border-b border-yellow-600">
-            ── new replies ──
-          </div>
-        <% end %>
+      <!-- Unread divider (sibling, not inside post) -->
+      <%= if @unread_boundary_index && index == @unread_boundary_index do %>
+        <div class="text-center text-gray-500 text-sm py-2 border-t border-b border-yellow-600">
+          ── new replies ──
+        </div>
+      <% end %>
 
+      <div id={"post-#{post.id}"} class="p-4 bg-gray-800 border border-gray-700 rounded">
         <!-- Post Header -->
         <div class="flex justify-between items-start mb-3">
           <div>
@@ -61,8 +61,7 @@
         <div class="flex gap-2 text-xs">
           <button
             class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition"
-            data-post-id={post.id}
-            onclick="copyPostLink(this.getAttribute('data-post-id'))"
+            onclick="(function(btn) { const postId = btn.closest('[id^=post-]')?.id; if(postId) navigator.clipboard.writeText(window.location.href.split('#')[0] + '#' + postId); })(this)"
           >
             Copy link
           </button>
@@ -88,21 +87,4 @@
       </div>
     </div>
   <% end %>
-
-  <script>
-    window.addEventListener('phx:bbs-scroll-to-bottom', function(event) {
-      const container = document.getElementById('posts-container');
-      if (container) {
-        container.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }
-    });
-
-    function copyPostLink(postId) {
-      const baseUrl = window.location.href.split('#')[0];
-      const fullUrl = baseUrl + '#post-' + postId;
-      navigator.clipboard.writeText(fullUrl).then(function() {
-        alert('Link copied to clipboard!');
-      });
-    }
-  </script>
 </div>

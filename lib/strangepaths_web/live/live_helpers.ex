@@ -57,6 +57,24 @@ defmodule StrangepathsWeb.LiveHelpers do
   end
 
   @doc """
+  Formats a datetime as a relative time string (e.g., "5m ago", "2h ago").
+  """
+  def format_relative_time(datetime) when is_nil(datetime), do: ""
+
+  def format_relative_time(datetime) do
+    now = DateTime.utc_now()
+    diff_seconds = DateTime.diff(now, datetime, :second)
+
+    cond do
+      diff_seconds < 60 -> "just now"
+      diff_seconds < 3600 -> "#{div(diff_seconds, 60)}m ago"
+      diff_seconds < 86400 -> "#{div(diff_seconds, 3600)}h ago"
+      diff_seconds < 604800 -> "#{div(diff_seconds, 86400)}d ago"
+      true -> Calendar.strftime(datetime, "%b %d, %Y")
+    end
+  end
+
+  @doc """
   Renders a live component inside a modal.
 
   The rendered modal receives a `:return_to` option to properly update

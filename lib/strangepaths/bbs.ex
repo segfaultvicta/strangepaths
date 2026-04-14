@@ -32,6 +32,14 @@ defmodule Strangepaths.BBS do
 
   @doc """
   Gets a single board by slug.
+  Returns nil if not found.
+  """
+  def get_board_by_slug(slug) do
+    Repo.get_by(Board, slug: slug)
+  end
+
+  @doc """
+  Gets a single board by slug.
   Raises Ecto.NoResultsError if not found.
   """
   def get_board_by_slug!(slug) do
@@ -123,6 +131,14 @@ defmodule Strangepaths.BBS do
       preload: [thread: :user]
     )
     |> Repo.all()
+  end
+
+  @doc """
+  Gets a single thread by id.
+  Returns nil if not found.
+  """
+  def get_thread(id) do
+    Repo.get(Thread, id) |> Repo.preload(:board)
   end
 
   @doc """

@@ -1956,6 +1956,18 @@ Hooks.CopyPlaintext = {
     }
 };
 
+Hooks.BBSScrollManager = {
+    mounted() {
+        this.handleEvent("bbs-scroll-to-bottom", ({post_id}) => {
+            // Scroll to the post element or the last element in the container
+            const el = document.getElementById("post-" + post_id) || this.el.lastElementChild;
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        });
+    }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {

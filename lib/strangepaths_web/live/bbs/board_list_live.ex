@@ -2,7 +2,9 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   use StrangepathsWeb, :live_view
 
   import StrangepathsWeb.LiveHelpers
+  import StrangepathsWeb.ErrorHelpers
   alias Strangepaths.BBS
+  alias Strangepaths.BBS.Board
 
   @impl true
   def mount(_params, session, socket) do
@@ -31,7 +33,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   @impl true
   def handle_event("validate_board", %{"board" => attrs}, socket) do
     changeset =
-      BBS.change_board(%{}, attrs)
+      BBS.change_board(%Board{}, attrs)
       |> Map.put(:action, :insert)
 
     {:noreply, assign(socket, :changeset, changeset)}
@@ -57,20 +59,5 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
 
   def handle_event(_event, _params, socket) do
     {:noreply, socket}
-  end
-
-  def format_relative_time(datetime) when is_nil(datetime), do: ""
-
-  def format_relative_time(datetime) do
-    now = DateTime.utc_now()
-    diff_seconds = DateTime.diff(now, datetime, :second)
-
-    cond do
-      diff_seconds < 60 -> "just now"
-      diff_seconds < 3600 -> "#{div(diff_seconds, 60)}m ago"
-      diff_seconds < 86400 -> "#{div(diff_seconds, 3600)}h ago"
-      diff_seconds < 604800 -> "#{div(diff_seconds, 86400)}d ago"
-      true -> Calendar.strftime(datetime, "%b %d, %Y")
-    end
   end
 end

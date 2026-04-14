@@ -32,7 +32,7 @@
         No threads yet. Be the first to create one!
       </div>
     <% else %>
-      <%= for %{thread: thread, unread_count: unread_count} <- @thread_rows do %>
+      <%= for %{thread: thread, unread_count: unread_count, is_stickied: is_stickied} <- @thread_rows do %>
         <div class="p-4 bg-gray-800 border border-gray-700 rounded hover:border-gray-600 transition">
           <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
@@ -43,7 +43,7 @@
                 <% end %>
 
                 <!-- Sticky indicator -->
-                <%= if MapSet.member?(@sticky_ids, thread.id) do %>
+                <%= if is_stickied do %>
                   <span class="text-blue-400 text-lg" title="Stickied by you">⭐</span>
                 <% end %>
 
