@@ -47,25 +47,14 @@ defmodule StrangepathsWeb.BBSHelpers do
     escaped_content =
       Phoenix.HTML.html_escape(content_with_placeholders) |> Phoenix.HTML.safe_to_string()
 
-    # Render quote blocks and restore them
+    # Render quote blocks and restore them, tracking index by position (not by value equality)
+    # so duplicate quote blocks each get their own unique placeholder substituted exactly once.
     restored_content =
-      Enum.reduce(quote_matches, escaped_content, fn [
-                                                       id_str,
-                                                       author,
-                                                       thread_id_str,
-                                                       board,
-                                                       excerpt
-                                                     ],
-                                                     text ->
-        index_str =
-          Integer.to_string(
-            Enum.find_index(
-              quote_matches,
-              &(&1 == [id_str, author, thread_id_str, board, excerpt])
-            )
-          )
-
-        placeholder = "___QUOTE_BLOCK_#{index_str}___"
+      quote_matches
+      |> Enum.with_index()
+      |> Enum.reduce(escaped_content, fn {[id_str, author, thread_id_str, board, excerpt], idx},
+                                         text ->
+        placeholder = "___QUOTE_BLOCK_#{idx}___"
 
         html =
           render_quote_block(
@@ -77,7 +66,11 @@ defmodule StrangepathsWeb.BBSHelpers do
             current_thread_id
           )
 
-        String.replace(text, placeholder, html)
+        # Replace exactly one occurrence to prevent user-content collision with placeholder strings
+        case String.split(text, placeholder, parts: 2) do
+          [before, rest] -> before <> html <> rest
+          [_] -> text
+        end
       end)
 
     # Then pass through the existing markdown pipeline
