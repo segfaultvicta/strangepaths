@@ -17,12 +17,12 @@
 
   <!-- New Thread Form -->
   <%= if @live_action == :new && @current_user do %>
-    <div class="bbs-form mb-8 rounded">
-      <h2 class="text-lg font-semibold text-gray-100 mb-4">Create New Thread</h2>
+    <div class="bbs-form mb-8">
+      <h2 class="mb-4">Create New Thread</h2>
       <form phx-submit="create_thread" phx-change="validate_thread" class="space-y-4">
         <!-- Display Name Field -->
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">Posting as:</label>
+          <label class="block mb-1">Posting as:</label>
           <input
             type="text"
             name="thread[display_name]"
@@ -38,7 +38,7 @@
 
         <!-- Title Field -->
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">Subject:</label>
+          <label class="block mb-1">Subject:</label>
           <input
             type="text"
             name="thread[title]"
@@ -56,7 +56,7 @@
 
         <!-- Content Field with Glyph Toolbar -->
         <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">Message:</label>
+          <label class="block mb-1">Message:</label>
           <div class="relative">
             <div id="bbs-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="bbs-thread-content" tabindex="-1">
               <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
@@ -107,7 +107,7 @@
       </div>
     <% else %>
       <%= for %{thread: thread, unread_count: unread_count, is_stickied: is_stickied} <- @thread_rows do %>
-        <div class={["bbs-thread-row bbs-panel p-4 rounded hover:border-gray-600 transition", thread.is_pinned && "bbs-thread-row--pinned", is_stickied && "bbs-thread-row--sticky"]}>
+        <div class={["bbs-thread-row bbs-panel p-4", thread.is_pinned && "bbs-thread-row--pinned", is_stickied && "bbs-thread-row--sticky"]}>
           <div class="flex justify-between items-start gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-2">

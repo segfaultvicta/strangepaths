@@ -2,8 +2,8 @@
   <!-- NPC Header Panel -->
   <div class="bbs-npc-header mb-8">
 ┌──────────────────────────────────────┐
-│  AETHERNET NODE // v0.0.3-BETA       │
-│  cross-planar relay — unstable       │
+│ AETHERNET NODE // v0.0.3-BETA        │
+│ cross-planar relay — unstable        │
 └──────────────────────────────────────┘
   </div>
 
@@ -70,7 +70,7 @@
       </div>
     <% else %>
       <%= for %{board: board, thread_count: thread_count, last_post_at: last_post_at} <- @boards do %>
-        <div class="bbs-panel p-4 rounded hover:border-gray-600 transition">
+        <div class="bbs-panel p-4">
           <div class="flex justify-between items-start">
             <div class="flex-1">
               <%= live_redirect to: Routes.live_path(@socket, StrangepathsWeb.BBSLive.ThreadList, board.slug) do %>
