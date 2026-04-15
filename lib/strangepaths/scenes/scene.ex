@@ -109,5 +109,6 @@ defmodule Strangepaths.Scenes.Scene do
     user_id in locked_users
   end
 
+  def can_view?(%__MODULE__{locked_to_users: []}, nil), do: true
   def can_view?(_, _), do: false
 end

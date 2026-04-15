@@ -47,17 +47,19 @@
                   <% end %>
                 </span>
               <% end %>
-              <form phx-submit="add_tag" class="inline-flex items-center gap-1">
-                <input type="hidden" name="scene_id" value={@selected_scene.id} />
-                <input
-                  type="text"
-                  name="tag"
-                  placeholder="add tag"
-                  maxlength="50"
-                  class="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-500 rounded-full text-indigo-900 dark:text-white w-20 focus:outline-none focus:border-purple-500"
-                />
-                <button type="submit" class="text-xs text-gray-400 hover:text-purple-400 transition">+</button>
-              </form>
+              <%= if @current_user do %>
+                <form phx-submit="add_tag" class="inline-flex items-center gap-1">
+                  <input type="hidden" name="scene_id" value={@selected_scene.id} />
+                  <input
+                    type="text"
+                    name="tag"
+                    placeholder="add tag"
+                    maxlength="50"
+                    class="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-500 rounded-full text-indigo-900 dark:text-white w-20 focus:outline-none focus:border-purple-500"
+                  />
+                  <button type="submit" class="text-xs text-gray-400 hover:text-purple-400 transition">+</button>
+                </form>
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -73,7 +75,7 @@
             Copy as Text
           </button>
 
-          <%= if !@viewing_elsewhere && @selected_scene && @current_user.role == :dragon do %>
+          <%= if !@viewing_elsewhere && @selected_scene && @current_user && @current_user.role == :dragon do %>
             <%= if @selected_scene.locked_to_users != [] do %>
               <button
                 phx-click="unlock_scene"
@@ -588,27 +590,29 @@
                         <% end %>
                       </span>
                     <% end %>
-                    <%= if @adding_tag_to == scene.id do %>
-                      <form phx-submit="add_tag" class="inline-flex items-center gap-1">
-                        <input type="hidden" name="scene_id" value={scene.id} />
-                        <input
-                          type="text"
-                          name="tag"
-                          placeholder="new tag"
-                          autofocus
-                          maxlength="50"
-                          class="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-400 rounded-full text-indigo-900 dark:text-white w-24 focus:outline-none focus:border-purple-500"
-                        />
-                        <button type="submit" class="text-xs text-green-400 hover:text-green-300 transition">✓</button>
-                        <button type="button" phx-click="hide_add_tag" class="text-xs text-gray-400 hover:text-gray-300 transition">✕</button>
-                      </form>
-                    <% else %>
-                      <button
-                        phx-click="show_add_tag"
-                        phx-value-scene_id={scene.id}
-                        class="px-2 py-0.5 rounded-full text-xs text-gray-400 hover:text-purple-400 bg-transparent transition"
-                        title="Add tag"
-                      >+</button>
+                    <%= if @current_user do %>
+                      <%= if @adding_tag_to == scene.id do %>
+                        <form phx-submit="add_tag" class="inline-flex items-center gap-1">
+                          <input type="hidden" name="scene_id" value={scene.id} />
+                          <input
+                            type="text"
+                            name="tag"
+                            placeholder="new tag"
+                            autofocus
+                            maxlength="50"
+                            class="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-400 rounded-full text-indigo-900 dark:text-white w-24 focus:outline-none focus:border-purple-500"
+                          />
+                          <button type="submit" class="text-xs text-green-400 hover:text-green-300 transition">✓</button>
+                          <button type="button" phx-click="hide_add_tag" class="text-xs text-gray-400 hover:text-gray-300 transition">✕</button>
+                        </form>
+                      <% else %>
+                        <button
+                          phx-click="show_add_tag"
+                          phx-value-scene_id={scene.id}
+                          class="px-2 py-0.5 rounded-full text-xs text-gray-400 hover:text-purple-400 bg-transparent transition"
+                          title="Add tag"
+                        >+</button>
+                      <% end %>
                     <% end %>
                   </div>
                 </div>

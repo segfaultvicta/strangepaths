@@ -84,6 +84,15 @@ defmodule Strangepaths.Scenes do
     |> Repo.all()
   end
 
+  def list_archived_scenes(nil) do
+    Scene
+    |> where([s], s.status == :archived)
+    |> where([s], fragment("? = '{}'", s.locked_to_users) or s.is_elsewhere == true)
+    |> order_by([s], desc: s.archived_at)
+    |> preload(:owner)
+    |> Repo.all()
+  end
+
   @doc """
   Returns the most recently archived scenes visible to the given user, up to `limit`.
   """
@@ -550,7 +559,7 @@ defmodule Strangepaths.Scenes do
   @doc """
   Checks if a user can view a scene.
   """
-  def can_view_scene?(%Scene{} = scene, %User{} = user) do
+  def can_view_scene?(%Scene{} = scene, user) do
     Scene.can_view?(scene, user)
   end
 

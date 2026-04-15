@@ -13,60 +13,53 @@ defmodule StrangepathsWeb.Scenes.Archives do
     socket = assign_defaults(session, socket)
     subscribe_to_music(socket)
 
-    if socket.assigns.current_user do
-      # Load archived scenes
-      archived_scenes = Scenes.list_archived_scenes(socket.assigns.current_user)
-      chapter_view = build_chapter_view(archived_scenes)
+    # Load archived scenes (nil user sees only unlocked scenes)
+    archived_scenes = Scenes.list_archived_scenes(socket.assigns.current_user)
+    chapter_view = build_chapter_view(archived_scenes)
 
-      # Check if there's an Elsewhere scene to show weekly archives
-      elsewhere_scene = Scenes.get_elsewhere_scene()
+    # Check if there's an Elsewhere scene to show weekly archives
+    elsewhere_scene = Scenes.get_elsewhere_scene()
 
-      elsewhere_weeks =
-        if elsewhere_scene do
-          Scenes.group_elsewhere_posts_by_week(elsewhere_scene.id)
-        else
-          []
-        end
+    elsewhere_weeks =
+      if elsewhere_scene do
+        Scenes.group_elsewhere_posts_by_week(elsewhere_scene.id)
+      else
+        []
+      end
 
-      all_users = Accounts.list_users()
-      user_nicknames = Map.new(all_users, fn u -> {u.id, u.nickname} end)
-      all_tags = Scenes.list_all_tags()
+    all_users = Accounts.list_users()
+    user_nicknames = Map.new(all_users, fn u -> {u.id, u.nickname} end)
+    all_tags = Scenes.list_all_tags()
 
-      {:ok,
-       socket
-       |> assign(:archived_scenes, archived_scenes)
-       |> assign(:chapter_view, chapter_view)
-       |> assign(:view_mode, :list)
-       |> assign(:elsewhere_scene, elsewhere_scene)
-       |> assign(:elsewhere_weeks, elsewhere_weeks)
-       |> assign(:page_title, "Sanctuary - Archive")
-       |> assign(:selected_scene, nil)
-       |> assign(:selected_week, nil)
-       |> assign(:posts, [])
-       |> assign(:viewing_elsewhere, false)
-       |> assign(:editing_scene_id, nil)
-       |> assign(:editing_scene_name, "")
-       |> assign(:search_query, "")
-       |> assign(:search_results, nil)
-       |> assign(:searching, false)
-       |> assign(:show_filters, false)
-       |> assign(:filter_my_scenes, false)
-       |> assign(:filter_hide_elsewhere, false)
-       |> assign(:filter_hide_system, true)
-       |> assign(:filter_author, "")
-       |> assign(:all_users, all_users)
-       |> assign(:user_nicknames, user_nicknames)
-       |> assign(:locking_scene, false)
-       |> assign(:lock_user_ids, [])
-       |> assign(:all_tags, all_tags)
-       |> assign(:tag_filter, MapSet.new())
-       |> assign(:adding_tag_to, nil), temporary_assigns: [posts: []]}
-    else
-      {:ok,
-       socket
-       |> put_flash(:error, "You must be logged in to access archives")
-       |> redirect(to: "/")}
-    end
+    {:ok,
+     socket
+     |> assign(:archived_scenes, archived_scenes)
+     |> assign(:chapter_view, chapter_view)
+     |> assign(:view_mode, :list)
+     |> assign(:elsewhere_scene, elsewhere_scene)
+     |> assign(:elsewhere_weeks, elsewhere_weeks)
+     |> assign(:page_title, "Sanctuary - Archive")
+     |> assign(:selected_scene, nil)
+     |> assign(:selected_week, nil)
+     |> assign(:posts, [])
+     |> assign(:viewing_elsewhere, false)
+     |> assign(:editing_scene_id, nil)
+     |> assign(:editing_scene_name, "")
+     |> assign(:search_query, "")
+     |> assign(:search_results, nil)
+     |> assign(:searching, false)
+     |> assign(:show_filters, false)
+     |> assign(:filter_my_scenes, false)
+     |> assign(:filter_hide_elsewhere, false)
+     |> assign(:filter_hide_system, true)
+     |> assign(:filter_author, "")
+     |> assign(:all_users, all_users)
+     |> assign(:user_nicknames, user_nicknames)
+     |> assign(:locking_scene, false)
+     |> assign(:lock_user_ids, [])
+     |> assign(:all_tags, all_tags)
+     |> assign(:tag_filter, MapSet.new())
+     |> assign(:adding_tag_to, nil), temporary_assigns: [posts: []]}
   end
 
   @impl true
@@ -140,8 +133,9 @@ defmodule StrangepathsWeb.Scenes.Archives do
       socket = assign(socket, :searching, true)
 
       # Perform search
-      user_id = socket.assigns.current_user.id
-      my_scenes_filter = socket.assigns.filter_my_scenes
+      user_id = socket.assigns.current_user && socket.assigns.current_user.id
+      # my_scenes filter only applies when logged in
+      my_scenes_filter = socket.assigns.filter_my_scenes && user_id != nil
       hide_elsewhere_filter = socket.assigns.filter_hide_elsewhere
       hide_system_filter = socket.assigns.filter_hide_system
       author_filter = socket.assigns.filter_author
@@ -397,6 +391,9 @@ defmodule StrangepathsWeb.Scenes.Archives do
   end
 
   defp handle_archive_event("add_tag", %{"scene_id" => scene_id_str, "tag" => tag}, socket) do
+    if is_nil(socket.assigns.current_user) do
+      {:noreply, put_flash(socket, :error, "You must be logged in to add tags")}
+    else
     scene_id = String.to_integer(scene_id_str)
     scene = Scenes.get_scene(scene_id)
 
@@ -434,6 +431,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
       end
     else
       {:noreply, put_flash(socket, :error, "Scene not found")}
+    end
     end
   end
 
@@ -500,7 +498,11 @@ defmodule StrangepathsWeb.Scenes.Archives do
   end
 
   defp handle_archive_event("show_add_tag", %{"scene_id" => scene_id_str}, socket) do
-    {:noreply, assign(socket, :adding_tag_to, String.to_integer(scene_id_str))}
+    if socket.assigns.current_user do
+      {:noreply, assign(socket, :adding_tag_to, String.to_integer(scene_id_str))}
+    else
+      {:noreply, put_flash(socket, :error, "You must be logged in to add tags")}
+    end
   end
 
   defp handle_archive_event("hide_add_tag", _params, socket) do

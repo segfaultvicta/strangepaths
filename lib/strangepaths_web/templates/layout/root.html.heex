@@ -52,10 +52,10 @@
           <%= if @devour_count > 0 do %>
             <span class="text-red-700 dark:text-red-600 mr-2">CYCLE <%= @devour_count + 217 %></span>
           <% end %>
-          <span x-data="{ onScenes: window.location.pathname === '/scenes' }"
+          <span x-data={"{ loggedIn: #{!is_nil(@current_user)}, onScenes: window.location.pathname === '/scenes' }"}
                 x-init="window.addEventListener('phx:page-loading-stop', () => { onScenes = window.location.pathname === '/scenes' })">
-            <a href="/scenes/archives" class="inactivenav" x-show="onScenes">ARCHIVES</a>
-            <a href="/scenes" class="inactivenav" x-show="!onScenes">STILLNESS</a>
+            <a href="/scenes/archives" class="inactivenav" x-show="!loggedIn || onScenes">ARCHIVES</a>
+            <a href="/scenes" class="inactivenav" x-show="loggedIn && !onScenes">STILLNESS</a>
           </span>
           <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav" %>
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
@@ -111,10 +111,10 @@
           <%= if @devour_count > 0 do %>
             <span class="text-red-700 dark:text-red-600">CYCLE <%= @devour_count + 217 %></span>
           <% end %>
-          <span x-data="{ onScenes: window.location.pathname === '/scenes' }"
+          <span x-data={"{ loggedIn: #{!is_nil(@current_user)}, onScenes: window.location.pathname === '/scenes' }"}
                 x-init="window.addEventListener('phx:page-loading-stop', () => { onScenes = window.location.pathname === '/scenes' })">
-            <a href="/scenes/archives" class="inactivenav" x-show="onScenes" x-on:click="mobileMenuOpen = false">ARCHIVES</a>
-            <a href="/scenes" class="inactivenav" x-show="!onScenes" x-on:click="mobileMenuOpen = false">STILLNESS</a>
+            <a href="/scenes/archives" class="inactivenav" x-show="!loggedIn || onScenes" x-on:click="mobileMenuOpen = false">ARCHIVES</a>
+            <a href="/scenes" class="inactivenav" x-show="loggedIn && !onScenes" x-on:click="mobileMenuOpen = false">STILLNESS</a>
           </span>
           <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
