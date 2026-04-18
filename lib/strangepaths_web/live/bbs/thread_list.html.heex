@@ -1,19 +1,24 @@
 <div class="bbs-root p-6 max-w-6xl mx-auto">
-  <!-- Breadcrumb -->
-  <div class="bbs-breadcrumb mb-6">
-    <%= live_redirect "Linkpearl", to: Routes.bbs_board_list_path(@socket, :index) %>
-    <span class="mx-2">/</span>
-    <span><%= @board.name %></span>
-  </div>
+  <!-- Breadcrumb + header actions -->
+  <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+    <div>
+      <div class="bbs-breadcrumb mb-2">
+        <%= live_redirect "Linkpearl", to: Routes.bbs_board_list_path(@socket, :index) %>
+        <span class="mx-2">/</span>
+        <span><%= @board.name %></span>
+      </div>
 
-  <!-- New Thread Button -->
-  <%= if @current_user do %>
-    <div class="mb-6">
-      <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :new, @board.slug), class: "bbs-button inline-block" do %>
-        New Strand
+      <%= if @current_user do %>
+        <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :new, @board.slug), class: "bbs-button inline-block" do %>
+          New Strand
+        <% end %>
       <% end %>
     </div>
-  <% end %>
+
+    <%= if @board.image_filename do %>
+      <img src={"/images/JORULE_WAS_HERE/#{@board.image_filename}"} class="h-16 object-contain" />
+    <% end %>
+  </div>
 
   <!-- New Thread Form -->
   <%= if @live_action == :new && @current_user do %>
@@ -155,4 +160,10 @@
       <% end %>
     <% end %>
   </div>
+
+  <%= if @board.image_filename do %>
+    <div class="mt-8 text-center">
+      <img src={"/images/JORULE_WAS_HERE/#{@board.image_filename}"} class="max-w-full mx-auto" />
+    </div>
+  <% end %>
 </div>

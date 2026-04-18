@@ -609,6 +609,31 @@ Hooks.OOCContentInput = {
     }
 }
 
+Hooks.BBSBoardSort = {
+    mounted() { this.setupSortable(); },
+    updated() { this.setupSortable(); },
+    setupSortable() {
+        const managing = this.el.dataset.manage === "true";
+        if (managing && !this.sortable) {
+            this.sortable = new Sortable(this.el, {
+                animation: 150,
+                handle: "[data-drag-handle]",
+                ghostClass: "opacity-50",
+                onEnd: () => {
+                    const ids = Array.from(this.el.querySelectorAll("[data-id]")).map(el => el.dataset.id);
+                    this.pushEvent("reorder_boards", { ids });
+                }
+            });
+        } else if (!managing && this.sortable) {
+            this.sortable.destroy();
+            this.sortable = null;
+        }
+    },
+    destroyed() {
+        if (this.sortable) this.sortable.destroy();
+    }
+}
+
 Hooks.Sortable = {
     mounted() {
         new Sortable(this.el, {

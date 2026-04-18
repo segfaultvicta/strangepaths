@@ -1970,6 +1970,10 @@ a:hover{
   margin-bottom: 1.25rem;
 }
 
+.mr-3{
+  margin-right: 0.75rem;
+}
+
 .block{
   display: block;
 }
@@ -2190,6 +2194,10 @@ a:hover{
   max-width: 72rem;
 }
 
+.max-w-full{
+  max-width: 100%;
+}
+
 .max-w-xs{
   max-width: 20rem;
 }
@@ -2281,6 +2289,11 @@ a:hover{
 
 .cursor-move{
   cursor: move;
+}
+
+.cursor-grab{
+  cursor: -webkit-grab;
+  cursor: grab;
 }
 
 .touch-manipulation{
@@ -2651,6 +2664,11 @@ a:hover{
   border-color: rgb(185 28 28 / var(--tw-border-opacity));
 }
 
+.border-purple-700{
+  --tw-border-opacity: 1;
+  border-color: rgb(126 34 206 / var(--tw-border-opacity));
+}
+
 .border-emerald-500{
   --tw-border-opacity: 1;
   border-color: rgb(16 185 129 / var(--tw-border-opacity));
@@ -2669,11 +2687,6 @@ a:hover{
 .border-white{
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
-}
-
-.border-purple-700{
-  --tw-border-opacity: 1;
-  border-color: rgb(126 34 206 / var(--tw-border-opacity));
 }
 
 .bg-green-600{
@@ -5785,7 +5798,7 @@ input[type=range].slider-purple::-moz-range-progress {
 .bbs-npc-header {
   font-family: var(--bbs-font);
   color: #5050a0;
-  padding: 1rem;
+  padding: 0.5rem;
   font-size: 0.85rem;
   line-height: 1.4;
   white-space: pre;
@@ -6566,11 +6579,6 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(229 231 235 / var(--tw-text-opacity));
 }
 
-.hover\:text-indigo-800:hover{
-  --tw-text-opacity: 1;
-  color: rgb(55 48 163 / var(--tw-text-opacity));
-}
-
 .hover\:text-purple-400:hover{
   --tw-text-opacity: 1;
   color: rgb(192 132 252 / var(--tw-text-opacity));
@@ -7000,11 +7008,6 @@ input[type=range].slider-purple::-moz-range-progress {
   color: rgb(233 213 255 / var(--tw-text-opacity));
 }
 
-.dark .hover\:dark\:text-indigo-50:hover{
-  --tw-text-opacity: 1;
-  color: rgb(238 242 255 / var(--tw-text-opacity));
-}
-
 .dark .dark\:hover\:text-gray-200:hover{
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity));
@@ -7085,12 +7088,20 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 @media (min-width: 768px){
+  .md\:mb-4{
+    margin-bottom: 1rem;
+  }
+
   .md\:grid-cols-2{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .md\:grid-cols-4{
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .md\:flex-row{
+    flex-direction: row;
   }
 }
 
@@ -7128,6 +7139,10 @@ input[type=range].slider-purple::-moz-range-progress {
 
   .lg\:mb-0{
     margin-bottom: 0px;
+  }
+
+  .lg\:mb-4{
+    margin-bottom: 1rem;
   }
 
   .lg\:block{

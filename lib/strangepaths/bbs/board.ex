@@ -6,6 +6,8 @@ defmodule Strangepaths.BBS.Board do
     field(:name, :string)
     field(:slug, :string)
     field(:description, :string)
+    field(:image_filename, :string)
+    field(:position, :integer)
     has_many(:threads, Strangepaths.BBS.Thread)
 
     timestamps()
@@ -13,7 +15,7 @@ defmodule Strangepaths.BBS.Board do
 
   def changeset(board, attrs) do
     board
-    |> cast(attrs, [:name, :description])
+    |> cast(attrs, [:name, :description, :image_filename, :position])
     |> validate_required([:name])
     |> validate_length(:name, max: 100)
     |> validate_length(:description, max: 500)

@@ -1,20 +1,24 @@
 <div class="bbs-root p-6 max-w-4xl mx-auto">
-  <!-- NPC Header Panel -->
-  <div class="bbs-npc-header mb-2">
-┌────────────────────────────────────────┐
-│ 'LINKPEARL' PROTOCOL // v0.0.3-BETA    │
-│ cross-world farcaster relay — unstable │
-└────────────────────────────────────────┘
+  <div class="flex flex-col lg:flex-row gap-4">
+    <div class="bbs-npc-header">
+  ┌────────────────────────────────────────┐
+  │ 'LINKPEARL' PROTOCOL // v0.0.3-BETA    │
+  │ cross-world farcaster relay — unstable │
+  └────────────────────────────────────────┘
+    </div>
+    <div class="mb-8">
+      <img src="/images/JORULE_WAS_HERE/BIRD_landing.png" class="object-scale-down h-24" />
+    </div>
   </div>
 
-  <!-- New Board Button (Dragon only) -->
+  <!-- Dragon controls -->
   <%= if @current_user && @current_user.role == :dragon do %>
-    <div class="mb-6">
-      <button
-        phx-click="toggle_new_board_form"
-        class="bbs-button"
-      >
+    <div class="flex gap-2 mb-6 flex-wrap">
+      <button phx-click="toggle_new_board_form" class="bbs-button">
         <%= if @show_new_board_form, do: "Cancel", else: "New Board" %>
+      </button>
+      <button phx-click="toggle_manage_mode" class="bbs-button bbs-button--secondary">
+        <%= if @manage_mode, do: "Done", else: "Manage Boards" %>
       </button>
     </div>
 
@@ -49,43 +53,126 @@
           <% end %>
         </div>
 
-        <button
-          type="submit"
-          class="bbs-button"
-        >
-          Create Board
-        </button>
+        <div class="mb-4">
+          <label class="block mb-2">Board Image</label>
+          <div class="flex flex-wrap gap-4">
+            <label class="flex flex-col items-center gap-1 cursor-pointer">
+              <input type="radio" name="board[image_filename]" value="" checked={!@changeset.changes[:image_filename]} class="mb-1" />
+              <span class="bbs-meta text-xs">None</span>
+            </label>
+            <%= for filename <- ~w(BIRD_fish.png BIRD_general.png BIRD_landing.png BIRD_void.png BIRD_wheels.png) do %>
+              <label class="flex flex-col items-center gap-1 cursor-pointer">
+                <input type="radio" name="board[image_filename]" value={filename} checked={@changeset.changes[:image_filename] == filename} class="mb-1" />
+                <img src={"/images/JORULE_WAS_HERE/#{filename}"} class="h-16 object-contain" />
+                <span class="bbs-meta text-xs"><%= filename %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <button type="submit" class="bbs-button">Create Board</button>
       </form>
     <% end %>
   <% end %>
 
   <!-- Board List -->
-  <div class="space-y-4">
+  <div
+    class="space-y-4"
+    id="bbs-board-list"
+    phx-hook="BBSBoardSort"
+    data-manage={to_string(@manage_mode)}
+  >
     <%= if Enum.empty?(@boards) do %>
       <div class="text-center py-12 bbs-meta">
         No boards available yet.
       </div>
     <% else %>
       <%= for %{board: board, thread_count: thread_count, last_post_at: last_post_at} <- @boards do %>
-        <div class="bbs-panel p-4">
-          <div class="flex justify-between items-start">
-            <div class="flex-1">
-              <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :index, board.slug) do %>
-                <h2 class="font-semibold bbs-title cursor-pointer">
-                  <%= board.name %>
-                </h2>
+        <div class="bbs-panel p-4" data-id={board.id} id={"board-#{board.id}"}>
+          <%= if @editing_board_id == board.id && @edit_changeset do %>
+            <!-- Inline edit form -->
+            <form phx-submit="save_board" phx-change="validate_edit_board" class="space-y-3">
+              <div>
+                <label class="block mb-1 bbs-meta">Board Name</label>
+                <input
+                  type="text"
+                  name="board[name]"
+                  value={@edit_changeset.changes[:name] || board.name}
+                  class="bbs-input w-full"
+                  required
+                />
+                <%= if @edit_changeset.action && @edit_changeset.errors[:name] do %>
+                  <span class="bbs-error block mt-1"><%= translate_error(@edit_changeset.errors[:name]) %></span>
+                <% end %>
+              </div>
+
+              <div>
+                <label class="block mb-1 bbs-meta">Description</label>
+                <textarea name="board[description]" class="bbs-input w-full" rows="2"><%= @edit_changeset.changes[:description] || board.description || "" %></textarea>
+              </div>
+
+              <div>
+                <label class="block mb-1 bbs-meta">Image</label>
+                <div class="flex flex-wrap gap-3">
+                  <label class="flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="radio" name="board[image_filename]" value=""
+                      checked={is_nil(@edit_changeset.changes[:image_filename]) && is_nil(board.image_filename) || @edit_changeset.changes[:image_filename] == ""} />
+                    <span class="bbs-meta text-xs">None</span>
+                  </label>
+                  <%= for filename <- ~w(BIRD_fish.png BIRD_general.png BIRD_landing.png BIRD_void.png BIRD_wheels.png) do %>
+                    <label class="flex flex-col items-center gap-1 cursor-pointer">
+                      <input type="radio" name="board[image_filename]" value={filename}
+                        checked={(@edit_changeset.changes[:image_filename] || board.image_filename) == filename} />
+                      <img src={"/images/JORULE_WAS_HERE/#{filename}"} class="h-12 object-contain" />
+                      <span class="bbs-meta text-xs"><%= filename %></span>
+                    </label>
+                  <% end %>
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button type="submit" class="bbs-button">Save</button>
+                <button type="button" phx-click="cancel_edit_board" class="bbs-button bbs-button--secondary">Cancel</button>
+              </div>
+            </form>
+          <% else %>
+            <!-- Normal board display -->
+            <div class="flex justify-between items-center">
+              <%= if @manage_mode do %>
+                <span class="bbs-meta mr-3 cursor-grab select-none flex-shrink-0" data-drag-handle title="Drag to reorder">⠿</span>
               <% end %>
-              <%= if board.description do %>
-                <p class="bbs-meta mt-1"><%= board.description %></p>
+              <%= if board.image_filename do %>
+                <img src={"/images/JORULE_WAS_HERE/#{board.image_filename}"} class="h-16 w-16 object-contain mr-3 flex-shrink-0" />
               <% end %>
+              <div class="flex-1">
+                <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :index, board.slug) do %>
+                  <h2 class="font-semibold bbs-title cursor-pointer">
+                    <%= board.name %>
+                  </h2>
+                <% end %>
+                <%= if board.description do %>
+                  <p class="bbs-meta mt-1"><%= board.description %></p>
+                <% end %>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-right bbs-meta">
+                  <div><%= thread_count %> thread<%= if thread_count != 1, do: "s" %></div>
+                  <%= if last_post_at do %>
+                    <div class="text-xs mt-1"><%= format_relative_time(last_post_at) %></div>
+                  <% end %>
+                </div>
+                <%= if @manage_mode do %>
+                  <button
+                    type="button"
+                    phx-click="edit_board"
+                    phx-value-id={board.id}
+                    class="bbs-icon-button flex-shrink-0"
+                    title="Edit board"
+                  >✎</button>
+                <% end %>
+              </div>
             </div>
-            <div class="text-right bbs-meta">
-              <div><%= thread_count %> thread<%= if thread_count != 1, do: "s" %></div>
-              <%= if last_post_at do %>
-                <div class="text-xs mt-1"><%= format_relative_time(last_post_at) %></div>
-              <% end %>
-            </div>
-          </div>
+          <% end %>
         </div>
       <% end %>
     <% end %>

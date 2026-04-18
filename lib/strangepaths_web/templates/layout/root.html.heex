@@ -58,8 +58,8 @@
             <a href="/scenes" class="inactivenav" x-show="loggedIn && !onScenes">STILLNESS</a>
           </span>
           <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav" %>
-          <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
           <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav" %>
+          <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
           <%= live_redirect "CODEX", to: "/content", class: "inactivenav" %>
           <%= live_redirect "MAP", to: "/rumor", class: "inactivenav" %>
           <%= if @site_settings.bbs_enabled do %>

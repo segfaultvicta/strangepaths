@@ -1121,7 +1121,8 @@ input[type=range].slider-purple::-moz-range-progress {
   background: #0a0a0f;
   color: #c8c8d4;
   min-height: 100vh;
-  padding-bottom: 6rem; /* clearance for fixed music player */
+  padding-bottom: 6rem;
+  /* clearance for fixed music player */
   /* Subtle scanline texture */
   background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 0, 0, 0.03) 1px, rgba(0, 0, 0, 0.03) 2px);
 }
@@ -1143,14 +1144,16 @@ input[type=range].slider-purple::-moz-range-progress {
 .bbs-npc-header {
   font-family: var(--bbs-font);
   color: #5050a0;
-  padding: 1rem;
+  padding: 0.5rem;
   font-size: 0.85rem;
   line-height: 1.4;
-  white-space: pre; /* preserve the box-drawing alignment */
+  white-space: pre;
+  /* preserve the box-drawing alignment */
 }
 
 .bbs-thread-row {
-  position: relative; /* anchor for stretched link */
+  position: relative;
+  /* anchor for stretched link */
   border-bottom: 1px solid #1a1a2e;
   transition: background 0.1s;
 }
@@ -1176,11 +1179,13 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 .bbs-thread-row--sticky {
-  border-left: 3px solid #308030; /* green for user-stickied */
+  border-left: 3px solid #308030;
+  /* green for user-stickied */
 }
 
 .bbs-thread-row--pinned.bbs-thread-row--sticky {
-  border-left: 3px solid #5050c0; /* pinned takes precedence */
+  border-left: 3px solid #5050c0;
+  /* pinned takes precedence */
 }
 
 .bbs-post {

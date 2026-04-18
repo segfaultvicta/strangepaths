@@ -451,6 +451,7 @@ body {
     color: #7f1d1d;
     font-family: "Burning Gnosis", serif;
 }
+
 .dark .inline-burning-gnosis {
     color: #fecaca;
 }
@@ -460,6 +461,7 @@ body {
     font-family: "Flourishing Gnosis", serif;
     font-size: 1.25em;
 }
+
 .dark .inline-flourishing-gnosis {
     color: #a7f3d0;
 }
@@ -468,6 +470,7 @@ body {
     color: #1e3a8a;
     font-family: "Pellucid Gnosis", serif;
 }
+
 .dark .inline-pellucid-gnosis {
     color: #aaccff;
 }
@@ -476,6 +479,7 @@ body {
     color: #78350f;
     font-family: "Radiant Gnosis", serif;
 }
+
 .dark .inline-radiant-gnosis {
     color: #fef3c7;
 }
@@ -484,6 +488,7 @@ body {
     color: #000000;
     font-family: "Tenebrous Gnosis", serif;
 }
+
 .dark .inline-tenebrous-gnosis {
     color: #ffffff;
 }
@@ -493,15 +498,19 @@ body {
     color: #7e22ce;
     animation: liminal-shimmer 4s ease-in-out infinite;
 }
+
 .dark .inline-liminal {
     color: #c084fc;
 }
 
 @keyframes liminal-shimmer {
-    0%, 100% {
+
+    0%,
+    100% {
         color: #7e22ce;
         text-shadow: 0 0 4px rgba(147, 51, 234, 0.3);
     }
+
     50% {
         color: #a855f7;
         text-shadow: 0 0 14px rgba(147, 51, 234, 0.9), 0 0 32px rgba(192, 132, 252, 0.5), 0 0 56px rgba(147, 51, 234, 0.25);
@@ -513,10 +522,13 @@ body {
 }
 
 @keyframes liminal-shimmer-dark {
-    0%, 100% {
+
+    0%,
+    100% {
         color: #c084fc;
         text-shadow: 0 0 4px rgba(192, 132, 252, 0.3);
     }
+
     50% {
         color: #e9d5ff;
         text-shadow: 0 0 14px rgba(192, 132, 252, 0.9), 0 0 32px rgba(233, 213, 255, 0.5), 0 0 56px rgba(192, 132, 252, 0.25);
@@ -965,27 +977,34 @@ input[type="range"].slider-purple {
     text-decoration-style: dotted;
     text-underline-offset: 2px;
     cursor: pointer;
+
     &:hover {
         color: #f59e0b;
     }
 }
+
 .dark .card-reference {
     color: #f59e0b;
+
     &:hover {
         color: #fbbf24;
     }
 }
+
 .card-reference-tooltip-img {
     max-width: 400px;
     border-radius: 6px;
 }
+
 .tippy-box[data-theme~='card-reference'] {
     background: transparent;
     border: none;
     box-shadow: none;
+
     .tippy-content {
         padding: 0;
     }
+
     .tippy-arrow {
         display: none;
     }
@@ -1005,10 +1024,12 @@ input[type="range"].slider-purple {
     line-height: 1;
     padding: 2px;
     transition: opacity 0.2s;
+
     &:hover {
         opacity: 0.7;
     }
 }
+
 .dark .grimoire-trigger {
     color: #a78bfa;
 }
@@ -1024,7 +1045,7 @@ input[type="range"].slider-purple {
     padding: 8px;
     z-index: 50;
     min-width: 180px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .grimoire-glyphs {
@@ -1049,6 +1070,7 @@ input[type="range"].slider-purple {
     cursor: pointer;
     line-height: 1;
     transition: background 0.15s;
+
     &:hover {
         background: #4c1d95;
     }
@@ -1070,6 +1092,7 @@ input[type="range"].slider-purple {
     opacity: 0;
     transition: opacity 0.15s;
 }
+
 .grimoire-glyph-wrapper:hover .grimoire-glyph-remove {
     opacity: 1;
 }
@@ -1095,7 +1118,10 @@ input[type="range"].slider-purple {
     cursor: pointer;
     font-size: 18px;
     line-height: 1;
-    &:hover { background: #6d28d9; }
+
+    &:hover {
+        background: #6d28d9;
+    }
 }
 
 /* Resizable column drag handles */
@@ -1115,292 +1141,329 @@ input[type="range"].slider-purple {
    ============================================================ */
 
 :root {
-  --bbs-font: "Courier New", "Lucida Console", monospace;
+    --bbs-font: "Courier New", "Lucida Console", monospace;
 }
 
 .bbs-root {
-  font-family: var(--bbs-font);
-  background: #0a0a0f;
-  color: #c8c8d4;
-  min-height: 100vh;
-  padding-bottom: 6rem; /* clearance for fixed music player */
-  /* Subtle scanline texture */
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 1px,
-    rgba(0, 0, 0, 0.03) 1px,
-    rgba(0, 0, 0, 0.03) 2px
-  );
+    font-family: var(--bbs-font);
+    background: #0a0a0f;
+    color: #c8c8d4;
+    min-height: 100vh;
+    padding-bottom: 6rem;
+    /* clearance for fixed music player */
+    /* Subtle scanline texture */
+    background-image: repeating-linear-gradient(0deg,
+            transparent,
+            transparent 1px,
+            rgba(0, 0, 0, 0.03) 1px,
+            rgba(0, 0, 0, 0.03) 2px);
 }
 
 .bbs-panel {
-  border: 1px solid #2a2a4a;
-  background: #0d0d1a;
+    border: 1px solid #2a2a4a;
+    background: #0d0d1a;
 }
 
 .bbs-panel-header {
-  border-bottom: 1px solid #2a2a4a;
-  padding: 0.5rem 1rem;
-  color: #7070d0;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.75rem;
+    border-bottom: 1px solid #2a2a4a;
+    padding: 0.5rem 1rem;
+    color: #7070d0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
 }
 
 .bbs-npc-header {
-  font-family: var(--bbs-font);
-  color: #5050a0;
-  padding: 1rem;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  white-space: pre;  /* preserve the box-drawing alignment */
+    font-family: var(--bbs-font);
+    color: #5050a0;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre;
+    /* preserve the box-drawing alignment */
 }
 
 .bbs-thread-row {
-  position: relative;  /* anchor for stretched link */
-  border-bottom: 1px solid #1a1a2e;
-  transition: background 0.1s;
+    position: relative;
+    /* anchor for stretched link */
+    border-bottom: 1px solid #1a1a2e;
+    transition: background 0.1s;
 
-  &:hover {
-    background: #111128;
-  }
+    &:hover {
+        background: #111128;
+    }
 }
 
 /* Stretched link: ::after covers the entire row so the whole thing is clickable */
 .bbs-thread-link::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+    content: "";
+    position: absolute;
+    inset: 0;
 }
 
 /* Keep sticky button and unread badge above the stretched link overlay */
 .bbs-thread-row-actions {
-  position: relative;
-  z-index: 1;
+    position: relative;
+    z-index: 1;
 }
 
 .bbs-thread-row--pinned {
-  border-left: 3px solid #5050c0;
+    border-left: 3px solid #5050c0;
 }
 
 .bbs-thread-row--sticky {
-  border-left: 3px solid #308030;  /* green for user-stickied */
+    border-left: 3px solid #308030;
+    /* green for user-stickied */
 }
 
 .bbs-thread-row--pinned.bbs-thread-row--sticky {
-  border-left: 3px solid #5050c0;  /* pinned takes precedence */
+    border-left: 3px solid #5050c0;
+    /* pinned takes precedence */
 }
 
 .bbs-post {
-  border-bottom: 1px solid #1a1a2e;
-  padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #1a1a2e;
+    padding: 0.5rem 0.75rem;
 }
 
 .bbs-byline {
-  font-size: 0.75rem;
-  color: #7070b0;
+    font-size: 0.75rem;
+    color: #7070b0;
 }
 
 .bbs-display-name {
-  color: #9090e0;
-  font-weight: bold;
+    color: #9090e0;
+    font-weight: bold;
 }
 
 .bbs-character-name {
-  color: #7070a8;
-  font-size: 0.7rem;
-  font-style: italic;
+    color: #7070a8;
+    font-size: 0.7rem;
+    font-style: italic;
 }
 
 .bbs-timestamp {
-  color: #7070a8;
-  font-size: 0.7rem;
+    color: #7070a8;
+    font-size: 0.7rem;
 }
 
 .bbs-post-icon {
-  background: none;
-  border: none;
-  color: #5050a0;
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 0 0.15rem;
-  line-height: 1;
-  opacity: 0.5;
-  transition: opacity 0.15s, color 0.15s;
+    background: none;
+    border: none;
+    color: #5050a0;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0 0.15rem;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.15s, color 0.15s;
 
-  &:hover {
-    color: #9090e0;
-    opacity: 1;
-  }
+    &:hover {
+        color: #9090e0;
+        opacity: 1;
+    }
 }
 
 .bbs-post-content {
-  margin-top: 0.4rem;
-  line-height: 1.6;
-  color: #b8b8cc;
+    margin-top: 0.4rem;
+    line-height: 1.6;
+    color: #b8b8cc;
 
-  /* Preserve BBS formatting */
-  p { margin-bottom: 0.75rem; }
-
-  code {
-    background: #111128;
-    border: 1px solid #2a2a4a;
-    padding: 0.1em 0.3em;
-    font-family: var(--bbs-font);
-    font-size: 0.85em;
-  }
-
-  pre {
-    background: #0a0a18;
-    border: 1px solid #2a2a4a;
-    padding: 0.75rem;
-    overflow-x: auto;
+    /* Preserve BBS formatting */
+    p {
+        margin-bottom: 0.75rem;
+    }
 
     code {
-      background: none;
-      border: none;
-      padding: 0;
+        background: #111128;
+        border: 1px solid #2a2a4a;
+        padding: 0.1em 0.3em;
+        font-family: var(--bbs-font);
+        font-size: 0.85em;
     }
-  }
+
+    pre {
+        background: #0a0a18;
+        border: 1px solid #2a2a4a;
+        padding: 0.75rem;
+        overflow-x: auto;
+
+        code {
+            background: none;
+            border: none;
+            padding: 0;
+        }
+    }
 }
 
 .bbs-quote-block {
-  display: block;
-  border: 1px solid #2a2a4a;
-  border-left: 3px solid #4040a0;
-  background: #09091a;
-  padding: 0.5rem 0.75rem;
-  margin: 0.5rem 0;
-  font-size: 0.85em;
-
-  .bbs-quote-header {
     display: block;
-    color: #6060c0;
-    font-size: 0.75rem;
-    margin-bottom: 0.25rem;
-  }
+    border: 1px solid #2a2a4a;
+    border-left: 3px solid #4040a0;
+    background: #09091a;
+    padding: 0.5rem 0.75rem;
+    margin: 0.5rem 0;
+    font-size: 0.85em;
 
-  .bbs-quote-excerpt {
-    display: block;
-    color: #7a7a9a;
-    font-style: italic;
-  }
-
-  &.bbs-quote-cross-thread {
-    cursor: pointer;
-    border-left-color: #6060c0;
-
-    .bbs-quote-goto {
-      display: block;
-      color: #5050a0;
-      font-size: 0.7rem;
-      margin-top: 0.25rem;
-      text-decoration: none;
-
-      &:hover {
-        color: #8080d0;
-      }
+    .bbs-quote-header {
+        display: block;
+        color: #6060c0;
+        font-size: 0.75rem;
+        margin-bottom: 0.25rem;
     }
-  }
+
+    .bbs-quote-excerpt {
+        display: block;
+        color: #7a7a9a;
+        font-style: italic;
+    }
+
+    &.bbs-quote-cross-thread {
+        cursor: pointer;
+        border-left-color: #6060c0;
+
+        .bbs-quote-goto {
+            display: block;
+            color: #5050a0;
+            font-size: 0.7rem;
+            margin-top: 0.25rem;
+            text-decoration: none;
+
+            &:hover {
+                color: #8080d0;
+            }
+        }
+    }
 }
 
 .bbs-unread-divider {
-  text-align: center;
-  color: #4a4a8a;
-  font-size: 0.7rem;
-  padding: 0.5rem 0;
-  letter-spacing: 0.2em;
-  border-bottom: 1px solid #2a2a3a;
+    text-align: center;
+    color: #4a4a8a;
+    font-size: 0.7rem;
+    padding: 0.5rem 0;
+    letter-spacing: 0.2em;
+    border-bottom: 1px solid #2a2a3a;
 }
 
 .bbs-badge-new {
-  background: #1a1a5a;
-  color: #8080e0;
-  border: 1px solid #3a3a8a;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  padding: 0.1em 0.4em;
-  vertical-align: middle;
+    background: #1a1a5a;
+    color: #8080e0;
+    border: 1px solid #3a3a8a;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    padding: 0.1em 0.4em;
+    vertical-align: middle;
 }
 
 .bbs-danger-notice {
-  color: #d4a8a8;
-  border: 1px solid #4a2a2a;
-  background: #110a0a;
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
+    color: #d4a8a8;
+    border: 1px solid #4a2a2a;
+    background: #110a0a;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
 }
 
 .bbs-panel-header {
-  color: #5050a0;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #2a2a4a;
+    color: #5050a0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #2a2a4a;
 }
 
 .bbs-pin-indicator {
-  color: #5050c0;
+    color: #5050c0;
 }
 
 .bbs-sticky-indicator {
-  color: #308030;
+    color: #308030;
 }
 
 .bbs-edited-marker {
-  color: #3a3a6a;
-  font-size: 0.65rem;
-  font-style: italic;
+    color: #3a3a6a;
+    font-size: 0.65rem;
+    font-style: italic;
 }
 
 .bbs-breadcrumb {
-  color: #4a4a7a;
-  font-size: 0.75rem;
+    color: #4a4a7a;
+    font-size: 0.75rem;
 
-  a {
-    color: #5050a0;
-    text-decoration: none;
+    a {
+        color: #5050a0;
+        text-decoration: none;
 
-    &:hover {
-      color: #8080d0;
+        &:hover {
+            color: #8080d0;
+        }
     }
-  }
 }
 
 /* BBS form styles */
 .bbs-form {
-  background: #09091a;
-  border: 1px solid #2a2a4a;
-  padding: 1rem;
-
-  label {
-    color: #5050a0;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-
-  input[type="text"],
-  textarea {
-    background: #06060f;
+    background: #09091a;
     border: 1px solid #2a2a4a;
-    color: #c8c8d4;
-    font-family: var(--bbs-font);
-    width: 100%;
-    padding: 0.5rem;
+    padding: 1rem;
 
-    &:focus {
-      border-color: #5050a0;
-      outline: none;
+    label {
+        color: #5050a0;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        display: block;
+        margin-bottom: 0.25rem;
     }
-  }
 
-  button[type="submit"] {
+    input[type="text"],
+    textarea {
+        background: #06060f;
+        border: 1px solid #2a2a4a;
+        color: #c8c8d4;
+        font-family: var(--bbs-font);
+        width: 100%;
+        padding: 0.5rem;
+
+        &:focus {
+            border-color: #5050a0;
+            outline: none;
+        }
+    }
+
+    button[type="submit"] {
+        background: #1a1a5a;
+        color: #9090e0;
+        border: 1px solid #4040a0;
+        padding: 0.4rem 1rem;
+        font-family: var(--bbs-font);
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+
+        &:hover {
+            background: #25256a;
+        }
+    }
+}
+
+/* Grimoire trigger override when used as an inline BBS button (not overlaid on textarea) */
+.bbs-form .grimoire-trigger.bbs-button {
+    position: static;
+    opacity: 1;
+    font-size: 0.85rem;
+    color: #9090e0;
+    padding: 0.4rem 1rem;
+}
+
+/* Grimoire div as inline flex item — popover still anchors to it */
+.bbs-form [phx-hook="Grimoire"] {
+    position: relative;
+}
+
+/* BBS Button styles */
+.bbs-button {
     background: #1a1a5a;
     color: #9090e0;
     border: 1px solid #4040a0;
@@ -1410,165 +1473,133 @@ input[type="range"].slider-purple {
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+    transition: background 0.1s;
 
     &:hover {
-      background: #25256a;
+        background: #25256a;
     }
-  }
-}
-
-/* Grimoire trigger override when used as an inline BBS button (not overlaid on textarea) */
-.bbs-form .grimoire-trigger.bbs-button {
-  position: static;
-  opacity: 1;
-  font-size: 0.85rem;
-  color: #9090e0;
-  padding: 0.4rem 1rem;
-}
-
-/* Grimoire div as inline flex item — popover still anchors to it */
-.bbs-form [phx-hook="Grimoire"] {
-  position: relative;
-}
-
-/* BBS Button styles */
-.bbs-button {
-  background: #1a1a5a;
-  color: #9090e0;
-  border: 1px solid #4040a0;
-  padding: 0.4rem 1rem;
-  font-family: var(--bbs-font);
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  transition: background 0.1s;
-
-  &:hover {
-    background: #25256a;
-  }
 }
 
 .bbs-button--secondary {
-  background: #0d0d1a;
-  color: #5050a0;
-  border: 1px solid #2a2a4a;
+    background: #0d0d1a;
+    color: #5050a0;
+    border: 1px solid #2a2a4a;
 
-  &:hover {
-    background: #111128;
-  }
+    &:hover {
+        background: #111128;
+    }
 }
 
 .bbs-button--danger {
-  background: #3a1a1a;
-  color: #d4a8a8;
-  border: 1px solid #4a2a2a;
+    background: #3a1a1a;
+    color: #d4a8a8;
+    border: 1px solid #4a2a2a;
 
-  &:hover {
-    background: #5a2a2a;
-    color: #e8c8c8;
-  }
+    &:hover {
+        background: #5a2a2a;
+        color: #e8c8c8;
+    }
 }
 
 .bbs-button--sm {
-  padding: 0.3rem 0.75rem;
-  font-size: 0.7rem;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.7rem;
 }
 
 /* BBS Input/Textarea styles */
 .bbs-input {
-  background: #06060f;
-  border: 1px solid #2a2a4a;
-  color: #c8c8d4;
-  font-family: var(--bbs-font);
-  padding: 0.5rem;
+    background: #06060f;
+    border: 1px solid #2a2a4a;
+    color: #c8c8d4;
+    font-family: var(--bbs-font);
+    padding: 0.5rem;
 
-  &:focus {
-    border-color: #5050a0;
-    outline: none;
-  }
+    &:focus {
+        border-color: #5050a0;
+        outline: none;
+    }
 }
 
 /* BBS Error message styles */
 .bbs-error {
-  color: #d4a8a8;
-  font-size: 0.75rem;
+    color: #d4a8a8;
+    font-size: 0.75rem;
 }
 
 /* BBS Metadata text (timestamps, edit markers) */
 .bbs-meta {
-  color: #5050a0;
-  font-size: 0.75rem;
+    color: #5050a0;
+    font-size: 0.75rem;
 }
 
 /* Dragon controls — muted by default, visible only on hover */
 .bbs-dragon-controls {
-  opacity: 0.4;
-  transition: opacity 0.15s;
+    opacity: 0.4;
+    transition: opacity 0.15s;
 
-  .bbs-post:hover &,
-  &:focus-within {
-    opacity: 1;
-  }
-
-  button {
-    background: none;
-    border: 1px solid #3a1a1a;
-    color: #8a4a4a;
-    font-size: 0.65rem;
-    padding: 0.1em 0.4em;
-    cursor: pointer;
-
-    &:hover {
-      background: #1a0a0a;
-      color: #cc6666;
+    .bbs-post:hover &,
+    &:focus-within {
+        opacity: 1;
     }
-  }
+
+    button {
+        background: none;
+        border: 1px solid #3a1a1a;
+        color: #8a4a4a;
+        font-size: 0.65rem;
+        padding: 0.1em 0.4em;
+        cursor: pointer;
+
+        &:hover {
+            background: #1a0a0a;
+            color: #cc6666;
+        }
+    }
 }
 
 /* BBS divider for separating control sections */
 .bbs-divider-left {
-  border-left: 1px solid #2a2a4a;
-  padding-left: 1rem;
-  margin-left: 1rem;
+    border-left: 1px solid #2a2a4a;
+    padding-left: 1rem;
+    margin-left: 1rem;
 }
 
 /* BBS icon button for interactive elements like sticky toggle */
 .bbs-icon-button {
-  background: transparent;
-  border: none;
-  color: #5050a0;
-  cursor: pointer;
-  padding: 0.25rem;
-  transition: color 0.15s;
+    background: transparent;
+    border: none;
+    color: #5050a0;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.15s;
 
-  &:hover {
-    color: #7070d0;
-  }
+    &:hover {
+        color: #7070d0;
+    }
 }
 
 /* BBS title styling for content headings */
 .bbs-title {
-  color: #7070d0;
+    color: #7070d0;
 
-  &:hover {
-    color: #9090e0;
-  }
+    &:hover {
+        color: #9090e0;
+    }
 }
 
 /* Tippy theme for cross-thread quote popovers */
 .tippy-box[data-theme~="bbs"] {
-  background-color: #0d0d1a;
-  border: 1px solid #2a2a4a;
-  color: #c8c8d4;
-  font-family: var(--bbs-font);
-  font-size: 0.8rem;
+    background-color: #0d0d1a;
+    border: 1px solid #2a2a4a;
+    color: #c8c8d4;
+    font-family: var(--bbs-font);
+    font-size: 0.8rem;
 
-  .tippy-content {
-    padding: 0.5rem 0.75rem;
-  }
+    .tippy-content {
+        padding: 0.5rem 0.75rem;
+    }
 
-  .tippy-arrow {
-    color: #2a2a4a;
-  }
+    .tippy-arrow {
+        color: #2a2a4a;
+    }
 }

@@ -11,7 +11,7 @@ defmodule Strangepaths.BBS do
 
   @doc """
   Returns all boards with thread counts and last post times.
-  Results are ordered by board name.
+  Results are ordered by position, then name for boards without a position.
   """
   def list_boards() do
     from(b in Board,
@@ -19,7 +19,7 @@ defmodule Strangepaths.BBS do
       on: t.board_id == b.id,
       group_by: b.id,
       select: %{board: b, thread_count: count(t.id), last_post_at: max(t.last_post_at)},
-      order_by: [asc: b.name]
+      order_by: [asc_nulls_last: b.position, asc: b.name]
     )
     |> Repo.all()
   end
@@ -60,6 +60,27 @@ defmodule Strangepaths.BBS do
   """
   def change_board(board \\ %Board{}, attrs \\ %{}) do
     Board.changeset(board, attrs)
+  end
+
+  @doc """
+  Updates an existing board with the given attributes.
+  """
+  def update_board(board, attrs) do
+    board
+    |> Board.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Updates the position of each board given an ordered list of board IDs.
+  """
+  def reorder_boards(ordered_ids) do
+    ordered_ids
+    |> Enum.with_index(1)
+    |> Enum.each(fn {id, position} ->
+      from(b in Board, where: b.id == ^id)
+      |> Repo.update_all(set: [position: position])
+    end)
   end
 
   # === THREADS ===
