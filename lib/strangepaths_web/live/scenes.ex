@@ -478,7 +478,7 @@ defmodule StrangepathsWeb.Scenes do
     if String.trim(content) == "" do
       {:noreply, socket}
     else
-      if scene && user.id in (Scenes.rhs_eligible(scene) |> Enum.map(& &1.id)) do
+      if scene && user.id in Enum.map(socket.assigns.rhs_users, & &1.id) do
         author_name =
           if user.role == :dragon do
             trimmed = String.trim(socket.assigns.narrative_author_name || "")
@@ -1951,15 +1951,13 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_info(%{event: "presence_diff"}, socket) do
-    # Update present users when someone joins/leaves
+    # Update present users when someone joins/leaves.
+    # rhs_users is NOT refreshed here — who can post is unaffected by presence changes.
+    # It's maintained by the ascension broadcast handler below.
     if socket.assigns.current_scene do
       present_users = get_present_users(socket.assigns.current_scene.id)
-      rhs_users = Strangepaths.Scenes.rhs_eligible(socket.assigns.current_scene)
 
-      {:noreply,
-       socket
-       |> assign(:present_users, present_users)
-       |> assign(:rhs_users, rhs_users)}
+      {:noreply, assign(socket, :present_users, present_users)}
     else
       {:noreply, socket}
     end
