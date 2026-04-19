@@ -18,6 +18,7 @@ defmodule Strangepaths.Application do
       StrangepathsWeb.Endpoint,
       # Start a worker by calling: Strangepaths.Worker.start_link(arg)
       # {Strangepaths.Worker, arg}
+      Strangepaths.QueryTracker,
       Strangepaths.Cards.Ceremony,
       Strangepaths.Presence,
       Strangepaths.Site.MusicQueue,
