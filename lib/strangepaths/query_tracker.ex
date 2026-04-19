@@ -24,6 +24,7 @@ defmodule Strangepaths.QueryTracker do
     total_ms = div(measurements.total_time, 1_000_000)
     queue_ms = div(Map.get(measurements, :queue_time, 0) || 0, 1_000_000)
     source = metadata[:source] || "unknown"
+    fingerprint = query_fingerprint(metadata[:query], source)
 
     if total_ms >= @slow_query_ms do
       Logger.warning("[SLOW QUERY #{total_ms}ms source=#{source}] #{String.slice(metadata[:query] || "", 0, 120)}")
@@ -33,7 +34,21 @@ defmodule Strangepaths.QueryTracker do
       Logger.warning("[POOL PRESSURE queue=#{queue_ms}ms] #{source}")
     end
 
-    GenServer.cast(__MODULE__, {:record, source, queue_ms >= @pool_pressure_ms})
+    GenServer.cast(__MODULE__, {:record, fingerprint, queue_ms >= @pool_pressure_ms})
+  end
+
+  # Produces a short human-readable key distinguishing query patterns on the same table.
+  # Pulls the WHERE clause start so "users WHERE id = $1" and "users WHERE public_ascension"
+  # show up as separate entries.
+  defp query_fingerprint(nil, source), do: source
+  defp query_fingerprint(query, source) do
+    where =
+      case Regex.run(~r/WHERE \(([^)]{0,40})/i, query) do
+        [_, clause] -> " WHERE (#{clause})"
+        _ -> ""
+      end
+
+    source <> where
   end
 
   def handle_cast({:record, source, pool_pressure}, state) do
