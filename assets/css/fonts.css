@@ -31,6 +31,13 @@
 
 @font-face {
     font-family: "Pellucid Gnosis";
+    src: url('/fonts/NotoSans-VariableFont_wdth,wght.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Pellucid Gnosis";
     src: url('/fonts/NotoSans-Italic-VariableFont_wdth,wght.ttf') format('truetype');
     font-weight: normal;
     font-style: italic;

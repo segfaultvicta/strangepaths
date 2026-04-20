@@ -411,6 +411,7 @@ defmodule StrangepathsWeb.Scenes do
       # where the bottommost post is excluded from the visibility check), silently
       # ignore it rather than calling advance_read_mark with a stale value.
       current_lrpid = socket.assigns.last_read_post_id
+
       if is_nil(current_lrpid) || post_id >= current_lrpid do
         # Find the post in memory to get its posted_at timestamp. We must use
         # the post's own timestamp (not DateTime.utc_now()) so that the unread
@@ -2093,7 +2094,7 @@ defmodule StrangepathsWeb.Scenes do
       "red" -> "🔴burning"
       "blue" -> "🔵pellucid"
       "green" -> "🟢flourishing"
-      "white" -> "⚪radiant"
+      "white" -> "🟡radiant"
       "black" -> "⚫tenebrous"
       "empty" -> "🌌liminal"
       "void" -> "🌌liminal"
@@ -2102,12 +2103,12 @@ defmodule StrangepathsWeb.Scenes do
 
   defp cardinality_lookup(n) do
     case n do
-      0 -> "naught"
-      1 -> "once"
-      2 -> "twice"
-      3 -> "thrice"
-      4 -> "deeply"
-      5 -> "utterly and absolutely"
+      0 -> "naught (0)"
+      1 -> "once (6)"
+      2 -> "twice (12)"
+      3 -> "thrice (18)"
+      4 -> "deeply (24)"
+      5 -> "utterly and absolutely (36)"
       _ -> ""
     end
   end

@@ -31,6 +31,12 @@
 }
 @font-face {
   font-family: "Pellucid Gnosis";
+  src: url("/fonts/NotoSans-VariableFont_wdth,wght.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Pellucid Gnosis";
   src: url("/fonts/NotoSans-Italic-VariableFont_wdth,wght.ttf") format("truetype");
   font-weight: normal;
   font-style: italic;
@@ -217,6 +223,10 @@ body {
 
 .post-ic-content-icecylee p:first-of-type {
   display: inline;
+}
+
+.post-ic-content-icecylee p.post-ic-possessive:first-of-type {
+  margin-left: -0.3em;
 }
 
 .post-ic-content-icecylee li {

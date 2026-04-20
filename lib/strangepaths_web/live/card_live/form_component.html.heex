@@ -54,6 +54,20 @@
         </div>
       </div>
 
+      <!-- Veil (sidereal frame/icon override for sub-aspect cards) -->
+      <%= if @is_sub_aspect do %>
+        <div>
+          <label class="block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300">Veil <span class="font-normal text-gray-500 dark:text-gray-400">(optional sidereal aspect)</span></label>
+          <select name="card[veil_aspect_id]" class="w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-indigo-300 dark:border-gray-600 rounded-lg text-indigo-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+            <option value="">None (Tellurian frame)</option>
+            <%= for a <- @sidereal_aspects do %>
+              <option value={a.id} selected={input_value(f, :veil_aspect_id) == a.id}><%= a.name %></option>
+            <% end %>
+          </select>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">When set, this card renders with the chosen sidereal frame and icon instead of the Tellurian frame.</p>
+        </div>
+      <% end %>
+
       <!-- Card Art Upload -->
       <div>
         <%= label f, :cardart, "Card Art", class: "block text-sm font-semibold mb-2 text-indigo-900 dark:text-gray-300" %>

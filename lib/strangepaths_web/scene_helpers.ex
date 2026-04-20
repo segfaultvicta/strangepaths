@@ -90,17 +90,21 @@ defmodule StrangepathsWeb.SceneHelpers do
   Unpaired glyphs are silently stripped unless `narrative: true` is passed.
   """
   def render_post_content(content, opts \\ []) do
+    starts_possessive = Regex.match?(~r/^\*?'[[:alpha:]\s]/u, content)
+
     {tokenized, token_map} =
       content
       |> protect_escapes()
       |> extract_glyph_tokens()
 
     tokenized
+    |> protect_leading_apostrophe()
     |> Earmark.as_html!(sub_sup: true)
     |> restore_glyph_tokens(token_map)
     |> maybe_strip_bare_glyphs(opts)
     |> restore_escapes()
     |> deitalicize_nested_ems()
+    |> mark_possessive_paragraph(starts_possessive)
   end
 
   defp extract_glyph_tokens(text) do
@@ -145,4 +149,17 @@ defmodule StrangepathsWeb.SceneHelpers do
   defp maybe_strip_bare_glyphs(text, opts) do
     if Keyword.get(opts, :narrative, false), do: text, else: strip_bare_glyphs(text)
   end
+
+  # Replaces a leading ASCII apostrophe before a letter with the Unicode right single
+  # quotation mark (U+2019) so Earmark's smartypants doesn't convert it to a left/opening
+  # curly quote — which looks wrong for possessives like 's or contractions like 're.
+  defp protect_leading_apostrophe(text) do
+    String.replace(text, ~r/^(\*?)'(?=[[:alpha:]\s])/u, "\\1\u2019")
+  end
+
+  defp mark_possessive_paragraph(html, true) do
+    String.replace(html, "<p>", "<p class=\"post-ic-possessive\">", global: false)
+  end
+
+  defp mark_possessive_paragraph(html, false), do: html
 end

@@ -15,6 +15,7 @@ defmodule Strangepaths.Cards.Card do
     field(:aspect_id, :id)
     field(:gnosis, :string)
     field(:unlocked, :boolean, default: true)
+    field(:veil_aspect_id, :id)
     field(:glory_cost, :integer, virtual: true)
     field(:uuid, :string, virtual: true)
 
@@ -29,7 +30,7 @@ defmodule Strangepaths.Cards.Card do
   @doc false
   def changeset(card, attrs) do
     card
-    |> cast(attrs, [:name, :img, :cardart, :rules, :flavortext, :statusline, :type, :aspect_id, :alt, :glorified, :gnosis, :unlocked])
+    |> cast(attrs, [:name, :img, :cardart, :rules, :flavortext, :statusline, :type, :aspect_id, :alt, :glorified, :gnosis, :unlocked, :veil_aspect_id])
     |> validate_required([:name, :type, :aspect_id])
   end
 end

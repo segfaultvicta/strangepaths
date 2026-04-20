@@ -9,18 +9,37 @@ defmodule StrangepathsWeb.CardLive.FormComponent do
 
     # Only dragons create cards, so show all aspects without filtering
     aspects_hierarchy = Cards.list_aspects_with_hierarchy()
+    sidereal_aspects = Cards.list_sidereal_aspects()
+
+    sub_aspect_ids =
+      aspects_hierarchy
+      |> Enum.flat_map(fn %{children: children} -> Enum.map(children, & &1.id) end)
+      |> MapSet.new()
+
+    is_sub_aspect = not is_nil(card.aspect_id) && MapSet.member?(sub_aspect_ids, card.aspect_id)
 
     {:ok,
      socket
      |> assign(assigns)
      |> assign(:changeset, changeset)
      |> assign(:aspects_hierarchy, aspects_hierarchy)
+     |> assign(:sidereal_aspects, sidereal_aspects)
+     |> assign(:sub_aspect_ids, sub_aspect_ids)
+     |> assign(:is_sub_aspect, is_sub_aspect)
      |> allow_upload(:cardart, accept: ~w(.png .jpg .jpeg), max_entries: 1)}
   end
 
   @impl true
+  def handle_event("validate", %{"card" => %{"aspect_id" => raw_id}}, socket) do
+    id = case Integer.parse(raw_id) do
+      {n, ""} -> n
+      _ -> nil
+    end
+    is_sub = not is_nil(id) && MapSet.member?(socket.assigns.sub_aspect_ids, id)
+    {:noreply, assign(socket, :is_sub_aspect, is_sub)}
+  end
+
   def handle_event("validate", _params, socket) do
-    # Just return noreply - validation happens automatically for uploads
     {:noreply, socket}
   end
 

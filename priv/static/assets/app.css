@@ -1930,6 +1930,10 @@ a:hover{
   margin-top: 3rem;
 }
 
+.mr-3{
+  margin-right: 0.75rem;
+}
+
 .ml-8{
   margin-left: 2rem;
 }
@@ -1968,10 +1972,6 @@ a:hover{
 
 .mb-5{
   margin-bottom: 1.25rem;
-}
-
-.mr-3{
-  margin-right: 0.75rem;
 }
 
 .block{
@@ -2283,17 +2283,17 @@ a:hover{
   cursor: help;
 }
 
+.cursor-grab{
+  cursor: -webkit-grab;
+  cursor: grab;
+}
+
 .cursor-not-allowed{
   cursor: not-allowed;
 }
 
 .cursor-move{
   cursor: move;
-}
-
-.cursor-grab{
-  cursor: -webkit-grab;
-  cursor: grab;
 }
 
 .touch-manipulation{
@@ -3865,6 +3865,16 @@ a:hover{
 @font-face {
   font-family: "Pellucid Gnosis";
 
+  src: url("/fonts/NotoSans-VariableFont_wdth,wght.ttf") format("truetype");
+
+  font-weight: normal;
+
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Pellucid Gnosis";
+
   src: url("/fonts/NotoSans-Italic-VariableFont_wdth,wght.ttf") format("truetype");
 
   font-weight: normal;
@@ -4227,6 +4237,10 @@ body{
 
 .post-ic-content-icecylee p:first-of-type {
   display: inline;
+}
+
+.post-ic-content-icecylee p.post-ic-possessive:first-of-type {
+  margin-left: -0.3em;
 }
 
 .post-ic-content-icecylee li {
@@ -7088,20 +7102,12 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 @media (min-width: 768px){
-  .md\:mb-4{
-    margin-bottom: 1rem;
-  }
-
   .md\:grid-cols-2{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .md\:grid-cols-4{
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .md\:flex-row{
-    flex-direction: row;
   }
 }
 
@@ -7139,10 +7145,6 @@ input[type=range].slider-purple::-moz-range-progress {
 
   .lg\:mb-0{
     margin-bottom: 0px;
-  }
-
-  .lg\:mb-4{
-    margin-bottom: 1rem;
   }
 
   .lg\:block{

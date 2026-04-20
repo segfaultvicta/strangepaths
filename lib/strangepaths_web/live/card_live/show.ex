@@ -146,6 +146,7 @@ defmodule StrangepathsWeb.CardLive.Show do
     rescue
       _ in [Ecto.NoResultsError, ArgumentError] ->
         role = socket.assigns.role
+
         {prev_card_id, next_card_id} =
           case Integer.parse(id) do
             {int_id, ""} ->
@@ -210,11 +211,18 @@ defmodule StrangepathsWeb.CardLive.Show do
   defp composite_card(card) do
     aspect = Cards.get_aspect_with_parent(card.aspect_id)
 
+    render_aspect =
+      if not is_nil(card.veil_aspect_id) && not is_nil(aspect.parent_aspect_id) do
+        Cards.get_aspect_with_parent(card.veil_aspect_id)
+      else
+        aspect
+      end
+
     base_path = Application.get_env(:strangepaths, :base_image_store_path)
     art_path = base_path <> card.cardart
 
     art_x =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 135
         "Red" -> 135
         "Blue" -> 135
@@ -225,7 +233,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     art_y =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 150
         "Red" -> 150
         "Blue" -> 150
@@ -236,7 +244,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     art_size =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 750
         "Red" -> 750
         "Blue" -> 750
@@ -247,7 +255,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     title_decoration =
-      case {card.type, aspect.name, card.glorified, aspect.parent_aspect_id} do
+      case {card.type, render_aspect.name, card.glorified, render_aspect.parent_aspect_id} do
         {_, "Alethic", _, _} -> "ꙮ"
         {:Grace, _, _, nil} -> "❂"
         {:Grace, _, _, _} -> "～❂～"
@@ -282,10 +290,10 @@ defmodule StrangepathsWeb.CardLive.Show do
     title_y = 75
 
     statusline_x =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 170
-        "Red" -> 170
-        "Blue" -> 170
+        "Red" -> 190
+        "Blue" -> 100
         "White" -> 170
         "Black" -> 130
         "Alethic" -> 170
@@ -293,10 +301,10 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     statusline_y =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 865
-        "Red" -> 865
-        "Blue" -> 865
+        "Red" -> 870
+        "Blue" -> 875
         "White" -> 865
         "Black" -> 880
         "Alethic" -> 860
@@ -304,27 +312,27 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     icon_x =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 845
         "Red" -> 845
-        "Blue" -> 845
+        "Blue" -> 835
         "White" -> 845
         "Black" -> 845
         _ -> 835
       end
 
     icon_y =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 825
         "Red" -> 825
-        "Blue" -> 825
+        "Blue" -> 835
         "White" -> 825
         "Black" -> 825
         _ -> 905
       end
 
     rules_x =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 155
         "Red" -> 155
         "Blue" -> 155
@@ -335,7 +343,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     rules_y =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 955
         "Red" -> 955
         "Blue" -> 955
@@ -346,9 +354,9 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     rules_width =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 700
-        "Red" -> 700
+        "Red" -> 680
         "Blue" -> 700
         "White" -> 700
         "Black" -> 600
@@ -357,7 +365,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     seperator_offset_x =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 50
         "Red" -> 50
         "Blue" -> 50
@@ -368,7 +376,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     seperator_offset_y =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 200
         "Red" -> 200
         "Blue" -> 200
@@ -379,9 +387,9 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     flavor_offset_x =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 50
-        "Red" -> 50
+        "Red" -> -5
         "Blue" -> 50
         "White" -> 50
         "Black" -> -15
@@ -390,7 +398,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     flavor_offset_y =
-      case aspect.name do
+      case render_aspect.name do
         "Green" -> 220
         "Red" -> 220
         "Blue" -> 220
@@ -401,7 +409,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       end
 
     {font, font_file, text_color} =
-      case aspect.name do
+      case render_aspect.name do
         "Fang" ->
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
 
@@ -444,7 +452,7 @@ defmodule StrangepathsWeb.CardLive.Show do
     try do
       # Load the frame template
       frame_path =
-        case {aspect.name, aspect.parent_aspect_id} do
+        case {render_aspect.name, render_aspect.parent_aspect_id} do
           {"Fang", nil} -> "/images/baseframes/Tellurian.png"
           {_, 1} -> "/images/baseframes/Tellurian.png"
           {"Claw", nil} -> "/images/baseframes/Tellurian.png"
@@ -470,7 +478,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       {:ok, frame} = Image.open(frame_path)
 
       icon_path =
-        case {aspect.name, aspect.parent_aspect_id} do
+        case {render_aspect.name, render_aspect.parent_aspect_id} do
           {"Fang", nil} -> "/images/counters/fang.png"
           {_, 1} -> "/images/counters/fang.png"
           {"Claw", nil} -> "/images/counters/claw.png"

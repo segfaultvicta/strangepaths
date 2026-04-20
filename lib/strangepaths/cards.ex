@@ -217,6 +217,18 @@ defmodule Strangepaths.Cards do
   end
 
   @doc """
+  Gets the five sidereal aspects (Red/Green/Blue/White/Black).
+  These are top-level aspects that are not Tellurian base aspects, Status, or Alethic.
+  """
+  def list_sidereal_aspects do
+    from(a in Aspect,
+      where: is_nil(a.parent_aspect_id) and a.id not in [1, 2, 3, 4, 14, 15],
+      order_by: [asc: a.name]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Gets aspects organized by parent/child hierarchy.
   Returns a list of %{parent: aspect, children: [child_aspects]}
   """
