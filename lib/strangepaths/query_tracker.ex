@@ -27,7 +27,8 @@ defmodule Strangepaths.QueryTracker do
     fingerprint = query_fingerprint(metadata[:query], source)
 
     if total_ms >= @slow_query_ms do
-      Logger.warning("[SLOW QUERY #{total_ms}ms source=#{source}] #{String.slice(metadata[:query] || "", 0, 120)}")
+      stack = format_stacktrace(metadata[:stacktrace])
+      Logger.warning("[SLOW QUERY #{total_ms}ms source=#{source}]#{stack}\n  #{String.slice(metadata[:query] || "", 0, 200)}")
     end
 
     if queue_ms >= @pool_pressure_ms do
@@ -71,4 +72,25 @@ defmodule Strangepaths.QueryTracker do
   end
 
   defp schedule_report, do: Process.send_after(self(), :report, @report_interval)
+
+  defp format_stacktrace(nil), do: ""
+  defp format_stacktrace([]), do: ""
+  defp format_stacktrace(stacktrace) do
+    lines =
+      stacktrace
+      |> Enum.reject(fn {mod, _, _, _} ->
+        m = to_string(mod)
+        String.starts_with?(m, "Elixir.Ecto") or
+          String.starts_with?(m, "Elixir.DBConnection") or
+          String.starts_with?(m, "Elixir.Postgrex")
+      end)
+      |> Enum.take(6)
+      |> Enum.map_join("\n  ", fn {mod, fun, arity, info} ->
+        file = Keyword.get(info, :file, "?")
+        line = Keyword.get(info, :line, 0)
+        "#{inspect(mod)}.#{fun}/#{arity} (#{file}:#{line})"
+      end)
+
+    "\n  " <> lines
+  end
 end
