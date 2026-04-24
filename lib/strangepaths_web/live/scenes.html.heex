@@ -86,6 +86,7 @@
     <div id="scene-left-col" class="flex flex-col flex-1">
       <!-- Row 1: Posts container -->
       <div id="chat-posts-container" phx-hook="ChatScrollManager" data-scene-id={if @current_scene, do: @current_scene.id} data-has-more={if @has_more_posts, do: "true", else: "false"} data-first-unread-id={@first_unread_post_id} data-smart-unread={if @current_user.smart_unread, do: "true", else: "false"}>
+        <div id="load-more-sentinel" style="height:1px;width:100%;flex-shrink:0;"></div>
         <%= if @current_scene do %>
           <%= if @has_more_posts do %>
             <div class="flex justify-center py-2 text-gray-500 text-sm">
@@ -111,7 +112,7 @@
                     <div class="flex-1 h-px bg-purple-500/40"></div>
                   </div>
                 <% end %>
-                <div data-post-id={post.id} class={"post-container-icecylee " <> case post.post_type do
+                <div id={"post-#{post.id}"} data-post-id={post.id} class={"post-container-icecylee " <> case post.post_type do
                   :narrative -> "post-container-narrative lyrics-alternate-font"
                   :system -> "post-container-system lyrics-alternate-font"
                   _ ->

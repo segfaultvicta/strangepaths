@@ -113,11 +113,8 @@ Hooks.ChatScrollManager = {
             this._readTrackTimer = setTimeout(this._trackReadPosts, 600);
         });
 
-        // Sentinel for infinite scroll
-        this._sentinel = document.createElement('div');
-        this._sentinel.id = 'load-more-sentinel';
-        this._sentinel.style.cssText = 'height:1px;width:100%;flex-shrink:0;';
-        this.el.prepend(this._sentinel);
+        // Sentinel for infinite scroll — rendered by the template, not injected here
+        this._sentinel = this.el.querySelector('#load-more-sentinel');
 
         this._observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting &&
@@ -170,11 +167,6 @@ Hooks.ChatScrollManager = {
     },
 
     updated() {
-        // Re-prepend sentinel if LiveView's DOM patch removed it
-        if (!this.el.contains(this._sentinel)) {
-            this.el.prepend(this._sentinel);
-        }
-
         // Only scroll on scene change, not on every DOM patch (e.g. new posts)
         const newSceneId = this.el.dataset.sceneId || null;
         if (newSceneId !== this._currentSceneId) {

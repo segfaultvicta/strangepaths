@@ -1888,6 +1888,7 @@ defmodule StrangepathsWeb.Scenes do
       socket =
         socket
         |> assign(:posts, posts)
+        |> assign(:posts_offset, socket.assigns.posts_offset + 1)
         |> push_event("new_post_received", %{is_own_post: is_own_post})
 
       if socket.assigns.tab_visible do
