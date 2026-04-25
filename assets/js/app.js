@@ -188,6 +188,16 @@ Hooks.ChatScrollManager = {
             } else {
                 this.scrollToBottom();
             }
+
+            // Force a fresh IntersectionObserver evaluation after scene change.
+            // The observer only fires on state *transitions*; if the sentinel was already
+            // visible in the previous scene (no overflow), switching to a new scene with
+            // has_more=true won't trigger a callback because the intersection state never
+            // changed. Unobserve + re-observe resets the baseline and fires a new callback.
+            if (this._observer && this._sentinel) {
+                this._observer.unobserve(this._sentinel);
+                this._observer.observe(this._sentinel);
+            }
         }
     },
 
