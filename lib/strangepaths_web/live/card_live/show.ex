@@ -423,7 +423,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
 
         "Red" ->
-          {"Oxanium", "/usr/share/fonts/truetype/Oxanium-VariableFont_wght.ttf", "#660000"}
+          {"Oxanium", "/usr/share/fonts/truetype/Oxanium-VariableFont_wght.ttf", "#f35663"}
 
         "Green" ->
           {"Aladin", "/usr/share/fonts/truetype/Aladin-Regular.ttf", "#006600"}
@@ -447,6 +447,12 @@ defmodule StrangepathsWeb.CardLive.Show do
 
         _ ->
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
+      end
+
+    rules_text_color =
+      case render_aspect.name do
+        "Red" -> "#680000"
+        _ -> text_color
       end
 
     try do
@@ -505,10 +511,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         end
 
       # Load and resize the art to exact square dimensions
-      IO.puts("buh?")
       {:ok, art} = Image.open(art_path)
-      IO.puts("art path is #{art_path}")
-      IO.puts("art size is #{art_size}, art_x is #{art_x}, art_y is #{art_y}")
 
       {:ok, art_resized} = Image.thumbnail(art, art_size, height: art_size, crop: :center)
 
@@ -516,6 +519,15 @@ defmodule StrangepathsWeb.CardLive.Show do
       {:ok, frame_with_art} = Image.compose(frame, art_resized, x: art_x, y: art_y)
       # re-compose the frame for overlay transparency
       {:ok, frame_with_art} = Image.compose(frame_with_art, frame)
+
+      {:ok, shadow} =
+        Image.Text.text(title_text,
+          text_fill_color: "#000000",
+          font_file: font_file,
+          font_size: 56
+        )
+
+      shadow = shadow |> Image.blur!(sigma: 10)
 
       # Add text
       {:ok, title_image} =
@@ -530,7 +542,8 @@ defmodule StrangepathsWeb.CardLive.Show do
       title_x = title_center_x - div(title_text_width, 2)
 
       # Composite text onto the card
-      {:ok, img} = Image.compose(frame_with_art, title_image, x: title_x, y: title_y)
+      {:ok, img} = Image.compose(frame_with_art, shadow, x: title_x, y: title_y)
+      {:ok, img} = Image.compose(img, title_image, x: title_x, y: title_y)
 
       base_statusline =
         cond do
@@ -574,6 +587,20 @@ defmodule StrangepathsWeb.CardLive.Show do
             ""
           end
 
+      {:ok, statusline_shadow} =
+        Image.Text.text(true_statusline,
+          text_fill_color: "#000000",
+          font_file: font_file,
+          font: font,
+          font_size: 36
+        )
+
+      statusline_shadow =
+        statusline_shadow
+        |> Image.blur!(sigma: 5.0)
+        |> Image.brightness!(0.2)
+        |> Image.contrast!(5.0)
+
       {:ok, statusline_image} =
         Image.Text.text(true_statusline,
           text_fill_color: text_color,
@@ -582,6 +609,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           font_file: font_file
         )
 
+      {:ok, img} = Image.compose(img, statusline_shadow, x: statusline_x, y: statusline_y)
       {:ok, img} = Image.compose(img, statusline_image, x: statusline_x, y: statusline_y)
 
       img =
@@ -608,7 +636,7 @@ defmodule StrangepathsWeb.CardLive.Show do
           rules_width,
           # Reduced to 200px to give flavor text more room
           200,
-          text_color,
+          rules_text_color,
           font,
           font_file,
           64
@@ -617,7 +645,7 @@ defmodule StrangepathsWeb.CardLive.Show do
       {:ok, img} = Image.compose(img, rules_img, x: rules_x, y: rules_y)
 
       # Add separator - moved up to around 210px
-      {:ok, separator} = Image.new(600, 3, color: text_color)
+      {:ok, separator} = Image.new(600, 3, color: rules_text_color)
 
       {:ok, img} =
         Image.compose(img, separator,
@@ -634,7 +662,7 @@ defmodule StrangepathsWeb.CardLive.Show do
               rules_width,
               # Increased to 180px for more space
               180,
-              text_color,
+              rules_text_color,
               font,
               font_file,
               # Start with smaller font size for flavor text
