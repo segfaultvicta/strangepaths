@@ -1,0 +1,89 @@
+<div class="p-6 max-w-4xl mx-auto">
+
+  <!-- Title block -->
+  <div class="mb-6">
+    <%= if @editing_title do %>
+      <.form let={f} for={@title_changeset} phx-submit="save_title">
+        <%= text_input f, :title, class: "text-2xl font-bold w-full bg-transparent border-b border-gray-600 focus:outline-none mb-2", autofocus: true %>
+        <%= error_tag f, :title %>
+        <%= text_input f, :subtitle, placeholder: "Subtitle (optional)", class: "w-full bg-transparent border-b border-gray-600 focus:outline-none mt-2 text-gray-400" %>
+        <div class="flex gap-2 mt-2">
+          <%= submit "Save", class: "btn-primary text-sm" %>
+          <button type="button" phx-click="cancel_edit_title" class="btn-secondary text-sm">Cancel</button>
+        </div>
+      </.form>
+    <% else %>
+      <div class="flex items-start gap-2">
+        <div>
+          <h1 class="text-3xl font-bold"><%= @folio.title %></h1>
+          <%= if @folio.subtitle do %>
+            <p class="text-gray-400 mt-1"><%= @folio.subtitle %></p>
+          <% end %>
+        </div>
+        <%= if @is_author || @is_dragon do %>
+          <button phx-click="start_edit_title" class="text-xs text-gray-500 hover:text-gray-300 mt-1" title="Edit title">✎</button>
+        <% end %>
+      </div>
+    <% end %>
+
+    <p class="text-xs text-gray-600 mt-2">
+      by <%= @folio.user.nickname %> ·
+      <%= format_relative_time(@folio.inserted_at) %>
+    </p>
+
+    <!-- Tags -->
+    <div class="flex flex-wrap gap-1 mt-2">
+      <%= for tag <- @tags do %>
+        <span class="text-xs bg-gray-800 px-2 py-0.5 rounded"><%= tag %></span>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <%= if @folio.body do %>
+    <div class="folio-body prose prose-invert mb-8">
+      <%= raw render_library_content(@folio.body) %>
+    </div>
+  <% end %>
+
+  <!-- Entry stream -->
+  <%= if Enum.any?(@entries) do %>
+    <div class="folio-entries space-y-4 mb-8">
+      <%= for entry <- @entries do %>
+        <div id={"entry-#{entry.id}"} class="folio-entry">
+          <%= case entry.kind do %>
+          <% :post_ref -> %>
+            <%= if entry.scene_post do %>
+              <div class="folio-post-ref border-l-2 border-gray-700 pl-4">
+                <div class="text-xs text-gray-500 mb-1">
+                  <strong><%= entry.scene_post.user && entry.scene_post.user.nickname %></strong>
+                </div>
+                <div class="folio-post-content">
+                  <%= raw render_post_content(entry.scene_post.content) %>
+                </div>
+              </div>
+            <% end %>
+          <% :note -> %>
+            <div class="folio-note" style={"font-family: #{entry.font}; color: #{entry.color};"}>
+              <%= raw render_library_content(entry.content) %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Dragon controls -->
+  <%= if @is_dragon do %>
+    <div class="mt-8 pt-4 border-t border-gray-800">
+      <button
+        phx-click="delete_folio"
+        data-confirm="Delete this folio? This cannot be undone."
+        class="text-sm text-red-500 hover:text-red-400"
+      >
+        Delete Folio
+      </button>
+    </div>
+  <% end %>
+
+</div>
