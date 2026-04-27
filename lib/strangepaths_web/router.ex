@@ -69,7 +69,10 @@ defmodule StrangepathsWeb.Router do
     live("/bbs/:board_slug/new", BBSLive.ThreadList, :new)
     live("/bbs/:board_slug/:thread_id", BBSLive.Thread, :show)
 
+    live("/library", LibraryLive.FolioList, :index)
+    live("/library/new", LibraryLive.FolioList, :new)
     live("/library/admin", LibraryLive.Admin)
+    live("/library/:slug", LibraryLive.Folio, :show)
   end
 
   # Other scopes may use custom stacks.

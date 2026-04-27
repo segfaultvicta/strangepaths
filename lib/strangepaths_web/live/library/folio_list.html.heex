@@ -1,0 +1,48 @@
+<div class="p-6 max-w-4xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold">The Liminal Library</h1>
+    <%= if @is_folio_editor do %>
+      <%= live_patch("+ New Folio", to: "/library/new", class: "btn-secondary text-sm") %>
+    <% end %>
+  </div>
+
+  <%= if @live_action == :new && @folio_changeset do %>
+    <div class="mb-8 p-4 border border-gray-700 rounded">
+      <h2 class="text-lg font-semibold mb-4">New Folio</h2>
+      <.form let={f} for={@folio_changeset} phx-change="validate_folio" phx-submit="create_folio">
+        <div class="mb-4">
+          <%= label f, :title, "Title", class: "block text-sm font-medium mb-1" %>
+          <%= text_input f, :title, placeholder: "Folio title", class: "w-full bg-gray-900 border border-gray-700 rounded px-3 py-2", required: true %>
+          <%= error_tag f, :title %>
+        </div>
+        <div class="mb-4">
+          <%= label f, :subtitle, "Subtitle (optional)", class: "block text-sm font-medium mb-1" %>
+          <%= text_input f, :subtitle, placeholder: "Optional subtitle", class: "w-full bg-gray-900 border border-gray-700 rounded px-3 py-2" %>
+          <%= error_tag f, :subtitle %>
+        </div>
+        <div class="flex gap-2">
+          <%= submit "Create Folio", class: "btn-primary" %>
+          <%= live_patch "Cancel", to: "/library", class: "btn-secondary" %>
+        </div>
+      </.form>
+    </div>
+  <% end %>
+
+  <%= if Enum.empty?(@folios) do %>
+    <p class="text-gray-500 italic">No folios yet. The archive awaits its first entry.</p>
+  <% else %>
+    <div class="space-y-3">
+      <%= for folio <- @folios do %>
+        <div class="p-4 border border-gray-800 rounded hover:border-gray-600">
+          <%= live_redirect folio.title, to: "/library/#{folio.slug}", class: "text-lg font-medium hover:underline" %>
+          <%= if folio.subtitle do %>
+            <p class="text-sm text-gray-400 mt-1"><%= folio.subtitle %></p>
+          <% end %>
+          <p class="text-xs text-gray-600 mt-1">
+            <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

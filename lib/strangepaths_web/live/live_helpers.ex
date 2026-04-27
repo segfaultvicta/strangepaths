@@ -58,8 +58,15 @@ defmodule StrangepathsWeb.LiveHelpers do
 
   @doc """
   Formats a datetime as a relative time string (e.g., "5m ago", "2h ago").
+  Handles both DateTime and NaiveDateTime.
   """
   def format_relative_time(datetime) when is_nil(datetime), do: ""
+
+  def format_relative_time(%NaiveDateTime{} = datetime) do
+    # Convert NaiveDateTime to DateTime in UTC for comparison
+    datetime_utc = DateTime.from_naive!(datetime, "Etc/UTC")
+    format_relative_time(datetime_utc)
+  end
 
   def format_relative_time(datetime) do
     now = DateTime.utc_now()

@@ -49,6 +49,13 @@ defmodule Strangepaths.Library do
 
   def get_folio_by_slug!(slug), do: Repo.get_by!(Folio, slug: slug)
 
+  def get_folio_by_slug(slug) do
+    case Repo.get_by(Folio, slug: slug) do
+      nil -> nil
+      folio -> Repo.preload(folio, :user)
+    end
+  end
+
   def create_folio(user, attrs) do
     %Folio{}
     |> Folio.create_changeset(Map.put(attrs, "user_id", user.id))
@@ -101,7 +108,7 @@ defmodule Strangepaths.Library do
     from(e in Entry,
       where: e.folio_id == ^folio_id,
       order_by: e.position,
-      preload: [:scene_post]
+      preload: [scene_post: [:user]]
     )
     |> Repo.all()
   end
