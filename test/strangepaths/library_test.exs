@@ -250,4 +250,67 @@ defmodule Strangepaths.LibraryTest do
       assert reply.parent_id == parent.id
     end
   end
+
+  describe "body mutex" do
+    test "claim_body_lock succeeds when no lock" do
+      folio = folio_fixture()
+      assert :ok = Library.claim_body_lock(folio.id, 1)
+
+      info = Library.get_folio_lock_info(folio.id)
+      assert info.locked_by_id == 1
+    end
+
+    test "claim_body_lock fails when another user holds the lock" do
+      folio = folio_fixture()
+      user1 = user_typeface_fixture()
+      user2 = user_typeface_fixture()
+
+      :ok = Library.claim_body_lock(folio.id, user1.id)
+      assert {:error, :locked} = Library.claim_body_lock(folio.id, user2.id)
+    end
+
+    test "claim_body_lock succeeds when existing lock is stale" do
+      folio = folio_fixture()
+      user1 = user_typeface_fixture()
+      user2 = user_typeface_fixture()
+
+      # Manually insert a stale lock (older than lock_timeout_seconds)
+      stale_at =
+        DateTime.utc_now()
+        |> DateTime.add(-(Library.lock_timeout_seconds() + 10), :second)
+        |> DateTime.truncate(:second)
+
+      from(f in Strangepaths.Library.Folio, where: f.id == ^folio.id)
+      |> Strangepaths.Repo.update_all(
+        set: [body_locked_by_id: user1.id, body_locked_at: stale_at]
+      )
+
+      # User 2 can claim despite user1's stale lock
+      assert :ok = Library.claim_body_lock(folio.id, user2.id)
+      info = Library.get_folio_lock_info(folio.id)
+      assert info.locked_by_id == user2.id
+    end
+
+    test "release_body_lock clears the lock" do
+      folio = folio_fixture()
+      user = user_typeface_fixture()
+
+      :ok = Library.claim_body_lock(folio.id, user.id)
+      :ok = Library.release_body_lock(folio.id)
+
+      info = Library.get_folio_lock_info(folio.id)
+      assert is_nil(info.locked_by_id)
+    end
+
+    test "save_body saves content and releases lock" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+
+      :ok = Library.claim_body_lock(folio.id, user.id)
+      :ok = Library.save_body(folio, user.id, "New body content.")
+
+      info = Library.get_folio_lock_info(folio.id)
+      assert is_nil(info.locked_by_id)
+    end
+  end
 end

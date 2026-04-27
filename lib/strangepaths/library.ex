@@ -74,6 +74,57 @@ defmodule Strangepaths.Library do
     Folio.create_changeset(folio, attrs)
   end
 
+  # Lock timeout in seconds — also used by the LiveView for Process.send_after
+  def lock_timeout_seconds, do: 300   # 5 minutes
+
+  # Atomically claims the body lock if unclaimed or stale.
+  # Returns :ok on success, {:error, :locked} if another user currently holds it.
+  def claim_body_lock(folio_id, user_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    stale_before = DateTime.add(now, -lock_timeout_seconds(), :second)
+
+    {count, _} =
+      from(f in Folio,
+        where:
+          f.id == ^folio_id and
+            (is_nil(f.body_locked_by_id) or f.body_locked_at < ^stale_before)
+      )
+      |> Repo.update_all(set: [body_locked_by_id: user_id, body_locked_at: now])
+
+    if count == 1, do: :ok, else: {:error, :locked}
+  end
+
+  # Releases the lock unconditionally.
+  def release_body_lock(folio_id) do
+    from(f in Folio, where: f.id == ^folio_id)
+    |> Repo.update_all(set: [body_locked_by_id: nil, body_locked_at: nil])
+    :ok
+  end
+
+  # Saves body content and releases the lock atomically.
+  # Verifies the caller (user_id) currently holds the lock before saving.
+  # Returns :ok on success, {:error, :lock_lost} if the lock is not held by the caller.
+  def save_body(folio, user_id, content) do
+    {count, _} =
+      from(f in Folio,
+        where: f.id == ^folio.id and f.body_locked_by_id == ^user_id
+      )
+      |> Repo.update_all(
+        set: [body: content, body_locked_by_id: nil, body_locked_at: nil, updated_at: DateTime.utc_now()]
+      )
+
+    if count == 1, do: :ok, else: {:error, :lock_lost}
+  end
+
+  # Returns a locked folio (with lock metadata) — used by the LiveView to check lock holder.
+  def get_folio_lock_info(folio_id) do
+    from(f in Folio,
+      where: f.id == ^folio_id,
+      select: %{locked_by_id: f.body_locked_by_id, locked_at: f.body_locked_at}
+    )
+    |> Repo.one()
+  end
+
   # === TAGS ===
 
   def list_tags(folio_id) do
