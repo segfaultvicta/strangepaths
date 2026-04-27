@@ -98,6 +98,7 @@ defmodule StrangepathsWeb do
 
       import StrangepathsWeb.ErrorHelpers
       import StrangepathsWeb.Gettext
+      import StrangepathsWeb.LibraryHelpers
       alias StrangepathsWeb.Router.Helpers, as: Routes
     end
   end
