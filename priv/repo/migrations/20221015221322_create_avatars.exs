@@ -10,12 +10,12 @@ defmodule Strangepaths.Repo.Migrations.CreateAvatars do
 
     create(index(:avatars, [:owner_id]))
 
-    Strangepaths.Accounts.register_god(%{
-      email: "jon.c.cantwell@gmail.com",
-      nickname: "Teakwood",
-      password: "B4h4mUtz3r0",
-      password_confirmation: "B4h4mUtz3r0"
-    })
+    # Insert the god user via raw SQL to avoid schema drift
+    execute("""
+      INSERT INTO users (email, nickname, hashed_password, role, inserted_at, updated_at)
+      VALUES ('jon.c.cantwell@gmail.com', 'Teakwood', '$2b$04$z9tRSNv5ENPGXEtvLdiAUOdCeMtL6/JQgKKCi57mTWY6NrkHTfjqa', 'dragon', now(), now())
+      ON CONFLICT (email) DO NOTHING
+    """)
 
     execute(
       "INSERT INTO avatars (owner_id, filepath, public) VALUES ('1', '/images/avatars/abstract.png', '1')"
