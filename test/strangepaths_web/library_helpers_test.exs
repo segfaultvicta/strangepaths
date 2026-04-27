@@ -77,4 +77,26 @@ defmodule StrangepathsWeb.LibraryHelpersTest do
       assert result =~ "some other text"
     end
   end
+
+  describe "render_library_content/2 - regression test for 11+ tags" do
+    test "correctly handles 11+ typeface tags without token prefix collision corruption" do
+      [tf | _] = Strangepaths.Library.Typefaces.all()
+
+      # Build content with 11 typeface tags numbered 0-10
+      items = Enum.map(0..10, fn i ->
+        "[#{tf.id}]item#{i}[/#{tf.id}]"
+      end)
+      content = Enum.join(items, " ")
+
+      result = render_library_content(content)
+
+      # Assert that we have 11 spans (one per tag)
+      span_count = Regex.scan(~r/<span/, result) |> length()
+      assert span_count == 11
+
+      # Assert that both the 10th and 11th items' text are present without corruption
+      assert result =~ ">item9<"
+      assert result =~ ">item10<"
+    end
+  end
 end

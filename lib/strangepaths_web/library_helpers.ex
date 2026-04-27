@@ -31,8 +31,9 @@ defmodule StrangepathsWeb.LibraryHelpers do
 
     Regex.scan(pattern, content)
     |> Enum.reduce({content, %{}}, fn [full_match, name, text], {acc_content, acc_tokens} ->
-      # Use unicode private-use area prefix to prevent collision with user text
-      token = <<0xE000::utf8>> <> "LLITOK#{map_size(acc_tokens)}"
+      # Use unicode private-use area prefix to prevent collision with user text.
+      # Trailing LLITOK suffix prevents token-vs-token prefix collisions: LLITOK1 is no longer a prefix of LLITOK10.
+      token = <<0xE000::utf8>> <> "LLITOK#{map_size(acc_tokens)}LLITOK"
 
       {
         # global: false replaces the first match only — prevents corrupting later matches that share text
