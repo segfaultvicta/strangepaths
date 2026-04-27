@@ -50,6 +50,7 @@
   <%= if Enum.any?(@entries) do %>
     <div class="folio-entries space-y-4 mb-8">
       <%= for entry <- @entries do %>
+        <!-- entry id used by Phase 6 marginalia anchors -->
         <div id={"entry-#{entry.id}"} class="folio-entry">
           <%= case entry.kind do %>
           <% :post_ref -> %>

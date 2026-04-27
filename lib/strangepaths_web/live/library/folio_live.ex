@@ -29,8 +29,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:editing_title, false)
          |> assign(:title_changeset, Library.change_folio(folio))
          |> assign(:is_author, user != nil && folio.user_id == user.id)
-         |> assign(:is_dragon, user != nil && user.role == :dragon)
-         |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))}
+         |> assign(:is_dragon, user != nil && user.role == :dragon)}
     end
   end
 
@@ -42,7 +41,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     if socket.assigns.is_author || socket.assigns.is_dragon do
       {:noreply, assign(socket, :editing_title, true)}
     else
-      {:noreply, socket}
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 
@@ -54,6 +53,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     if socket.assigns.is_author || socket.assigns.is_dragon do
       case Library.update_folio_title(socket.assigns.folio, attrs) do
         {:ok, updated_folio} ->
+          # update_folio_title preserves the :user preload from the in-memory struct
           {:noreply,
            socket
            |> assign(:folio, updated_folio)
@@ -65,7 +65,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
           {:noreply, assign(socket, :title_changeset, changeset)}
       end
     else
-      {:noreply, socket}
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 
@@ -78,7 +78,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
        |> put_flash(:info, "Folio deleted.")
        |> push_redirect(to: "/library")}
     else
-      {:noreply, socket}
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 end

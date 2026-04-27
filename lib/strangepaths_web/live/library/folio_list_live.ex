@@ -34,7 +34,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
     else
       socket
       |> put_flash(:error, "You must be a folio editor to create folios.")
-      |> push_patch(to: "/library")
+      |> push_redirect(to: "/library")
     end
   end
 
@@ -62,7 +62,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
           {:noreply, assign(socket, :folio_changeset, changeset)}
       end
     else
-      {:noreply, socket |> put_flash(:error, "Unauthorized") |> push_patch(to: "/library")}
+      {:noreply, socket |> put_flash(:error, "Unauthorized") |> push_redirect(to: "/library")}
     end
   end
 end
