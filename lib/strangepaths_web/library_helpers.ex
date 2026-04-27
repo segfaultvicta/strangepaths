@@ -1,6 +1,23 @@
 defmodule StrangepathsWeb.LibraryHelpers do
+  @moduledoc """
+  Helper functions for rendering Liminal Library content with typeface tags.
+
+  Provides tokenize-before/restore-after pipeline to protect user content
+  from Earmark interference while enabling inline HTML spans for styled text.
+  """
+
   import StrangepathsWeb.SceneHelpers, only: [render_post_content: 2]
 
+  @doc """
+  Renders library content with typeface tag support.
+
+  Processes `[name]text[/name]` tags into styled spans for known typefaces,
+  or literal text if the typeface name is unknown. Uses regex with `/s` and `/u`
+  flags to handle newlines and Unicode. Raw user text is HTML-escaped before
+  embedding; font and color values come from the hardcoded Typefaces master list.
+
+  Returns a string containing HTML safe for raw interpolation in templates.
+  """
   def render_library_content(content, opts \\ []) when is_binary(content) do
     {tokenized, token_map} = extract_typeface_tokens(content)
 
@@ -14,9 +31,11 @@ defmodule StrangepathsWeb.LibraryHelpers do
 
     Regex.scan(pattern, content)
     |> Enum.reduce({content, %{}}, fn [full_match, name, text], {acc_content, acc_tokens} ->
-      token = "LLITOK#{map_size(acc_tokens)}LLITOK"
+      # Use unicode private-use area prefix to prevent collision with user text
+      token = <<0xE000::utf8>> <> "LLITOK#{map_size(acc_tokens)}"
 
       {
+        # global: false replaces the first match only — prevents corrupting later matches that share text
         String.replace(acc_content, full_match, token, global: false),
         Map.put(acc_tokens, token, {name, text})
       }

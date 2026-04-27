@@ -41,6 +41,7 @@ defmodule StrangepathsWeb.LibraryHelpersTest do
       assert result =~ "[/unknowntypeface]"
       assert result =~ "some text"
       refute result =~ "<span"
+      refute result =~ "<a"
     end
   end
 

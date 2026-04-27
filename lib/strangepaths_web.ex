@@ -98,7 +98,7 @@ defmodule StrangepathsWeb do
 
       import StrangepathsWeb.ErrorHelpers
       import StrangepathsWeb.Gettext
-      import StrangepathsWeb.LibraryHelpers
+      import StrangepathsWeb.LibraryHelpers  # matches BBSHelpers/SceneHelpers convention
       alias StrangepathsWeb.Router.Helpers, as: Routes
     end
   end
