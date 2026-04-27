@@ -133,8 +133,8 @@ defmodule Strangepaths.Accounts do
 
     %User{}
     |> User.registration_changeset(%{
-      email: attrs["email"],
-      password: attrs["password"],
+      email: attrs["email"] || attrs[:email],
+      password: attrs["password"] || attrs[:password],
       nickname: default_nick
     })
     |> Repo.insert()
