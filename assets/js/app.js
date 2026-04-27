@@ -546,6 +546,36 @@ Hooks.Grimoire = {
     }
 }
 
+Hooks.LibraryBodyEditor = {
+  mounted() {
+    this.el.querySelectorAll("[data-insert-tag]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tagName = btn.dataset.insertTag;
+        const textarea = document.getElementById("library-body-textarea");
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = textarea.value.substring(start, end);
+        const insert = `[${tagName}]${selected}[/${tagName}]`;
+
+        textarea.value =
+          textarea.value.substring(0, start) +
+          insert +
+          textarea.value.substring(end);
+
+        // Move cursor to inside the closing tag (after selected text)
+        const newPos = start + insert.length - `[/${tagName}]`.length;
+        textarea.setSelectionRange(newPos, newPos);
+        textarea.focus();
+
+        // Trigger phx-change so the LiveView preview updates
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    });
+  },
+}
+
 Hooks.OOCContentInput = {
     mounted() {
         this.currentSceneId = null;

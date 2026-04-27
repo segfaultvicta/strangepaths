@@ -39,12 +39,69 @@
     </div>
   </div>
 
-  <!-- Body -->
-  <%= if @folio.body do %>
-    <div class="folio-body prose prose-invert mb-8">
-      <%= raw render_library_content(@folio.body) %>
-    </div>
-  <% end %>
+  <!-- Body section -->
+  <div class="mb-8">
+    <%= if @editing_body do %>
+      <%!-- Body editor — split pane: editor left, preview right --%>
+      <div id="library-body-editor" phx-hook="LibraryBodyEditor">
+        <div class="flex gap-2 mb-2">
+          <%!-- Grimoire glyph toolbar --%>
+          <div id="library-body-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="library-body-textarea">
+            <button type="button" class="grimoire-trigger text-xs px-2 py-1 border border-gray-700 rounded" title="Insert glyph">Esoterica</button>
+            <div class="grimoire-popover" style="display:none;">
+              <div class="grimoire-glyphs"></div>
+              <button type="button" class="grimoire-add-btn">+</button>
+              <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+            </div>
+          </div>
+
+          <%!-- Typeface tag buttons — one per assigned typeface --%>
+          <%= for tf <- @editor_typefaces do %>
+            <button
+              type="button"
+              data-insert-tag={tf.id}
+              title={"Insert [#{tf.id}] tag"}
+              class="text-xs px-2 py-1 border border-gray-700 rounded"
+              style={"font-family: #{tf.font}; color: #{tf.color};"}
+            >
+              <%= tf.name %>
+            </button>
+          <% end %>
+        </div>
+
+        <.form let={_f} for={%{}} as={:folio} phx-change="update_preview" phx-submit="save_body">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <%= textarea :folio, :body,
+                id: "library-body-textarea",
+                value: @body_content,
+                class: "w-full h-96 bg-gray-900 border border-gray-700 rounded px-3 py-2 font-mono text-sm resize-y",
+                phx_debounce: "300" %>
+            </div>
+            <div class="h-96 overflow-y-auto border border-gray-700 rounded px-3 py-2 prose prose-invert">
+              <%= raw @preview_html %>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <%= submit "Save Body", class: "btn-primary text-sm" %>
+            <button type="button" phx-click="cancel_edit_body" class="btn-secondary text-sm">Cancel</button>
+          </div>
+        </.form>
+      </div>
+    <% else %>
+      <%= if @folio.body do %>
+        <div class="folio-body prose prose-invert mb-4">
+          <%= raw render_library_content(@folio.body) %>
+        </div>
+      <% end %>
+
+      <%= if @is_folio_editor do %>
+        <button phx-click="claim_body_lock" class="text-xs text-gray-500 hover:text-gray-300">
+          <%= if @folio.body, do: "Edit body", else: "+ Add body" %>
+        </button>
+      <% end %>
+    <% end %>
+  </div>
 
   <!-- Entry stream -->
   <%= if Enum.any?(@entries) do %>
