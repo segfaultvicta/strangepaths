@@ -6,7 +6,7 @@ config :strangepaths,
 # Configure your database
 config :strangepaths, Strangepaths.Repo,
   username: "postgres",
-  password: "1zc3edg5",
+  password: System.get_env("PGPASSWORD") || "postgres",
   hostname: "localhost",
   database: "strangepaths_dev",
   stacktrace: true,

@@ -20,24 +20,5 @@ defmodule Strangepaths.Library.Marginalia do
     |> cast(attrs, [:entry_id, :user_id, :parent_id, :content, :name, :font, :color])
     |> validate_required([:entry_id, :user_id, :content, :name, :font, :color])
     |> validate_length(:content, min: 1, max: 10_000)
-    |> validate_parent_entry(attrs)
-  end
-
-  defp validate_parent_entry(changeset, attrs) do
-    parent_id = Map.get(attrs, "parent_id") || Map.get(attrs, :parent_id)
-    entry_id = get_field(changeset, :entry_id)
-
-    if parent_id && entry_id do
-      case Strangepaths.Repo.get(Strangepaths.Library.Marginalia, parent_id) do
-        nil ->
-          add_error(changeset, :parent_id, "does not exist")
-        parent ->
-          if parent.entry_id == entry_id,
-            do: changeset,
-            else: add_error(changeset, :parent_id, "must belong to the same entry")
-      end
-    else
-      changeset
-    end
   end
 end

@@ -7,15 +7,15 @@ defmodule Strangepaths.LibraryTest do
   import Strangepaths.AccountsFixtures
 
   # ---- Verifies: liminal-library.AC1.4, AC1.5 ----
-  describe "is_folio_editor?/1" do
+  describe "folio_editor?/1" do
     test "returns false for user with no typefaces" do
       user = user_fixture()
-      refute Library.is_folio_editor?(user.id)
+      refute Library.folio_editor?(user.id)
     end
 
     test "returns true after assigning a typeface" do
       user = user_typeface_fixture()
-      assert Library.is_folio_editor?(user.id)
+      assert Library.folio_editor?(user.id)
     end
   end
 
@@ -24,7 +24,7 @@ defmodule Strangepaths.LibraryTest do
     test "assigns a valid typeface to a user" do
       user = user_fixture()
       assert {:ok, _} = Library.assign_user_typeface(user.id, "jorule")
-      assert Library.is_folio_editor?(user.id)
+      assert Library.folio_editor?(user.id)
     end
 
     test "assigning the same typeface twice is a no-op" do
@@ -43,7 +43,7 @@ defmodule Strangepaths.LibraryTest do
     test "revokes an assigned typeface" do
       user = user_typeface_fixture()
       assert {:ok, _} = Library.remove_user_typeface(user.id, "jorule")
-      refute Library.is_folio_editor?(user.id)
+      refute Library.folio_editor?(user.id)
     end
 
     test "revoking a typeface not assigned returns error tuple" do

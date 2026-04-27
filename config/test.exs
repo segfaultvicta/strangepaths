@@ -10,7 +10,7 @@ config :bcrypt_elixir, :log_rounds, 1
 # Run `mix help test` for more information.
 config :strangepaths, Strangepaths.Repo,
   username: "postgres",
-  password: "1zc3edg5",
+  password: System.get_env("PGPASSWORD") || "postgres",
   hostname: "localhost",
   database: "strangepaths_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,

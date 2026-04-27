@@ -1,5 +1,6 @@
 defmodule Strangepaths.Library do
   import Ecto.Query
+  import Ecto.Changeset
   alias Strangepaths.Repo
   alias Strangepaths.Library.{Folio, FolioTag, Entry, Marginalia, UserTypeface}
 
@@ -11,6 +12,10 @@ defmodule Strangepaths.Library do
     |> Repo.insert(on_conflict: :nothing, conflict_target: [:user_id, :typeface_id])
   end
 
+  # Note: remove_user_typeface is NOT idempotent — revoking an unassigned typeface
+  # returns {:error, :not_found}. This is intentional to prevent silent failures in
+  # dragon moderation flows (trying to revoke a typeface the user doesn't have
+  # suggests a client/admin UI error worth surfacing).
   def remove_user_typeface(user_id, typeface_id) do
     case Repo.get_by(UserTypeface, user_id: user_id, typeface_id: typeface_id) do
       nil -> {:error, :not_found}
@@ -23,7 +28,7 @@ defmodule Strangepaths.Library do
     |> Repo.all()
   end
 
-  def is_folio_editor?(user_id) do
+  def folio_editor?(user_id) do
     Repo.exists?(from ut in UserTypeface, where: ut.user_id == ^user_id)
   end
 
@@ -77,6 +82,10 @@ defmodule Strangepaths.Library do
     |> Repo.insert(on_conflict: :nothing, conflict_target: [:folio_id, :tag])
   end
 
+  # Note: remove_tag is idempotent — removing a tag that doesn't exist returns {:ok, nil}.
+  # This is intentional per liminal-library.AC8.1 design: tags are designed to be
+  # idempotent operations, suitable for frontend click-toggle UI patterns without
+  # requiring extra checks.
   def remove_tag(folio, tag) do
     normalized = tag |> String.downcase() |> String.trim()
 
@@ -132,17 +141,26 @@ defmodule Strangepaths.Library do
   end
 
   def reorder_entries(folio_id, ordered_ids) do
-    ordered_ids
-    |> Enum.with_index(1)
-    |> Enum.each(fn {id, position} ->
-      from(e in Entry, where: e.id == ^id and e.folio_id == ^folio_id)
-      |> Repo.update_all(set: [position: position])
+    result = Repo.transaction(fn ->
+      ordered_ids
+      |> Enum.with_index(1)
+      |> Enum.each(fn {id, position} ->
+        from(e in Entry, where: e.id == ^id and e.folio_id == ^folio_id)
+        |> Repo.update_all(set: [position: position])
+      end)
     end)
 
-    :ok
+    case result do
+      {:ok, _} -> :ok
+      error -> error
+    end
   end
 
   defp next_entry_position(folio_id) do
+    # Note: Known race condition — two concurrent create_*_entry calls can both
+    # read the same count(e.id) and both assign the same position. Acceptable for
+    # Phase 1 (single-user editing). Future fix: use MAX(position)+1 in an INSERT...SELECT
+    # or advisory locks at the Ecto level to guarantee atomic position assignment.
     from(e in Entry, where: e.folio_id == ^folio_id, select: count(e.id))
     |> Repo.one()
     |> Kernel.+(1)
@@ -160,12 +178,40 @@ defmodule Strangepaths.Library do
   end
 
   def create_marginalia(entry, user, attrs) do
-    %Marginalia{}
-    |> Marginalia.create_changeset(
-      attrs
-      |> Map.put("entry_id", entry.id)
-      |> Map.put("user_id", user.id)
-    )
-    |> Repo.insert()
+    changeset =
+      %Marginalia{}
+      |> Marginalia.create_changeset(
+        attrs
+        |> Map.put("entry_id", entry.id)
+        |> Map.put("user_id", user.id)
+      )
+
+    # Validate parent marginalia belongs to the same entry (structural validation
+    # is in the changeset; DB validation is here per FCIS pattern).
+    case validate_parent_marginalia(changeset, entry.id) do
+      {:ok, validated_changeset} ->
+        Repo.insert(validated_changeset)
+      {:error, error_changeset} ->
+        {:error, error_changeset}
+    end
+  end
+
+  defp validate_parent_marginalia(changeset, entry_id) do
+    parent_id = get_change(changeset, :parent_id)
+
+    if parent_id do
+      case Repo.get(Marginalia, parent_id) do
+        nil ->
+          {:error, add_error(changeset, :parent_id, "does not exist")}
+        parent ->
+          if parent.entry_id == entry_id do
+            {:ok, changeset}
+          else
+            {:error, add_error(changeset, :parent_id, "must belong to the same entry")}
+          end
+      end
+    else
+      {:ok, changeset}
+    end
   end
 end
