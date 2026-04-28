@@ -2,17 +2,22 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
   use StrangepathsWeb, :live_view
 
   alias Strangepaths.Library
+  alias Strangepaths.Accounts
 
   @impl true
   def mount(_params, session, socket) do
     socket = assign_defaults(session, socket)
     user = socket.assigns.current_user
-    folios = Library.list_folios()
 
     {:ok,
      socket
      |> assign(:page_title, "The Liminal Library")
-     |> assign(:folios, folios)
+     |> assign(:search_query, "")
+     |> assign(:filter_author_id, nil)
+     |> assign(:filter_tag, "")
+     |> assign(:sort_by, :date)
+     |> assign(:all_users, Accounts.list_users())
+     |> assign(:folios, Library.search_folios([]))
      |> assign(:folio_changeset, nil)
      |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))}
   end
@@ -64,5 +69,43 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
     else
       {:noreply, socket |> put_flash(:error, "Unauthorized") |> push_redirect(to: "/library")}
     end
+  end
+
+  @impl true
+  def handle_event("search", %{"query" => query, "tag" => tag, "author_id" => author_id_str, "sort_by" => sort_str}, socket) do
+    sort_by = case sort_str do
+      "title" -> :title
+      "author" -> :author
+      _ -> :date
+    end
+
+    author_id =
+      case Integer.parse(author_id_str) do
+        {id, ""} when id > 0 -> id
+        _ -> nil
+      end
+
+    socket =
+      socket
+      |> assign(:search_query, query)
+      |> assign(:filter_tag, tag)
+      |> assign(:filter_author_id, author_id)
+      |> assign(:sort_by, sort_by)
+      |> rebuild_folios()
+
+    {:noreply, socket}
+  end
+
+  defp rebuild_folios(socket) do
+    opts =
+      [
+        query: socket.assigns.search_query,
+        author_id: socket.assigns.filter_author_id,
+        tag: socket.assigns.filter_tag,
+        sort_by: socket.assigns.sort_by
+      ]
+      |> Enum.reject(fn {_k, v} -> v == nil or v == "" end)
+
+    assign(socket, :folios, Library.search_folios(opts))
   end
 end

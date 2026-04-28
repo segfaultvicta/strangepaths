@@ -6,6 +6,53 @@
     <% end %>
   </div>
 
+  <form phx-change="search" phx-submit="search" class="mb-6">
+    <div class="flex flex-wrap gap-3 items-end">
+      <div class="flex-1 min-w-40">
+        <label class="block text-sm font-medium mb-1">Search</label>
+        <input
+          type="text"
+          name="query"
+          value={@search_query}
+          placeholder="title, body, or subtitle…"
+          class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2"
+          phx-debounce="300"
+        />
+      </div>
+
+      <div class="min-w-32">
+        <label class="block text-sm font-medium mb-1">Tag</label>
+        <input
+          type="text"
+          name="tag"
+          value={@filter_tag}
+          placeholder="filter by tag"
+          class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2"
+          phx-debounce="300"
+        />
+      </div>
+
+      <div class="min-w-40">
+        <label class="block text-sm font-medium mb-1">Author</label>
+        <select name="author_id" class="bg-gray-900 border border-gray-700 rounded px-3 py-2">
+          <option value="0">All authors</option>
+          <%= for user <- @all_users do %>
+            <option value={user.id} selected={@filter_author_id == user.id}><%= user.nickname %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="min-w-32">
+        <label class="block text-sm font-medium mb-1">Sort</label>
+        <select name="sort_by" class="bg-gray-900 border border-gray-700 rounded px-3 py-2">
+          <option value="date" selected={@sort_by == :date}>Newest</option>
+          <option value="title" selected={@sort_by == :title}>Title</option>
+          <option value="author" selected={@sort_by == :author}>Author</option>
+        </select>
+      </div>
+    </div>
+  </form>
+
   <%= if @live_action == :new && @folio_changeset do %>
     <div class="mb-8 p-4 border border-gray-700 rounded">
       <h2 class="text-lg font-semibold mb-4">New Folio</h2>

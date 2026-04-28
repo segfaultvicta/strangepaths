@@ -45,6 +45,75 @@ defmodule Strangepaths.Library do
     |> Repo.all()
   end
 
+  @doc """
+  Search and filter folios. Returns a list of Folio structs with :user preloaded.
+
+  Options:
+    - :query       - String to search title, subtitle, and body (ILIKE; nil or "" = no search)
+    - :author_id   - Filter to folios by this user id (nil = all authors)
+    - :tag         - Filter to folios with this tag (nil or "" = no tag filter)
+    - :sort_by     - :date (newest first, default), :title (asc), :author (asc by nickname)
+  """
+  def search_folios(opts \\ []) do
+    query_str = Keyword.get(opts, :query)
+    author_id = Keyword.get(opts, :author_id)
+    tag_filter = Keyword.get(opts, :tag)
+    sort_by = Keyword.get(opts, :sort_by, :date)
+
+    query =
+      from(f in Folio,
+        join: u in Strangepaths.Accounts.User, on: u.id == f.user_id,
+        preload: [user: u]
+      )
+
+    # Text search across title, subtitle, body
+    query =
+      if query_str && String.trim(query_str) != "" do
+        pattern = "%#{query_str}%"
+
+        from([f] in query,
+          where:
+            ilike(f.title, ^pattern) or
+              ilike(f.subtitle, ^pattern) or
+              ilike(f.body, ^pattern)
+        )
+      else
+        query
+      end
+
+    # Author filter
+    query =
+      if author_id do
+        from([f] in query, where: f.user_id == ^author_id)
+      else
+        query
+      end
+
+    # Tag filter — join FolioTag, ILIKE match, distinct to avoid duplicates
+    query =
+      if tag_filter && String.trim(tag_filter) != "" do
+        tag_pattern = "%#{String.downcase(String.trim(tag_filter))}%"
+
+        from([f] in query,
+          join: ft in FolioTag, on: ft.folio_id == f.id,
+          where: ilike(ft.tag, ^tag_pattern),
+          distinct: f.id
+        )
+      else
+        query
+      end
+
+    # Sort
+    query =
+      case sort_by do
+        :title -> from([f, u] in query, order_by: [asc: f.title])
+        :author -> from([f, u] in query, order_by: [asc: u.nickname, asc: f.title])
+        _ -> from([f, u] in query, order_by: [desc: f.inserted_at])
+      end
+
+    Repo.all(query)
+  end
+
   def get_folio!(id), do: Repo.get!(Folio, id)
 
   def get_folio_by_slug!(slug), do: Repo.get_by!(Folio, slug: slug)
@@ -131,6 +200,11 @@ defmodule Strangepaths.Library do
 
   def list_tags(folio_id) do
     from(t in FolioTag, where: t.folio_id == ^folio_id, select: t.tag, order_by: t.tag)
+    |> Repo.all()
+  end
+
+  def list_folio_tags(folio_id) do
+    from(ft in FolioTag, where: ft.folio_id == ^folio_id, select: ft.tag, order_by: ft.tag)
     |> Repo.all()
   end
 
