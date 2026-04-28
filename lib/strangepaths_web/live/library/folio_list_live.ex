@@ -56,7 +56,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
           {:noreply,
            socket
            |> put_flash(:info, "Folio created.")
-           |> push_redirect(to: "/library/#{folio.slug}")}
+           |> push_redirect(to: "/library/#{folio.slug}/compose")}
 
         {:error, changeset} ->
           {:noreply, assign(socket, :folio_changeset, changeset)}

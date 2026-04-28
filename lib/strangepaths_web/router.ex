@@ -72,6 +72,7 @@ defmodule StrangepathsWeb.Router do
     live("/library", LibraryLive.FolioList, :index)
     live("/library/new", LibraryLive.FolioList, :new)
     live("/library/admin", LibraryLive.Admin)
+    live("/library/:slug/compose", LibraryLive.Composer, :compose)
     live("/library/:slug", LibraryLive.Folio, :show)
   end
 

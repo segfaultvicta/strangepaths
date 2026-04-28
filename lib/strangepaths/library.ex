@@ -216,6 +216,12 @@ defmodule Strangepaths.Library do
     end
   end
 
+  def update_entry_group(entry, group_id) do
+    entry
+    |> Entry.group_changeset(%{group_id: group_id})
+    |> Repo.update()
+  end
+
   defp next_entry_position(folio_id) do
     # Note: Known race condition — two concurrent create_*_entry calls can both
     # read the same count(e.id) and both assign the same position. Acceptable for

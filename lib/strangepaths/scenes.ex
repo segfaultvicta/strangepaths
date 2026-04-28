@@ -124,6 +124,36 @@ defmodule Strangepaths.Scenes do
   def list_recent_archived_scenes(nil, _limit), do: []
 
   @doc """
+  Returns all scenes for the library composer browser — both active and archived.
+  Ordered by status (active first), then by name.
+  Includes owner preload for display.
+  """
+  def list_scenes_for_composer do
+    from(s in Scene,
+      where: not s.is_elsewhere,
+      order_by: [asc: s.status, asc: s.name],
+      preload: [:owner]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns all scenes where the given user has at least one post.
+  Used for the "Scenes I was in" filter in the composer.
+  """
+  def list_scenes_with_user_posts(user_id) do
+    from(s in Scene,
+      join: p in Post,
+      on: p.scene_id == s.id and p.user_id == ^user_id,
+      where: not s.is_elsewhere,
+      distinct: true,
+      order_by: [asc: s.status, asc: s.name],
+      preload: [:owner]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single scene by ID.
   """
   def get_scene(id) do

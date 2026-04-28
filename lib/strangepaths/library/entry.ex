@@ -46,4 +46,8 @@ defmodule Strangepaths.Library.Entry do
       if font in valid_fonts, do: [], else: [font: "must be a valid typeface font"]
     end)
   end
+
+  def group_changeset(entry, attrs) do
+    cast(entry, attrs, [:group_id])
+  end
 end
