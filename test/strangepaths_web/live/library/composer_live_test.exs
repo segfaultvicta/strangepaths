@@ -65,20 +65,56 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
     # Verifies: liminal-library.AC4.2 — full-cast-session tag always shows in filter_scenes logic
     test "filter_scenes logic preserves full-cast-session scenes", %{conn: conn} do
       user = user_typeface_fixture()
+      other_user = user_typeface_fixture()
       folio = folio_fixture(user, %{"title" => "Filter Logic Test"})
       conn = log_in_user(conn, user)
 
-      {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
+      # Create a full-cast-session scene (should survive filter)
+      {:ok, full_cast_scene} = Strangepaths.Scenes.create_scene(%{
+        name: "Visible Cast Scene",
+        owner_id: user.id,
+        locked_to_users: [],
+        tags: ["full cast session"]
+      })
+      {:ok, _full_cast_post} = Strangepaths.Scenes.create_character_post(%{
+        scene_id: full_cast_scene.id,
+        user_id: user.id,
+        content: "Full cast post",
+        author_nickname: user.nickname
+      })
 
-      # Apply a filter query that shouldn't match anything initially
+      # Create a non-full-cast scene (should be filtered out)
+      {:ok, hidden_scene} = Strangepaths.Scenes.create_scene(%{
+        name: "Hidden Scene",
+        owner_id: other_user.id,
+        locked_to_users: [],
+        tags: []
+      })
+      {:ok, _hidden_post} = Strangepaths.Scenes.create_character_post(%{
+        scene_id: hidden_scene.id,
+        user_id: other_user.id,
+        content: "Hidden post",
+        author_nickname: other_user.nickname
+      })
+
+      {:ok, view, html} = live(conn, "/library/#{folio.slug}/compose")
+
+      # Both scenes should be visible initially (no filter applied)
+      assert html =~ "Visible Cast Scene"
+      assert html =~ "Hidden Scene"
+
+      # Apply a filter query that matches neither scene name
       view
       |> element("input[phx-change='set_filter']")
-      |> render_change(%{"q" => "xyz_totally_unique_term_"})
+      |> render_change(%{"q" => "zzznomatch"})
 
-      # Just verify the filter change doesn't crash and the form updates
+      # Render the view after filter change to see updated state
       html = render(view)
-      assert html =~ "xyz_totally_unique_term_"
-      assert html =~ "Scene Browser"
+
+      # Full-cast scene should survive filter even though name doesn't match query
+      assert html =~ "Visible Cast Scene"
+      # Non-full-cast scene should be filtered out because its name doesn't match and it's not full-cast
+      refute html =~ "Hidden Scene"
     end
   end
 
@@ -86,17 +122,56 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
   describe "full-cast scene styling" do
     test "template conditional renders bg-emerald classes when full cast session in tags", %{conn: conn} do
       user = user_typeface_fixture()
+      other_user = user_typeface_fixture()
       folio = folio_fixture(user, %{"title" => "Full Cast CSS Test"})
       conn = log_in_user(conn, user)
 
+      # Create one full-cast-session scene with a post
+      {:ok, full_cast_scene} = Strangepaths.Scenes.create_scene(%{
+        name: "Full Cast Styled Scene",
+        owner_id: user.id,
+        locked_to_users: [],
+        tags: ["full cast session"]
+      })
+      {:ok, _full_cast_post} = Strangepaths.Scenes.create_character_post(%{
+        scene_id: full_cast_scene.id,
+        user_id: user.id,
+        content: "Full cast content",
+        author_nickname: user.nickname
+      })
+
+      # Create one non-full-cast scene with a post
+      {:ok, ordinary_scene} = Strangepaths.Scenes.create_scene(%{
+        name: "Ordinary Scene",
+        owner_id: other_user.id,
+        locked_to_users: [],
+        tags: []
+      })
+      {:ok, _ordinary_post} = Strangepaths.Scenes.create_character_post(%{
+        scene_id: ordinary_scene.id,
+        user_id: other_user.id,
+        content: "Ordinary content",
+        author_nickname: other_user.nickname
+      })
+
       {:ok, _view, html} = live(conn, "/library/#{folio.slug}/compose")
 
-      # Verify that the composer template includes the conditional for emerald styling
-      # by checking that the HTML contains the class name pattern
-      # (even though scenes may not be rendering, the template logic is present)
-      assert html =~ "Scene Browser"
-      # The template defines the conditional for emerald background
-      assert html =~ "bg-" || html =~ "rounded"
+      # The full-cast scene should have the emerald styling classes
+      assert html =~ "Full Cast Styled Scene"
+      assert html =~ "bg-emerald-950/30"
+      assert html =~ "border-emerald-900/50"
+
+      # The ordinary scene should also be rendered
+      assert html =~ "Ordinary Scene"
+
+      # Verify the emerald classes appear in the full-cast section only
+      # Split by the full-cast scene name and check the before section has the classes
+      [before_cast, _after_cast] = String.split(html, "Full Cast Styled Scene")
+      assert before_cast =~ "bg-emerald-950/30"
+
+      # Count how many times bg-emerald-950/30 appears: should be just 1 time total
+      emerald_count = html |> String.split("bg-emerald-950/30") |> length() |> Kernel.-(1)
+      assert emerald_count == 1
     end
   end
 
