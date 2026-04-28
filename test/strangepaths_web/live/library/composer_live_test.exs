@@ -214,4 +214,98 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
       assert Enum.map(entries, & &1.id) == [note2.id, note1.id]
     end
   end
+
+  # Verifies: liminal-library.AC4.7 (entry grouping)
+  describe "entry grouping" do
+    test "selecting and grouping entries assigns same group_id to both", %{conn: conn} do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user, %{"title" => "Group Test"})
+      entry1 = note_entry_fixture(folio, user, %{"content" => "Entry 1"})
+      entry2 = note_entry_fixture(folio, user, %{"content" => "Entry 2"})
+      conn = log_in_user(conn, user)
+
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
+
+      # Select first entry
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry1.id)})
+
+      # Select second entry
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry2.id)})
+
+      # Group selected entries
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("group_selected_entries", %{})
+
+      # Verify both entries have the same non-nil group_id
+      entries = Library.list_entries(folio.id)
+      assert length(entries) == 2
+      entry1_grouped = Enum.find(entries, &(&1.id == entry1.id))
+      entry2_grouped = Enum.find(entries, &(&1.id == entry2.id))
+      assert entry1_grouped.group_id != nil
+      assert entry1_grouped.group_id == entry2_grouped.group_id
+    end
+
+    test "grouping with less than 2 entries selected returns error flash", %{conn: conn} do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user, %{"title" => "Group One Test"})
+      _entry = note_entry_fixture(folio, user, %{"content" => "Only Entry"})
+      conn = log_in_user(conn, user)
+
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
+
+      # Select only one entry
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => "1"})
+
+      # Try to group (should fail)
+      html = view
+      |> element("div#composer-entry-list")
+      |> render_hook("group_selected_entries", %{})
+
+      # Verify error message appears
+      assert String.contains?(html, ["at least 2", "Select at least 2"]) or
+             render(view) =~ "Select at least 2"
+    end
+
+    test "unauthorized user cannot group entries", %{conn: conn} do
+      author = user_typeface_fixture()
+      folio = folio_fixture(author, %{"title" => "Unauthorized Group Test"})
+      other_user = user_typeface_fixture()
+      entry1 = note_entry_fixture(folio, author, %{"content" => "Entry 1"})
+      entry2 = note_entry_fixture(folio, author, %{"content" => "Entry 2"})
+      conn = log_in_user(conn, other_user)
+
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
+
+      # Select entries
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry1.id)})
+
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry2.id)})
+
+      # Try to group (should fail)
+      html = view
+      |> element("div#composer-entry-list")
+      |> render_hook("group_selected_entries", %{})
+
+      # Verify entries were not grouped
+      entries = Library.list_entries(folio.id)
+      entry1_result = Enum.find(entries, &(&1.id == entry1.id))
+      entry2_result = Enum.find(entries, &(&1.id == entry2.id))
+      assert entry1_result.group_id == nil
+      assert entry2_result.group_id == nil
+
+      # Verify error message appears
+      assert String.contains?(html, "Unauthorized") or render(view) =~ "Unauthorized"
+    end
+  end
 end

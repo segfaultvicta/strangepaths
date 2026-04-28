@@ -297,6 +297,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
       {:noreply,
        socket
        |> assign(:editing_body, false)
+       |> assign(:lock_timer_ref, nil)
        |> put_flash(:warning, "Body editing session timed out. Changes were not saved.")}
     else
       {:noreply, socket}

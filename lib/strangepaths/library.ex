@@ -282,9 +282,9 @@ defmodule Strangepaths.Library do
       from(e in Entry, where: e.folio_id == ^folio.id and e.position >= ^position)
       |> Repo.update_all(inc: [position: -10_000])
 
-      # Then shift them to their final positions (incrementing by 10_001 to get positive positions).
+      # Then shift them to their final positions (incrementing by 10_000 + n to make room for n new entries).
       from(e in Entry, where: e.folio_id == ^folio.id and e.position < 0)
-      |> Repo.update_all(inc: [position: 10_001])
+      |> Repo.update_all(inc: [position: 10_000 + length(post_ids)])
 
       # Insert all entries with consecutive positions starting at position
       entries =
@@ -298,8 +298,7 @@ defmodule Strangepaths.Library do
             scene_post_id: post_id,
             position: pos,
             kind: :post_ref,
-            inserted_at: now,
-            updated_at: now
+            inserted_at: now
           }
         end)
 
