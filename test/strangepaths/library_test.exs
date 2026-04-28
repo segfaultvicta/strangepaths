@@ -194,6 +194,28 @@ defmodule Strangepaths.LibraryTest do
       assert second.id == e1.id
     end
 
+    test "inserts note entry at non-trailing caret without unique constraint violation (regression)" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+      note_attrs = %{"content" => "x", "name" => tf.name, "font" => tf.font, "color" => tf.color}
+
+      # Create 2 existing entries (positions 1 and 2)
+      {:ok, e1} = Library.create_note_entry(folio, user, note_attrs)
+      {:ok, e2} = Library.create_note_entry(folio, user, note_attrs)
+
+      # Insert note entry at position 2 (between e1 and e2) — this triggered unique constraint
+      # violations before the fix due to direct increment without temp negative positions.
+      # The fix ensures entries >= pos are shifted via temporary negative positions first.
+      {:ok, entry} = Library.create_note_entry(folio, user, note_attrs, 2)
+
+      entries = Library.list_entries(folio.id)
+      assert length(entries) == 3
+      assert Enum.at(entries, 0).id == e1.id
+      assert Enum.at(entries, 1).id == entry.id
+      assert Enum.at(entries, 2).id == e2.id
+    end
+
     test "deletes an entry" do
       user = user_typeface_fixture()
       folio = folio_fixture(user)

@@ -88,10 +88,10 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
          socket
          |> assign(:entries, entries)
          |> assign(:caret_position, position + 1)
+         # Set range_anchor_post_id to the newly added post to enable shift-click range selection
+         # from the next post. Clicking a different post without holding Shift will overwrite
+         # the anchor, allowing the user to start a new range.
          |> assign(:range_anchor_post_id, post_id)}
-        # Note: range_anchor_post_id is set to the newly added post to enable shift-click
-        # range selection from the next post. Clicking a different post without holding
-        # Shift will overwrite the anchor, allowing the user to start a new range.
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not add post.")}

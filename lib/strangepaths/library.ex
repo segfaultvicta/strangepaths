@@ -170,9 +170,14 @@ defmodule Strangepaths.Library do
     pos = position || next_entry_position(folio.id)
 
     case Repo.transaction(fn ->
-      # Shift all entries at position >= pos up by 1
+      # Use temporary negative positions to avoid unique constraint violations during shift.
+      # First, shift all entries at position >= pos to temporary negative positions.
       from(e in Entry, where: e.folio_id == ^folio.id and e.position >= ^pos)
-      |> Repo.update_all(inc: [position: 1])
+      |> Repo.update_all(inc: [position: -10_000])
+
+      # Then shift them to their final positions (incrementing by 10_001 to get positive positions).
+      from(e in Entry, where: e.folio_id == ^folio.id and e.position < 0)
+      |> Repo.update_all(inc: [position: 10_001])
 
       # Insert new entry at the caret position
       %Entry{}
@@ -194,9 +199,14 @@ defmodule Strangepaths.Library do
     pos = position || next_entry_position(folio.id)
 
     case Repo.transaction(fn ->
-      # Shift all entries at position >= pos up by 1
+      # Use temporary negative positions to avoid unique constraint violations during shift.
+      # First, shift all entries at position >= pos to temporary negative positions.
       from(e in Entry, where: e.folio_id == ^folio.id and e.position >= ^pos)
-      |> Repo.update_all(inc: [position: 1])
+      |> Repo.update_all(inc: [position: -10_000])
+
+      # Then shift them to their final positions (incrementing by 10_001 to get positive positions).
+      from(e in Entry, where: e.folio_id == ^folio.id and e.position < 0)
+      |> Repo.update_all(inc: [position: 10_001])
 
       # Insert new entry at the caret position
       %Entry{}

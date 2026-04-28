@@ -868,14 +868,17 @@ Hooks.LibraryComposer = {
                 // If the entry has a group_id, move all group members together
                 if (draggedGroupId) {
                     const groupEntries = Array.from(list.querySelectorAll(`[data-group-id="${draggedGroupId}"]`));
-                    const draggedIndex = Array.from(list.querySelectorAll("[data-entry-id]")).indexOf(draggedEl);
 
-                    // Move all group members to follow the dragged entry
-                    groupEntries.forEach((entry, idx) => {
+                    // Move all group members to follow the dragged entry, maintaining their relative order.
+                    // Use a running insertion anchor to avoid reversing group order (each insertBefore after
+                    // the first changes nextSibling, so we track and update the anchor as we go).
+                    let anchor = draggedEl.nextSibling;
+                    for (const entry of groupEntries) {
                         if (entry !== draggedEl) {
-                            list.insertBefore(entry, draggedEl.nextSibling);
+                            list.insertBefore(entry, anchor);
+                            anchor = entry.nextSibling;
                         }
-                    });
+                    }
                 }
 
                 // Collect the final order and send to server
