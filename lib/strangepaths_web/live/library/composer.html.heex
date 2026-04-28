@@ -5,15 +5,16 @@
     <div class="p-4 border-b border-gray-800 flex-shrink-0">
       <h2 class="font-semibold mb-3">Scene Browser</h2>
 
-      <input
-        type="text"
-        placeholder="Filter by title or tag..."
-        value={@filter_query}
-        phx-change="set_filter"
-        phx-debounce="300"
-        name="q"
-        class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1 text-sm mb-2"
-      />
+      <form phx-change="set_filter">
+        <input
+          type="text"
+          placeholder="Filter by title or tag..."
+          value={@filter_query}
+          phx-debounce="300"
+          name="q"
+          class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1 text-sm mb-2"
+        />
+      </form>
 
       <label class="flex items-center gap-2 text-sm cursor-pointer">
         <input
@@ -46,26 +47,26 @@
           <%= if @expanded_scene_id == scene.id do %>
             <div class="ml-3 border-l border-gray-700 pl-2">
               <%= for post <- Map.get(@scene_posts_cache, scene.id, []) do %>
-                <div id={"browser-post-#{post.id}"} class="py-2 border-b border-gray-800/50 text-sm group/post">
+                <div id={"browser-post-#{post.id}"} class="py-2 border-b border-gray-800/50 text-sm">
                   <div class="flex items-center justify-between mb-1">
                     <span class="font-medium text-xs text-gray-400">
                       <%= post.author_nickname || (post.user && post.user.nickname) %>
                     </span>
-                    <div class="flex gap-1 opacity-0 group-hover/post:opacity-100 transition-opacity">
+                    <div class="flex gap-1">
                       <button
                         phx-click="set_range_anchor"
                         phx-value-post-id={post.id}
                         title="Set as range start (From)"
-                        class="text-xs px-1 text-gray-500 hover:text-gray-300"
+                        class={"text-xs px-1 rounded " <> if(@range_anchor_post_id == post.id, do: "text-purple-300 bg-purple-900/50", else: "text-gray-500 hover:text-gray-300")}
                       >↑ From</button>
-                      <%= if @range_anchor_post_id do %>
+                      <%= if @range_anchor_post_id && @range_anchor_post_id != post.id do %>
                         <button
                           phx-click="add_range"
                           phx-value-from-post-id={@range_anchor_post_id}
                           phx-value-to-post-id={post.id}
                           phx-value-scene-id={scene.id}
                           title="Add range from anchor to here"
-                          class="text-xs px-1 text-gray-500 hover:text-gray-300"
+                          class="text-xs px-1 text-purple-400 hover:text-purple-200"
                         >↓ To</button>
                       <% end %>
                     </div>
