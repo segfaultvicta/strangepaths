@@ -100,18 +100,13 @@
       <p class="text-xs text-gray-500 mt-1">
         Caret at position <%= @caret_position %> · <%= length(@entries) %> entries
       </p>
-      <%= if !Enum.empty?(@selected_entry_ids) && (@is_author || @is_dragon) do %>
-        <div class="mt-2 flex gap-2">
+      <%= if (@is_author || @is_dragon) && Enum.any?(@entries, & &1.group_id) do %>
+        <div class="mt-2">
           <button
-            phx-click="group_selected_entries"
-            class="text-xs px-2 py-1 bg-amber-700 rounded hover:bg-amber-600"
-            title="Group selected entries to move together"
-          >Group (<%= MapSet.size(@selected_entry_ids) %>)</button>
-          <button
-            phx-click="ungroup_selected_entries"
-            class="text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600"
-            title="Remove group from selected entries"
-          >Ungroup</button>
+            phx-click="ungroup_all"
+            class="text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-amber-400"
+            title="Remove all grouping"
+          >⛓ Ungroup all</button>
         </div>
       <% end %>
     </div>
@@ -149,18 +144,9 @@
           id={"entry-#{entry.id}"}
           data-entry-id={entry.id}
           data-group-id={entry.group_id || ""}
-          class={"entry-item mb-1 p-2 bg-gray-900 rounded border " <> if(entry.group_id, do: "border-amber-900/50", else: "border-gray-800")}
+          class={"entry-item mb-1 p-2 rounded border-l-4 " <> if(entry.group_id, do: "bg-amber-950/20 border-l-amber-500 border border-amber-800/30", else: "bg-gray-900 border-l-transparent border border-gray-800")}
         >
           <div class="flex items-start justify-between gap-2">
-            <%= if @is_author || @is_dragon do %>
-              <input
-                type="checkbox"
-                phx-click="toggle_entry_selection"
-                phx-value-entry-id={entry.id}
-                checked={MapSet.member?(@selected_entry_ids, entry.id)}
-                class="mt-1 flex-shrink-0 cursor-pointer"
-              />
-            <% end %>
             <div class="flex-1 min-w-0">
               <%= case entry.kind do %>
               <% :post_ref -> %>
@@ -178,7 +164,13 @@
             </div>
 
             <%= if @is_author || @is_dragon do %>
-              <div class="flex gap-1 flex-shrink-0">
+              <div class="flex gap-1 flex-shrink-0 items-center">
+                <button
+                  phx-click="toggle_entry_group"
+                  phx-value-entry-id={entry.id}
+                  class={"text-sm leading-none " <> if(entry.group_id, do: "text-amber-400 hover:text-amber-200", else: "text-gray-700 hover:text-gray-400")}
+                  title={if entry.group_id, do: "Remove from group", else: "Add to group"}
+                >⛓</button>
                 <span class="drag-handle cursor-grab text-gray-600 hover:text-gray-400 text-sm" title="Drag to reorder">⣿</span>
                 <button
                   phx-click="delete_entry"

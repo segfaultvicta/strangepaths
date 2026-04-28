@@ -35,7 +35,6 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
            |> assign(:my_scenes_only, false)
            |> assign(:is_author, folio.user_id == user.id)
            |> assign(:is_dragon, user.role == :dragon)
-           |> assign(:selected_entry_ids, MapSet.new())
            |> load_scenes(user)}
         else
           {:ok,
@@ -138,50 +137,40 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     {:noreply, assign(socket, :caret_position, position)}
   end
 
-  def handle_event("toggle_entry_selection", %{"entry-id" => entry_id_str}, socket) do
-    entry_id = String.to_integer(entry_id_str)
-    selected = if MapSet.member?(socket.assigns.selected_entry_ids, entry_id) do
-      MapSet.delete(socket.assigns.selected_entry_ids, entry_id)
-    else
-      MapSet.put(socket.assigns.selected_entry_ids, entry_id)
-    end
-    {:noreply, assign(socket, :selected_entry_ids, selected)}
-  end
-
-  def handle_event("group_selected_entries", _params, socket) do
+  # Toggle a single entry in/out of the folio's one group. One-group invariant:
+  # all grouped entries share the same UUID; adding uses the existing UUID or
+  # creates a new one if no entries are currently grouped.
+  def handle_event("toggle_entry_group", %{"entry-id" => id_str}, socket) do
     if socket.assigns.is_author || socket.assigns.is_dragon do
-      ids = MapSet.to_list(socket.assigns.selected_entry_ids)
-      if Enum.count(ids) >= 2 do
-        group_id = Ecto.UUID.generate()
-        Enum.each(ids, fn id ->
-          entry = Enum.find(socket.assigns.entries, &(&1.id == id))
-          if entry, do: Library.update_entry_group(entry, group_id)
-        end)
+      entry_id = String.to_integer(id_str)
+      entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id))
+
+      if entry do
+        if entry.group_id do
+          Library.update_entry_group(entry, nil)
+        else
+          group_id = Enum.find_value(socket.assigns.entries, & &1.group_id) || Ecto.UUID.generate()
+          Library.update_entry_group(entry, group_id)
+        end
+
         entries = Library.list_entries(socket.assigns.folio.id)
-        {:noreply,
-         socket
-         |> assign(:entries, entries)
-         |> assign(:selected_entry_ids, MapSet.new())}
+        {:noreply, assign(socket, :entries, entries)}
       else
-        {:noreply, put_flash(socket, :error, "Select at least 2 entries to group.")}
+        {:noreply, socket}
       end
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 
-  def handle_event("ungroup_selected_entries", _params, socket) do
+  def handle_event("ungroup_all", _params, socket) do
     if socket.assigns.is_author || socket.assigns.is_dragon do
-      ids = MapSet.to_list(socket.assigns.selected_entry_ids)
-      Enum.each(ids, fn id ->
-        entry = Enum.find(socket.assigns.entries, &(&1.id == id))
-        if entry, do: Library.update_entry_group(entry, nil)
-      end)
+      socket.assigns.entries
+      |> Enum.filter(& &1.group_id)
+      |> Enum.each(&Library.update_entry_group(&1, nil))
+
       entries = Library.list_entries(socket.assigns.folio.id)
-      {:noreply,
-       socket
-       |> assign(:entries, entries)
-       |> assign(:selected_entry_ids, MapSet.new())}
+      {:noreply, assign(socket, :entries, entries)}
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
