@@ -1,6 +1,9 @@
 defmodule StrangepathsWeb.LibraryLive.Composer do
   use StrangepathsWeb, :live_view
 
+  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 1]
+  import StrangepathsWeb.LibraryHelpers, only: [render_library_content: 1]
+
   alias Strangepaths.{Library, Scenes}
 
   @impl true
