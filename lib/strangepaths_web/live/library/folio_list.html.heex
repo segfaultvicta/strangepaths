@@ -1,4 +1,4 @@
-<div class="p-6 max-w-4xl mx-auto">
+<div class="library-root p-6 max-w-4xl mx-auto">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-3xl font-bold">The Liminal Library</h1>
     <%= if @is_folio_editor do %>
@@ -80,12 +80,12 @@
   <% else %>
     <div class="space-y-3">
       <%= for folio <- @folios do %>
-        <div class="p-4 border border-gray-800 rounded hover:border-gray-600">
-          <%= live_redirect folio.title, to: "/library/#{folio.slug}", class: "text-lg font-medium hover:underline" %>
+        <div class="library-folio-row">
+          <%= live_redirect folio.title, to: "/library/#{folio.slug}", class: "library-folio-row-title" %>
           <%= if folio.subtitle do %>
             <p class="text-sm text-gray-400 mt-1"><%= folio.subtitle %></p>
           <% end %>
-          <p class="text-xs text-gray-600 mt-1">
+          <p class="library-folio-row-meta">
             <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
           </p>
         </div>
