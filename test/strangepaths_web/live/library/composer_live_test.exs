@@ -307,5 +307,93 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
       # Verify error message appears
       assert String.contains?(html, "Unauthorized") or render(view) =~ "Unauthorized"
     end
+
+    test "ungrouping selected entries clears group_id on all selected entries", %{conn: conn} do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user, %{"title" => "Ungroup Test"})
+      entry1 = note_entry_fixture(folio, user, %{"content" => "Entry 1"})
+      entry2 = note_entry_fixture(folio, user, %{"content" => "Entry 2"})
+      conn = log_in_user(conn, user)
+
+      # First, group the entries via direct API call
+      group_id = Ecto.UUID.generate()
+      Library.update_entry_group(entry1, group_id)
+      Library.update_entry_group(entry2, group_id)
+
+      # Verify they are grouped
+      entries = Library.list_entries(folio.id)
+      entry1_grouped = Enum.find(entries, &(&1.id == entry1.id))
+      entry2_grouped = Enum.find(entries, &(&1.id == entry2.id))
+      assert entry1_grouped.group_id == group_id
+      assert entry2_grouped.group_id == group_id
+
+      # Mount composer
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
+
+      # Select both entries
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry1.id)})
+
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry2.id)})
+
+      # Ungroup them
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("ungroup_selected_entries", %{})
+
+      # Verify both entries now have group_id == nil
+      entries = Library.list_entries(folio.id)
+      entry1_ungrouped = Enum.find(entries, &(&1.id == entry1.id))
+      entry2_ungrouped = Enum.find(entries, &(&1.id == entry2.id))
+      assert entry1_ungrouped.group_id == nil
+      assert entry2_ungrouped.group_id == nil
+
+      # Verify selection is cleared
+      html = render(view)
+      refute html =~ "selected"
+    end
+
+    test "unauthorized user cannot ungroup entries", %{conn: conn} do
+      author = user_typeface_fixture()
+      folio = folio_fixture(author, %{"title" => "Unauthorized Ungroup Test"})
+      other_user = user_typeface_fixture()
+      entry1 = note_entry_fixture(folio, author, %{"content" => "Entry 1"})
+      entry2 = note_entry_fixture(folio, author, %{"content" => "Entry 2"})
+
+      # Group the entries
+      group_id = Ecto.UUID.generate()
+      Library.update_entry_group(entry1, group_id)
+      Library.update_entry_group(entry2, group_id)
+
+      conn = log_in_user(conn, other_user)
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
+
+      # Select entries
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry1.id)})
+
+      view
+      |> element("div#composer-entry-list")
+      |> render_hook("toggle_entry_selection", %{"entry-id" => to_string(entry2.id)})
+
+      # Try to ungroup (should fail)
+      html = view
+      |> element("div#composer-entry-list")
+      |> render_hook("ungroup_selected_entries", %{})
+
+      # Verify entries are still grouped
+      entries = Library.list_entries(folio.id)
+      entry1_result = Enum.find(entries, &(&1.id == entry1.id))
+      entry2_result = Enum.find(entries, &(&1.id == entry2.id))
+      assert entry1_result.group_id == group_id
+      assert entry2_result.group_id == group_id
+
+      # Verify error message appears
+      assert String.contains?(html, "Unauthorized") or render(view) =~ "Unauthorized"
+    end
   end
 end

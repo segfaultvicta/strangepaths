@@ -148,6 +148,26 @@ defmodule Strangepaths.LibraryTest do
   end
 
   describe "entries" do
+    defp create_scene_and_posts(user, count) do
+      {:ok, scene} = Strangepaths.Scenes.create_scene(%{
+        name: "Test Scene #{System.unique_integer([:positive])}",
+        owner_id: user.id,
+        locked_to_users: []
+      })
+
+      posts = for i <- 1..count do
+        {:ok, post} = Strangepaths.Scenes.create_character_post(%{
+          scene_id: scene.id,
+          user_id: user.id,
+          content: "Post #{i}",
+          author_nickname: user.nickname
+        })
+        post
+      end
+
+      {scene, posts}
+    end
+
     test "creates an inline note entry" do
       user = user_typeface_fixture()
       folio = folio_fixture(user)
@@ -223,6 +243,46 @@ defmodule Strangepaths.LibraryTest do
 
       {:ok, _} = Library.delete_entry(entry)
       assert Library.list_entries(folio.id) == []
+    end
+
+    test "creates multiple post entries at a non-trailing position (regression test)" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+
+      # Create 3 existing note entries at positions 1, 2, 3
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+      note_attrs = %{"content" => "x", "name" => tf.name, "font" => tf.font, "color" => tf.color}
+
+      {:ok, note1} = Library.create_note_entry(folio, user, note_attrs)
+      {:ok, note2} = Library.create_note_entry(folio, user, note_attrs)
+      {:ok, note3} = Library.create_note_entry(folio, user, note_attrs)
+
+      # Create a scene with 3 posts
+      {_scene, posts} = create_scene_and_posts(user, 3)
+      post_ids = Enum.map(posts, & &1.id)
+
+      # Insert 3 post entries at position 2 (between note1 and note2)
+      # Before fix: position shifts were off by 1, leading to duplicate positions or out-of-sequence entries
+      {:ok, inserted_entries} = Library.create_post_entries_at(folio, user, post_ids, 2)
+
+      # Verify we got 3 inserted entries back
+      assert length(inserted_entries) == 3
+
+      # Verify all entries (6 total: 3 notes + 3 posts) are present and have valid positions
+      all_entries = Library.list_entries(folio.id)
+      assert length(all_entries) == 6
+
+      # Verify positions are sequential and cover 1..6 with no gaps or duplicates
+      positions = Enum.map(all_entries, & &1.position) |> Enum.sort()
+      assert positions == [1, 2, 3, 4, 5, 6]
+
+      # Verify the order: note1 at pos 1, then 3 posts at pos 2-4, then note2 at pos 5, note3 at pos 6
+      assert Enum.at(all_entries, 0).id == note1.id  # position 1
+      assert Enum.at(all_entries, 1).kind == :post_ref  # position 2 (first inserted post)
+      assert Enum.at(all_entries, 2).kind == :post_ref  # position 3 (second inserted post)
+      assert Enum.at(all_entries, 3).kind == :post_ref  # position 4 (third inserted post)
+      assert Enum.at(all_entries, 4).id == note2.id  # position 5
+      assert Enum.at(all_entries, 5).id == note3.id  # position 6
     end
   end
 
