@@ -51,6 +51,7 @@ Business logic is organized into Phoenix contexts:
 - **Scenes** — Collaborative roleplay scenes with IC/OOC posts, slug-based URLs, locking, and archiving. A special "Elsewhere" scene (only one allowed).
 - **Site** — Static content pages (markdown via Earmark) and music/song management.
 - **Rumor** — Node graph system with draggable nodes, connections, and an infinite canvas viewport.
+- **Library** — Liminal Library: collaborative folios with body essays, ordered post-collections (post refs and inline notes), threaded marginalia, and tag taxonomy. Uses a typeface system (`[name]...[/name]` tags) gated by per-user typeface assignments granted by dragons.
 
 Each context has a public API module (e.g., `accounts.ex`) plus schema modules in a subdirectory.
 
@@ -88,6 +89,10 @@ Four GenServers run under the application supervisor:
 | `/content/admin` | Content page management |
 | `/avatars/admin` | Avatar management |
 | `/lab/cardgen` | Card generation tool |
+| `/library` | Liminal Library folio browser (search, filter, sort) |
+| `/library/admin` | Typeface assignment (dragon only) |
+| `/library/:slug` | Folio view (body essay, post collection, marginalia) |
+| `/library/:slug/compose` | Post collection composer (folio editors only) |
 
 ### Frontend Patterns
 
@@ -360,3 +365,112 @@ The BBS uses a retro terminal aesthetic with monospace fonts and a dark purple/b
 - All classes use `.bbs-` prefix to avoid conflicts with Tailwind utilities
 - Styling is self-contained in SCSS block; no Tailwind classes in BBS templates (except utility layout like `p-6`, `gap-2`)
 - Dragon control opacity handled via CSS `:hover` pseudo-selector on parent post, not JavaScript
+
+## Liminal Library
+
+_Last updated: 2026-04-28_
+
+A collaborative essay-and-curation system. Folios contain a long-form `body` (markdown + typeface tags) and an ordered `entries` collection mixing references to scene posts (`:post_ref`) with inline `:note` entries. Editors granted typefaces by a dragon can author. Readers can attach threaded `marginalia` to any entry.
+
+### Schema Overview (lib/strangepaths/library/)
+
+Five tables (migrations `20260427120001`–`20260427120006`):
+
+- **library_user_typefaces** — `(user_id, typeface_id)` grants a user the right to write in a typeface. `typeface_id` is a string id from the hardcoded `Typefaces` master list, not an FK. Unique on `(user_id, typeface_id)`.
+- **library_folios** — `title`, `slug` (auto from title), `subtitle`, `body` (markdown), and a body-edit mutex: `body_locked_by_id` (FK to user) and `body_locked_at` (utc_datetime). Unique on `title` and `slug`. `belongs_to :user` (author).
+- **library_folio_tags** — `(folio_id, tag)` with unique constraint. Tags are lowercased and trimmed by the context (`add_tag/2`).
+- **library_entries** — Polymorphic via `kind` enum (`:post_ref | :note`). Holds `position` (sortable, with unique index on `(folio_id, position)`), `group_id` (string, free-form group label), and for notes: `content`, `name`, `font`, `color`. `:post_ref` rows reference `library_entries.scene_post_id` → `scenes_posts.id`.
+- **library_marginalia** — Threaded comments on entries. Self-referencing `parent_id` (`:id`, no FK constraint), with `content`, `name`, `font`, `color`. Depth is enforced in the context, not the schema.
+
+### Typefaces (Strangepaths.Library.Typefaces)
+
+The hardcoded master list of typefaces. Each typeface is `%{id, name, font, color}`. Current typefaces: `jorule`, `seraph`, `inkwell`, `lacuna`. Functions: `all/0`, `find/1`, `valid_id?/1`. New typefaces are added by editing this module — there is no dragon UI for creating typefaces, only assigning existing ones.
+
+### Library Context API (Strangepaths.Library)
+
+**User typefaces (dragon admin)**
+- `assign_user_typeface(user_id, typeface_id)` — Idempotent insert via `on_conflict: :nothing`.
+- `remove_user_typeface(user_id, typeface_id)` — Returns `{:error, :not_found}` if not assigned (intentionally non-idempotent to surface admin UI errors).
+- `list_user_typefaces(user_id)` — Returns list of typeface ids granted to the user.
+- `folio_editor?(user_id)` — True if the user has any typeface assigned.
+- `folio_editor_typefaces(user_id)` — Returns typeface structs (with name/font/color) the user is allowed to write in.
+
+**Folios**
+- `list_folios/0`, `list_folio_authors/0` — Folio list and the distinct list of users who have authored at least one folio.
+- `search_folios(opts)` — Search/filter/sort. Options: `:query` (ILIKE on title/subtitle/body), `:author_id`, `:tag` (subquery against `library_folio_tags`), `:sort_by` (`:date | :title | :author`). Subquery used for tag filter so sort ordering survives.
+- `get_folio!/1`, `get_folio_by_slug!/1`, `get_folio_by_slug/1` (nil-safe, preloads `:user`).
+- `create_folio(user, attrs)`, `update_folio_title(folio, attrs)`, `delete_folio/1`, `change_folio/2`.
+
+**Body mutex (single-writer locking)**
+- `lock_timeout_seconds/0` — Returns 300 (5 minutes). Used by both context and the LiveView's `Process.send_after`.
+- `claim_body_lock(folio_id, user_id)` — Atomic `update_all` claims the lock if unclaimed, stale (older than `lock_timeout_seconds`), or already held by the same user (allows re-entrant claim). Returns `:ok` or `{:error, :locked}`.
+- `release_body_lock(folio_id)` — Unconditional release.
+- `save_body(folio, user_id, content)` — Atomic save+release. Verifies caller holds the lock; returns `:ok` or `{:error, :lock_lost}`. Uses `NaiveDateTime` for `updated_at` to match `timestamps()` schema type.
+- `get_folio_lock_info(folio_id)` — Returns `%{locked_by_id, locked_at}` for inspection.
+
+**Tags**
+- `list_tags(folio_id)`, `list_folio_tags(folio_id)` — Tag strings ordered alphabetically.
+- `add_tag(folio, tag)` — Lowercases/trims, idempotent via `on_conflict: :nothing`.
+- `remove_tag(folio, tag)` — Idempotent: returns `{:ok, nil}` if tag absent (suitable for click-toggle UI).
+
+**Entries**
+- `list_entries(folio_id)` — Ordered by `position`, preloads `[scene_post: [:user]]`.
+- `create_post_entry(folio, user, scene_post_id, position \\ nil)` — Inserts a `:post_ref` entry. If `position` falls inside the existing range, all entries `>= position` are shifted using a two-step transactional update via temporary negative positions (avoids violating the unique `(folio_id, position)` index).
+- `create_note_entry(folio, user, attrs, position \\ nil)` — Same shift behavior. Note attrs require `content`, `name`, `font`, `color`. `font` must be in the Typefaces master list; `color` must match `~r/\A#[0-9a-fA-F]{3,8}\z/` (CSS-injection guard).
+- `delete_entry(entry)`, `update_note_entry(entry, attrs)`, `update_entry_group(entry, group_id)`.
+- `reorder_entries(folio_id, ordered_ids)` — Transactional rewrite of positions using temporary negative positions then final positive positions. Returns `:ok` on success.
+- Known limitation: `next_entry_position/1` (private) has a documented race for concurrent inserts; acceptable while editing is effectively single-user via the body mutex (entries are not gated by the mutex but contention is low).
+
+**Marginalia**
+- `list_marginalia(entry_id)`, `list_all_marginalia_for_folio(folio_id)` — Both preload `:user` and order by `inserted_at`.
+- `create_marginalia(entry, user, attrs)` — Validates parent (if any) belongs to the same entry, enforces `@max_marginalia_depth = 3` by walking up `parent_id`, and broadcasts `"new_marginalia"` on `library_folio:{folio_id}` PubSub topic with the preloaded marginalia and `entry_id`. Returns `{:error, :max_depth_exceeded}` when depth limit is hit. The depth walk does up to 3 `Repo.get/1` calls per insert (bounded N+1).
+
+### Web Layer
+
+**LiveViews** (`lib/strangepaths_web/live/library/`):
+
+- `LibraryLive.FolioList` — Routes `/library` (`:index`) and `/library/new` (`:new`). Browse, search, author filter, tag filter, sort. Inline new-folio form (folio editors only). Author list filters to active authors via `list_folio_authors/0`.
+- `LibraryLive.Folio` — Route `/library/:slug` (`:show`). Renders the body essay, the ordered entry list (with marginalia threads), tag UI, and inline title/body editors. Mounts subscribe to `library_folio:{folio.id}` PubSub for real-time `new_marginalia` events. `terminate/2` releases the body lock if still held. The body editor is gated on `folio_editor?(user_id)`; title/delete are gated on `is_author || is_dragon` (delete is dragon-only).
+- `LibraryLive.Composer` — Route `/library/:slug/compose` (`:compose`). Folio-editor-only. Browses scenes (active + archived), drag-to-reorder via `Sortable.js`, shift-click range select on scene posts, caret-positioned insertion, group labels, and inline note creation. Fetches scenes via `Scenes.list_scenes_for_composer/0` and `Scenes.list_scenes_with_user_posts/1`.
+- `LibraryLive.Admin` — Route `/library/admin`. Dragon-only. Toggles user-typeface assignments via `assign_user_typeface/2` and `remove_user_typeface/2`.
+
+**Templates** are in `*.html.heex` siblings to the LiveView modules.
+
+**Helpers:**
+
+- `StrangepathsWeb.LibraryHelpers.render_library_content(content, opts \\ [])` — Renders typeface-tagged content. Two-pass strategy: (1) `extract_typeface_tokens/1` replaces `[name]text[/name]` matches with private-use-area sentinel tokens (`U+E000 LLITOK{n} LLITOK`) so Earmark cannot interfere; (2) `render_post_content/2` (from `SceneHelpers`) handles markdown + glyphs; (3) `restore_typeface_tokens/2` swaps tokens back, HTML-escaping the inner text and emitting `<span style="font-family: …; color: …">…</span>`. The trailing `LLITOK` sentinel prevents prefix collisions when there are 11+ tags (otherwise `LLITOK1` is a prefix of `LLITOK10`). Unknown typeface names render as literal `[name]…[/name]`. Imported globally via `StrangepathsWeb.view_helpers/0` to match BBS/Scene helper convention.
+
+**JavaScript hooks** (`assets/js/app.js`):
+
+- `LibraryBodyEditor` — Auto-grow textarea + push `update_preview` events for live markdown preview.
+- `LibraryComposer` — Sortable.js drag-to-reorder (with destroy-on-update to avoid memory leaks), shift-click range selection on scene posts (handler attached to the hook's element scope to avoid document-level leaks), and emits reorder events to the server.
+
+### Routing
+
+```
+live("/library", LibraryLive.FolioList, :index)
+live("/library/new", LibraryLive.FolioList, :new)
+live("/library/admin", LibraryLive.Admin)
+live("/library/:slug/compose", LibraryLive.Composer, :compose)
+live("/library/:slug", LibraryLive.Folio, :show)
+```
+
+### Cross-Context Additions
+
+- **Scenes context** gained `list_scenes_for_composer/0` and `list_scenes_with_user_posts/1` to support the composer's scene browser.
+- **Web layer** (`strangepaths_web.ex`) added a global `import StrangepathsWeb.LibraryHelpers` so templates can call `render_library_content/1` directly.
+- **LiveHelpers.format_relative_time/1** now accepts `NaiveDateTime` (converted to UTC `DateTime` for diffing).
+
+### Invariants and Security
+
+- **CSS injection guard:** Both `Entry.note_changeset` and `Marginalia.create_changeset` validate `color` against a hex regex and `font` against the Typefaces master list before allowing the value into a `style="…"` attribute.
+- **XSS guard in typefaces:** `render_library_content/1` HTML-escapes the inner text of each typeface tag; `font` and `color` come from the trusted `Typefaces` module, never from user input.
+- **Body editing is single-writer:** The mutex is enforced at the DB level via `update_all` with conditional `WHERE`, not at the LiveView level. The 5-minute timeout is enforced both server-side (`Process.send_after`) and DB-side (stale-lock claim).
+- **Dragon-only ops** (delete folio, assign/revoke typefaces): permission checks live in the LiveView. The data layer has no permission checks.
+- **Marginalia depth limit:** `@max_marginalia_depth = 3`. Returns `{:error, :max_depth_exceeded}` rather than raising.
+- **Tag normalization:** Tags are always lowercased and trimmed before insert and before lookup.
+- **Real-time delivery:** `create_marginalia/3` broadcasts on `library_folio:{folio_id}`; `LibraryLive.Folio` deduplicates by id when receiving broadcasts.
+
+### Library SCSS
+
+Library styles live in a dedicated block at the end of `assets/css/app.scss`. Class prefix is `.library-`. Key components include `.library-folio`, `.library-entry`, `.library-marginalia`, `.library-typeface-tag`, and search/filter form classes. Templates use these semantic classes (no Tailwind utilities mixed into the library templates beyond layout).
