@@ -73,9 +73,10 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
       {:ok, full_cast_scene} = Strangepaths.Scenes.create_scene(%{
         name: "Visible Cast Scene",
         owner_id: user.id,
-        locked_to_users: [],
-        tags: ["full cast session"]
+        locked_to_users: []
       })
+      # Tags are not cast in create_changeset; apply them via add_tag_to_scene/2
+      {:ok, full_cast_scene} = Strangepaths.Scenes.add_tag_to_scene(full_cast_scene, "full cast session")
       {:ok, _full_cast_post} = Strangepaths.Scenes.create_character_post(%{
         scene_id: full_cast_scene.id,
         user_id: user.id,
@@ -87,8 +88,7 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
       {:ok, hidden_scene} = Strangepaths.Scenes.create_scene(%{
         name: "Hidden Scene",
         owner_id: other_user.id,
-        locked_to_users: [],
-        tags: []
+        locked_to_users: []
       })
       {:ok, _hidden_post} = Strangepaths.Scenes.create_character_post(%{
         scene_id: hidden_scene.id,
@@ -130,9 +130,10 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
       {:ok, full_cast_scene} = Strangepaths.Scenes.create_scene(%{
         name: "Full Cast Styled Scene",
         owner_id: user.id,
-        locked_to_users: [],
-        tags: ["full cast session"]
+        locked_to_users: []
       })
+      # Tags are not cast in create_changeset; apply them via add_tag_to_scene/2
+      {:ok, full_cast_scene} = Strangepaths.Scenes.add_tag_to_scene(full_cast_scene, "full cast session")
       {:ok, _full_cast_post} = Strangepaths.Scenes.create_character_post(%{
         scene_id: full_cast_scene.id,
         user_id: user.id,
@@ -144,8 +145,7 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
       {:ok, ordinary_scene} = Strangepaths.Scenes.create_scene(%{
         name: "Ordinary Scene",
         owner_id: other_user.id,
-        locked_to_users: [],
-        tags: []
+        locked_to_users: []
       })
       {:ok, _ordinary_post} = Strangepaths.Scenes.create_character_post(%{
         scene_id: ordinary_scene.id,
