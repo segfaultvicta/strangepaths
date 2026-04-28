@@ -99,4 +99,25 @@ defmodule StrangepathsWeb.LibraryHelpersTest do
       assert result =~ ">item10<"
     end
   end
+
+  # Verifies: liminal-library.AC3.6
+  describe "render_library_content/2 - glyph pairs" do
+    test "glyph pairs render correctly inside render_library_content" do
+      # Test that glyphs from SceneHelpers work correctly when passed through render_library_content
+      # Glyphs like {⚗}text{⚗} should become <span class="inline-burning-gnosis">text</span>
+      content = "{⚗}burning flame{⚗} and {☉}radiant light{☉}"
+
+      result = render_library_content(content)
+
+      # Assert that glyph spans are rendered with the expected class names
+      assert result =~ ~r/class="inline-burning-gnosis"/
+      assert result =~ ~r/class="inline-radiant-gnosis"/
+      # Assert that the inner text is preserved
+      assert result =~ "burning flame"
+      assert result =~ "radiant light"
+      # Assert that the glyph characters are replaced with spans, not left bare
+      refute result =~ "{⚗}"
+      refute result =~ "{☉}"
+    end
+  end
 end
