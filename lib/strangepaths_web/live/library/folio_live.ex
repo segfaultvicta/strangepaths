@@ -56,7 +56,8 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:marginalia_flat_map, marginalia_flat_map)
          |> assign(:expanded_entries, MapSet.new())
          |> assign(:marginalia_form_entry_id, nil)
-         |> assign(:marginalia_reply_to_id, nil)}
+         |> assign(:marginalia_reply_to_id, nil)
+         |> assign(:lock_timer_ref, nil)}
     end
   end
 
@@ -116,12 +117,15 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     if socket.assigns.is_folio_editor do
       case Library.claim_body_lock(folio.id, user.id) do
         :ok ->
-          Process.send_after(self(), :body_lock_timeout, @lock_timeout_ms)
+          # Cancel any existing timer before scheduling a new one to prevent leaks
+          if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)
+          ref = Process.send_after(self(), :body_lock_timeout, @lock_timeout_ms)
 
           {:noreply,
            socket
            |> assign(:editing_body, true)
-           |> assign(:body_content, folio.body || "")}
+           |> assign(:body_content, folio.body || "")
+           |> assign(:lock_timer_ref, ref)}
 
         {:error, :locked} ->
           {:noreply, put_flash(socket, :error, "Another editor is currently editing the body.")}
@@ -133,7 +137,11 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
   def handle_event("cancel_edit_body", _params, socket) do
     Library.release_body_lock(socket.assigns.folio.id)
-    {:noreply, assign(socket, :editing_body, false)}
+    if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)
+    {:noreply,
+     socket
+     |> assign(:editing_body, false)
+     |> assign(:lock_timer_ref, nil)}
   end
 
   def handle_event("update_preview", %{"folio" => %{"body" => content}}, socket) do
@@ -148,17 +156,21 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
       case Library.save_body(socket.assigns.folio, socket.assigns.current_user.id, content) do
         :ok ->
           updated_folio = %{socket.assigns.folio | body: content}
+          if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)
 
           {:noreply,
            socket
            |> assign(:folio, updated_folio)
            |> assign(:editing_body, false)
-           |> assign(:preview_html, render_library_content(content))}
+           |> assign(:preview_html, render_library_content(content))
+           |> assign(:lock_timer_ref, nil)}
 
         {:error, :lock_lost} ->
+          if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)
           {:noreply,
            socket
            |> assign(:editing_body, false)
+           |> assign(:lock_timer_ref, nil)
            |> put_flash(:error, "Lock was lost. Your changes were not saved. Please try again.")}
       end
     else

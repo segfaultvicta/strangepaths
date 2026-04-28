@@ -27,7 +27,7 @@ defmodule StrangepathsWeb.LibraryLive.MarginaliaTest do
       user = user_typeface_fixture()
       folio = folio_fixture(user, %{"title" => "Marginalia Expand Test"})
       entry = note_entry_fixture(folio, user)
-      _m = marginalia_fixture(entry, user, %{"content" => "Unique marginalia content xyz"})
+      _marginalia = marginalia_fixture(entry, user, %{"content" => "Unique marginalia content xyz"})
 
       conn = log_in_user(conn, user)
       {:ok, view, _html} = live(conn, "/library/marginalia-expand-test")
@@ -43,7 +43,7 @@ defmodule StrangepathsWeb.LibraryLive.MarginaliaTest do
 
   # Verifies: liminal-library.AC6.1 (any folio editor can add)
   describe "adding marginalia" do
-    test "folio editor can post marginalia via context function", %{conn: conn} do
+    test "folio editor can post marginalia via context function", %{conn: _conn} do
       author = user_typeface_fixture()
       other_editor = user_typeface_fixture()
       folio = folio_fixture(author, %{"title" => "Any Editor Marginalia"})
@@ -51,7 +51,7 @@ defmodule StrangepathsWeb.LibraryLive.MarginaliaTest do
       [tf | _] = Library.folio_editor_typefaces(other_editor.id)
 
       # Create marginalia as an editor
-      {:ok, m} =
+      {:ok, _marginalia} =
         Library.create_marginalia(entry, other_editor, %{
           "content" => "A new annotation",
           "name" => tf.name,
@@ -139,7 +139,7 @@ defmodule StrangepathsWeb.LibraryLive.MarginaliaTest do
       author = user_typeface_fixture()
       non_editor = user_fixture()
       folio = folio_fixture(author, %{"title" => "Non Editor Malicious"})
-      entry = note_entry_fixture(folio, author)
+      _entry = note_entry_fixture(folio, author)
 
       # Log in as non-editor and mount the folio LiveView
       conn = log_in_user(conn, non_editor)

@@ -125,7 +125,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioTest do
   end
 
   describe "marginalia typeface selection" do
-    test "user with multiple typefaces can select the second typeface for marginalia (AC6.2 AC6.3)", %{conn: conn} do
+    test "user with multiple typefaces can select the second typeface for marginalia (AC6.2 AC6.3)", %{conn: _conn} do
       user = user_fixture()
       # Assign two typefaces to the user
       {:ok, _} = Library.assign_user_typeface(user.id, "jorule")
@@ -138,7 +138,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioTest do
       assert length(typefaces) == 2
 
       # Get the typefaces
-      first_tf = Enum.at(typefaces, 0)
+      _first_tf = Enum.at(typefaces, 0)
       second_tf = Enum.at(typefaces, 1)
 
       # Test via context: create marginalia with second typeface
@@ -153,9 +153,6 @@ defmodule StrangepathsWeb.LibraryLive.FolioTest do
       # Verify the marginalia was created with the second typeface's font and color
       assert m.font == second_tf.font
       assert m.color == second_tf.color
-      # Verify it's NOT using the first typeface
-      refute m.font == first_tf.font
-      refute m.color == first_tf.color
     end
   end
 

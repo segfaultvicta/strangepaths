@@ -7,6 +7,7 @@ defmodule Strangepaths.Library.Marginalia do
     field(:name, :string)
     field(:font, :string)
     field(:color, :string)
+    # bare :id field (not belongs_to) to avoid circular preload; depth computed via Repo.get in Library.marginalia_depth/1
     field(:parent_id, :id)
 
     belongs_to(:entry, Strangepaths.Library.Entry)
@@ -25,7 +26,7 @@ defmodule Strangepaths.Library.Marginalia do
   end
 
   defp validate_color(changeset) do
-    validate_format(changeset, :color, ~r/\A#[0-9a-fA-F]{3,8}\z/, message: "must be a hex color")
+    validate_format(changeset, :color, ~r/\A#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\z/, message: "must be a hex color (3, 4, 6, or 8 digits)")
   end
 
   defp validate_font(changeset) do

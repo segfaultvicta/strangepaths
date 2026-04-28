@@ -35,6 +35,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
            |> assign(:my_scenes_only, false)
            |> assign(:is_author, folio.user_id == user.id)
            |> assign(:is_dragon, user.role == :dragon)
+           |> assign(:selected_entry_ids, MapSet.new())
            |> load_scenes(user)}
         else
           {:ok,
@@ -115,18 +116,17 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
     position = socket.assigns.caret_position
 
-    range_ids
-    |> Enum.with_index(position)
-    |> Enum.each(fn {post_id, pos} ->
-      Library.create_post_entry(socket.assigns.folio, user, post_id, pos)
-    end)
+    case Library.create_post_entries_at(socket.assigns.folio, user, range_ids, position) do
+      {:ok, _entries} ->
+        entries = Library.list_entries(socket.assigns.folio.id)
+        {:noreply,
+         socket
+         |> assign(:entries, entries)
+         |> assign(:caret_position, position + length(range_ids))}
 
-    entries = Library.list_entries(socket.assigns.folio.id)
-
-    {:noreply,
-     socket
-     |> assign(:entries, entries)
-     |> assign(:caret_position, position + length(range_ids))}
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to add range.")}
+    end
   end
 
   def handle_event("set_range_anchor", %{"post-id" => post_id_str}, socket) do
@@ -134,7 +134,57 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   def handle_event("set_caret", %{"position" => pos_str}, socket) do
-    {:noreply, assign(socket, :caret_position, String.to_integer(pos_str))}
+    position = String.to_integer(pos_str) |> max(1) |> min(length(socket.assigns.entries) + 1)
+    {:noreply, assign(socket, :caret_position, position)}
+  end
+
+  def handle_event("toggle_entry_selection", %{"entry-id" => entry_id_str}, socket) do
+    entry_id = String.to_integer(entry_id_str)
+    selected = if MapSet.member?(socket.assigns.selected_entry_ids, entry_id) do
+      MapSet.delete(socket.assigns.selected_entry_ids, entry_id)
+    else
+      MapSet.put(socket.assigns.selected_entry_ids, entry_id)
+    end
+    {:noreply, assign(socket, :selected_entry_ids, selected)}
+  end
+
+  def handle_event("group_selected_entries", _params, socket) do
+    if socket.assigns.is_author || socket.assigns.is_dragon do
+      ids = MapSet.to_list(socket.assigns.selected_entry_ids)
+      if Enum.count(ids) >= 2 do
+        group_id = Ecto.UUID.generate()
+        Enum.each(ids, fn id ->
+          entry = Enum.find(socket.assigns.entries, &(&1.id == id))
+          if entry, do: Library.update_entry_group(entry, group_id)
+        end)
+        entries = Library.list_entries(socket.assigns.folio.id)
+        {:noreply,
+         socket
+         |> assign(:entries, entries)
+         |> assign(:selected_entry_ids, MapSet.new())}
+      else
+        {:noreply, put_flash(socket, :error, "Select at least 2 entries to group.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  def handle_event("ungroup_selected_entries", _params, socket) do
+    if socket.assigns.is_author || socket.assigns.is_dragon do
+      ids = MapSet.to_list(socket.assigns.selected_entry_ids)
+      Enum.each(ids, fn id ->
+        entry = Enum.find(socket.assigns.entries, &(&1.id == id))
+        if entry, do: Library.update_entry_group(entry, nil)
+      end)
+      entries = Library.list_entries(socket.assigns.folio.id)
+      {:noreply,
+       socket
+       |> assign(:entries, entries)
+       |> assign(:selected_entry_ids, MapSet.new())}
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
   end
 
   def handle_event("shift_select_post", %{"post-id" => post_id_str, "scene-id" => scene_id_str}, socket) do
@@ -207,21 +257,6 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     end
   end
 
-  def handle_event("group_entries", %{"ids" => ids_str}, socket) do
-    if socket.assigns.is_author || socket.assigns.is_dragon do
-      ids = String.split(ids_str, ",") |> Enum.map(&String.to_integer/1)
-      group_id = Ecto.UUID.generate()
-      # Update all selected entries to share this group_id
-      Enum.each(ids, fn id ->
-        entry = Enum.find(socket.assigns.entries, &(&1.id == id))
-        if entry, do: Library.update_entry_group(entry, group_id)
-      end)
-      entries = Library.list_entries(socket.assigns.folio.id)
-      {:noreply, assign(socket, :entries, entries)}
-    else
-      {:noreply, put_flash(socket, :error, "Unauthorized.")}
-    end
-  end
 
   # --- Private helpers ---
 
@@ -240,7 +275,9 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   defp recompute_visible_scenes(socket) do
     scenes = if socket.assigns.my_scenes_only do
-      Enum.filter(socket.assigns.all_scenes, &MapSet.member?(socket.assigns.my_scene_ids, &1.id))
+      Enum.filter(socket.assigns.all_scenes, fn s ->
+        "full cast session" in (s.tags || []) or MapSet.member?(socket.assigns.my_scene_ids, s.id)
+      end)
     else
       socket.assigns.all_scenes
     end

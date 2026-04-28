@@ -37,7 +37,7 @@ defmodule Strangepaths.Library.Entry do
   end
 
   defp validate_color(changeset) do
-    validate_format(changeset, :color, ~r/\A#[0-9a-fA-F]{3,8}\z/, message: "must be a hex color")
+    validate_format(changeset, :color, ~r/\A#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\z/, message: "must be a hex color (3, 4, 6, or 8 digits)")
   end
 
   defp validate_font(changeset) do

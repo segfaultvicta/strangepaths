@@ -76,6 +76,7 @@ defmodule Strangepaths.Library do
       )
 
     # Text search across title, subtitle, body
+    # TODO: migrate to tsvector + GIN index + ts_rank for full-text search once folio count grows; ILIKE is fine for small datasets
     query =
       if query_str && String.trim(query_str) != "" do
         pattern = "%#{query_str}%"
@@ -274,6 +275,41 @@ defmodule Strangepaths.Library do
     end
   end
 
+  def create_post_entries_at(folio, user, post_ids, position) do
+    case Repo.transaction(fn ->
+      # Use temporary negative positions to avoid unique constraint violations during shift.
+      # First, shift all entries at position >= position to temporary negative positions.
+      from(e in Entry, where: e.folio_id == ^folio.id and e.position >= ^position)
+      |> Repo.update_all(inc: [position: -10_000])
+
+      # Then shift them to their final positions (incrementing by 10_001 to get positive positions).
+      from(e in Entry, where: e.folio_id == ^folio.id and e.position < 0)
+      |> Repo.update_all(inc: [position: 10_001])
+
+      # Insert all entries with consecutive positions starting at position
+      entries =
+        post_ids
+        |> Enum.with_index(position)
+        |> Enum.map(fn {post_id, pos} ->
+          now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+          %{
+            folio_id: folio.id,
+            user_id: user.id,
+            scene_post_id: post_id,
+            position: pos,
+            kind: :post_ref,
+            inserted_at: now,
+            updated_at: now
+          }
+        end)
+
+      Repo.insert_all(Entry, entries, returning: true)
+    end) do
+      {:ok, {_count, entries}} -> {:ok, entries}
+      error -> error
+    end
+  end
+
   def create_note_entry(folio, user, attrs, position \\ nil) do
     pos = position || next_entry_position(folio.id)
 
@@ -305,11 +341,14 @@ defmodule Strangepaths.Library do
 
   def delete_entry(entry), do: Repo.delete(entry)
 
-  def update_note_entry(entry, attrs) do
-    entry
-    |> Entry.note_changeset(attrs)
-    |> Repo.update()
-  end
+  # AC5.2: Note editing is deferred (not implemented in the UI).
+  # The update_note_entry/2 function has been removed per code review cleanup.
+  # If note editing is implemented in a future phase, add back:
+  #   def update_note_entry(entry, attrs) do
+  #     entry
+  #     |> Entry.note_changeset(attrs)
+  #     |> Repo.update()
+  #   end
 
   def reorder_entries(folio_id, ordered_ids) do
     result = Repo.transaction(fn ->
