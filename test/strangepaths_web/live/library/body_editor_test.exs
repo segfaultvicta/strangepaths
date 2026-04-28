@@ -93,7 +93,7 @@ defmodule StrangepathsWeb.LibraryLive.BodyEditorTest do
       # Trigger preview update
       html =
         view
-        |> element("form")
+        |> element("form[phx-submit='save_body']")
         |> render_change(%{folio: %{body: "**preview content**"}})
 
       assert html =~ "<strong>preview content</strong>"

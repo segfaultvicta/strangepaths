@@ -2,7 +2,6 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
   use StrangepathsWeb, :live_view
 
   alias Strangepaths.Library
-  alias Strangepaths.Accounts
 
   @impl true
   def mount(_params, session, socket) do
@@ -16,7 +15,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
      |> assign(:filter_author_id, nil)
      |> assign(:filter_tag, "")
      |> assign(:sort_by, :date)
-     |> assign(:all_users, Accounts.list_users())
+     |> assign(:all_users, Library.list_folio_authors())
      |> assign(:folios, Library.search_folios([]))
      |> assign(:folio_changeset, nil)
      |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))}
@@ -104,6 +103,9 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
         tag: socket.assigns.filter_tag,
         sort_by: socket.assigns.sort_by
       ]
+      # Note: sort_by is always an atom (:date, :title, or :author) and never nil/empty,
+      # so it always passes through the filter. If the default changes from :date, ensure
+      # it remains truthy (an atom is always truthy, so any atom value works fine).
       |> Enum.reject(fn {_k, v} -> v == nil or v == "" end)
 
     assign(socket, :folios, Library.search_folios(opts))

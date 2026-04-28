@@ -558,6 +558,15 @@ defmodule Strangepaths.LibraryTest do
       assert first.id == f2.id
     end
 
+    test "sort_by :title with tag filter returns folios in alphabetic order", %{folio1: f1, folio2: f2} do
+      # Add the same tag to both folios to ensure both are in results
+      Library.add_tag(f2, "history")
+      results = Library.search_folios(tag: "history", sort_by: :title)
+      ids = Enum.map(results, & &1.id)
+      # "Amber Studies" < "The Crimson Archives" alphabetically
+      assert ids == [f2.id, f1.id]
+    end
+
     test "sort_by :date returns newest first" do
       # folio2 was inserted after folio1 in the setup
       results = Library.search_folios(sort_by: :date)

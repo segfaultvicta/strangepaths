@@ -43,6 +43,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:folio, folio)
          |> assign(:entries, entries)
          |> assign(:folio_tags, folio_tags)
+         |> assign(:new_tag_value, "")
          |> assign(:editing_title, false)
          |> assign(:title_changeset, Library.change_folio(folio))
          |> assign(:is_author, user != nil && folio.user_id == user.id)
@@ -260,7 +261,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
     if socket.assigns.is_folio_editor && tag != "" do
       Library.add_tag(socket.assigns.folio, tag)
-      {:noreply, load_folio_tags(socket)}
+      {:noreply, load_folio_tags(socket) |> assign(:new_tag_value, "")}
     else
       {:noreply, socket}
     end

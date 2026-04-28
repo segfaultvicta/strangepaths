@@ -68,7 +68,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioListTest do
 
       _html =
         view
-        |> form("form", folio: %{title: "The Weight of Names", subtitle: "A Collection"})
+        |> form("form[phx-submit='create_folio']", folio: %{title: "The Weight of Names", subtitle: "A Collection"})
         |> render_submit()
 
       # Should redirect to the folio view
@@ -96,7 +96,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioListTest do
 
       html =
         view
-        |> form("form", folio: %{title: "Duplicate Title"})
+        |> form("form[phx-submit='create_folio']", folio: %{title: "Duplicate Title"})
         |> render_submit()
 
       assert html =~ "has already been taken"

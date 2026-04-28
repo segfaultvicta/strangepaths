@@ -45,6 +45,15 @@ defmodule Strangepaths.Library do
     |> Repo.all()
   end
 
+  def list_folio_authors do
+    from(u in Strangepaths.Accounts.User,
+      join: f in Folio, on: f.user_id == u.id,
+      distinct: u.id,
+      order_by: u.nickname
+    )
+    |> Repo.all()
+  end
+
   @doc """
   Search and filter folios. Returns a list of Folio structs with :user preloaded.
 
@@ -89,16 +98,12 @@ defmodule Strangepaths.Library do
         query
       end
 
-    # Tag filter — join FolioTag, ILIKE match, distinct to avoid duplicates
+    # Tag filter — use subquery to avoid DISTINCT ON interfering with ORDER BY
     query =
       if tag_filter && String.trim(tag_filter) != "" do
         tag_pattern = "%#{String.downcase(String.trim(tag_filter))}%"
-
-        from([f] in query,
-          join: ft in FolioTag, on: ft.folio_id == f.id,
-          where: ilike(ft.tag, ^tag_pattern),
-          distinct: f.id
-        )
+        tag_subquery = from(ft in FolioTag, where: ilike(ft.tag, ^tag_pattern), select: ft.folio_id)
+        from([f] in query, where: f.id in subquery(tag_subquery))
       else
         query
       end
