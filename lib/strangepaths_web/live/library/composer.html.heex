@@ -114,6 +114,21 @@
         title="Set insertion point here"
       ></div>
 
+      <!-- Add note form at position 1 if list is empty or caret is at position 1 -->
+      <%= if Enum.empty?(@entries) || @caret_position == 1 do %>
+        <div class="mb-2">
+          <form phx-submit="add_note">
+            <input type="hidden" name="position" value="1" />
+            <textarea
+              name="note[content]"
+              placeholder="Add inline note..."
+              class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
+            ></textarea>
+            <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded mt-1">+ Add note</button>
+          </form>
+        </div>
+      <% end %>
+
       <%= for {entry, index} <- Enum.with_index(@entries, 1) do %>
         <div
           id={"entry-#{entry.id}"}

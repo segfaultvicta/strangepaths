@@ -836,16 +836,49 @@ Hooks.LibraryComposer = {
     },
 
     updated() {
+        // Destroy the old Sortable instance before re-initializing to prevent memory leaks
+        if (this.sortable) {
+            this.sortable.destroy();
+        }
         this.initSortable();
+    },
+
+    destroyed() {
+        // Clean up Sortable instance when the hook is destroyed
+        if (this.sortable) {
+            this.sortable.destroy();
+        }
+        // Remove the shift-click listener when the hook is destroyed
+        if (this.onDocClick) {
+            document.removeEventListener("click", this.onDocClick);
+        }
     },
 
     initSortable() {
         const list = this.el.querySelector("#composer-entry-list") || this.el;
-        new Sortable(list, {
+        this.sortable = new Sortable(list, {
             animation: 150,
             ghostClass: "opacity-50",
             handle: ".drag-handle",
             onEnd: (event) => {
+                // Check if the dragged entry belongs to a group
+                const draggedEl = event.item;
+                const draggedGroupId = draggedEl.dataset.groupId;
+
+                // If the entry has a group_id, move all group members together
+                if (draggedGroupId) {
+                    const groupEntries = Array.from(list.querySelectorAll(`[data-group-id="${draggedGroupId}"]`));
+                    const draggedIndex = Array.from(list.querySelectorAll("[data-entry-id]")).indexOf(draggedEl);
+
+                    // Move all group members to follow the dragged entry
+                    groupEntries.forEach((entry, idx) => {
+                        if (entry !== draggedEl) {
+                            list.insertBefore(entry, draggedEl.nextSibling);
+                        }
+                    });
+                }
+
+                // Collect the final order and send to server
                 const items = list.querySelectorAll("[data-entry-id]");
                 const orderedIds = Array.from(items)
                     .map((el) => el.dataset.entryId)
@@ -858,9 +891,14 @@ Hooks.LibraryComposer = {
     },
 
     initShiftClick() {
-        document.addEventListener("click", (e) => {
+        // Store the handler so it can be removed in destroyed()
+        this.onDocClick = (e) => {
             const postEl = e.target.closest("[id^='browser-post-']");
             if (!postEl || !e.shiftKey) return;
+
+            // Prevent the native phx-click from firing
+            e.preventDefault();
+            e.stopPropagation();
 
             const postId = postEl.id.replace("browser-post-", "");
             const sceneEl = postEl.closest("[data-scene-id]");
@@ -872,7 +910,9 @@ Hooks.LibraryComposer = {
                     "scene-id": sceneId,
                 });
             }
-        });
+        };
+
+        document.addEventListener("click", this.onDocClick);
     },
 }
 

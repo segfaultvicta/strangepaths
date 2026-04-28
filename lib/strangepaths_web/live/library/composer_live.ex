@@ -89,6 +89,9 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
          |> assign(:entries, entries)
          |> assign(:caret_position, position + 1)
          |> assign(:range_anchor_post_id, post_id)}
+        # Note: range_anchor_post_id is set to the newly added post to enable shift-click
+        # range selection from the next post. Clicking a different post without holding
+        # Shift will overwrite the anchor, allowing the user to start a new range.
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not add post.")}
@@ -189,7 +192,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         {:noreply, socket}
       end
     else
-      {:noreply, socket}
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 
@@ -200,7 +203,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
       entries = Library.list_entries(socket.assigns.folio.id)
       {:noreply, assign(socket, :entries, entries)}
     else
-      {:noreply, socket}
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 
@@ -216,20 +219,16 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
       entries = Library.list_entries(socket.assigns.folio.id)
       {:noreply, assign(socket, :entries, entries)}
     else
-      {:noreply, socket}
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
   end
 
   # --- Private helpers ---
 
   defp load_scenes(socket, user) do
-    all_scenes =
-      if socket.assigns.my_scenes_only do
-        Scenes.list_scenes_with_user_posts(user.id)
-      else
-        Scenes.list_scenes_for_composer()
-      end
+    all_scenes = Scenes.list_scenes_for_composer()
 
+    # Only build my_scene_ids if user exists (used for "Scenes I was in" toggle)
     my_scene_ids =
       if user, do: MapSet.new(Scenes.list_scenes_with_user_posts(user.id), & &1.id), else: MapSet.new()
 
@@ -258,7 +257,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
       # full cast session scenes are always visible
       "full cast session" in scene.tags or
         String.contains?(String.downcase(scene.name), q) or
-        Enum.any?(scene.tags, &String.contains?(&1, q))
+        Enum.any?(scene.tags, &String.contains?(String.downcase(&1), q))
     end)
   end
 

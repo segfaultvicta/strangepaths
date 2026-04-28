@@ -169,27 +169,49 @@ defmodule Strangepaths.Library do
   def create_post_entry(folio, user, scene_post_id, position \\ nil) do
     pos = position || next_entry_position(folio.id)
 
-    %Entry{}
-    |> Entry.post_ref_changeset(%{
-      folio_id: folio.id,
-      user_id: user.id,
-      scene_post_id: scene_post_id,
-      position: pos
-    })
-    |> Repo.insert()
+    case Repo.transaction(fn ->
+      # Shift all entries at position >= pos up by 1
+      from(e in Entry, where: e.folio_id == ^folio.id and e.position >= ^pos)
+      |> Repo.update_all(inc: [position: 1])
+
+      # Insert new entry at the caret position
+      %Entry{}
+      |> Entry.post_ref_changeset(%{
+        folio_id: folio.id,
+        user_id: user.id,
+        scene_post_id: scene_post_id,
+        position: pos
+      })
+      |> Repo.insert()
+    end) do
+      {:ok, {:ok, entry}} -> {:ok, entry}
+      {:ok, {:error, changeset}} -> {:error, changeset}
+      error -> error
+    end
   end
 
   def create_note_entry(folio, user, attrs, position \\ nil) do
     pos = position || next_entry_position(folio.id)
 
-    %Entry{}
-    |> Entry.note_changeset(
-      attrs
-      |> Map.put("folio_id", folio.id)
-      |> Map.put("user_id", user.id)
-      |> Map.put("position", pos)
-    )
-    |> Repo.insert()
+    case Repo.transaction(fn ->
+      # Shift all entries at position >= pos up by 1
+      from(e in Entry, where: e.folio_id == ^folio.id and e.position >= ^pos)
+      |> Repo.update_all(inc: [position: 1])
+
+      # Insert new entry at the caret position
+      %Entry{}
+      |> Entry.note_changeset(
+        attrs
+        |> Map.put("folio_id", folio.id)
+        |> Map.put("user_id", user.id)
+        |> Map.put("position", pos)
+      )
+      |> Repo.insert()
+    end) do
+      {:ok, {:ok, entry}} -> {:ok, entry}
+      {:ok, {:error, changeset}} -> {:error, changeset}
+      error -> error
+    end
   end
 
   def delete_entry(entry), do: Repo.delete(entry)
@@ -202,11 +224,21 @@ defmodule Strangepaths.Library do
 
   def reorder_entries(folio_id, ordered_ids) do
     result = Repo.transaction(fn ->
+      # Use temporary negative positions to avoid unique constraint violations
+      # First, assign temporary negative positions based on current order
+      ordered_ids
+      |> Enum.with_index()
+      |> Enum.each(fn {id, temp_pos} ->
+        from(e in Entry, where: e.id == ^id and e.folio_id == ^folio_id)
+        |> Repo.update_all(set: [position: -(temp_pos + 1)])
+      end)
+
+      # Then assign the final positive positions
       ordered_ids
       |> Enum.with_index(1)
-      |> Enum.each(fn {id, position} ->
+      |> Enum.each(fn {id, final_pos} ->
         from(e in Entry, where: e.id == ^id and e.folio_id == ^folio_id)
-        |> Repo.update_all(set: [position: position])
+        |> Repo.update_all(set: [position: final_pos])
       end)
     end)
 

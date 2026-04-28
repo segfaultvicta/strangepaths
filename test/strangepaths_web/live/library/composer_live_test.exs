@@ -198,18 +198,20 @@ defmodule StrangepathsWeb.LibraryLive.ComposerTest do
 
       {:ok, view, _html} = live(conn, "/library/#{folio.slug}/compose")
 
-      # Verify both entries exist
+      # Verify both entries exist in original order (positions 1, 2)
       entries = Library.list_entries(folio.id)
       assert length(entries) == 2
+      assert Enum.map(entries, & &1.id) == [note1.id, note2.id]
 
       # Simulate drag reorder by reversing the IDs
       view
       |> element("div#composer-entry-list")
       |> render_hook("reorder_entries", %{ids: "#{note2.id},#{note1.id}"})
 
-      # Entries should still exist after reorder
+      # Entries should be reordered with note2 first, then note1
       entries = Library.list_entries(folio.id)
       assert length(entries) == 2
+      assert Enum.map(entries, & &1.id) == [note2.id, note1.id]
     end
   end
 end
