@@ -1966,6 +1966,10 @@ a:hover{
   margin-top: 190px;
 }
 
+.ml-3{
+  margin-left: 0.75rem;
+}
+
 .mb-12{
   margin-bottom: 3rem;
 }
@@ -2086,6 +2090,10 @@ a:hover{
   height: 16rem;
 }
 
+.h-screen{
+  height: 100vh;
+}
+
 .h-\[100px\]{
   height: 100px;
 }
@@ -2156,6 +2164,10 @@ a:hover{
 
 .w-64{
   width: 16rem;
+}
+
+.w-1\/2{
+  width: 50%;
 }
 
 .w-6{
@@ -2577,6 +2589,18 @@ a:hover{
   border-left-width: 4px;
 }
 
+.border-r{
+  border-right-width: 1px;
+}
+
+.border-l{
+  border-left-width: 1px;
+}
+
+.border-t-2{
+  border-top-width: 2px;
+}
+
 .border-l-2{
   border-left-width: 2px;
 }
@@ -2654,6 +2678,23 @@ a:hover{
   border-color: rgb(129 140 248 / var(--tw-border-opacity));
 }
 
+.border-gray-800{
+  --tw-border-opacity: 1;
+  border-color: rgb(31 41 55 / var(--tw-border-opacity));
+}
+
+.border-emerald-900\/50{
+  border-color: rgb(6 78 59 / 0.5);
+}
+
+.border-gray-800\/50{
+  border-color: rgb(31 41 55 / 0.5);
+}
+
+.border-amber-900\/50{
+  border-color: rgb(120 53 15 / 0.5);
+}
+
 .border-gray-500{
   --tw-border-opacity: 1;
   border-color: rgb(107 114 128 / var(--tw-border-opacity));
@@ -2687,11 +2728,6 @@ a:hover{
 .border-white{
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
-}
-
-.border-gray-800{
-  --tw-border-opacity: 1;
-  border-color: rgb(31 41 55 / var(--tw-border-opacity));
 }
 
 .bg-green-600{
@@ -2905,6 +2941,10 @@ a:hover{
   background-color: rgb(30 64 175 / var(--tw-bg-opacity));
 }
 
+.bg-transparent{
+  background-color: transparent;
+}
+
 .bg-blue-900{
   --tw-bg-opacity: 1;
   background-color: rgb(30 58 138 / var(--tw-bg-opacity));
@@ -2933,10 +2973,6 @@ a:hover{
 .bg-gray-300{
   --tw-bg-opacity: 1;
   background-color: rgb(209 213 219 / var(--tw-bg-opacity));
-}
-
-.bg-transparent{
-  background-color: transparent;
 }
 
 .bg-purple-900\/20{
@@ -3253,6 +3289,14 @@ a:hover{
   padding-top: 1.25rem;
 }
 
+.pr-4{
+  padding-right: 1rem;
+}
+
+.pl-2{
+  padding-left: 0.5rem;
+}
+
 .pt-24{
   padding-top: 6rem;
 }
@@ -3263,10 +3307,6 @@ a:hover{
 
 .pt-\[100px\]{
   padding-top: 100px;
-}
-
-.pr-4{
-  padding-right: 1rem;
 }
 
 .text-left{
@@ -3752,13 +3792,13 @@ a:hover{
   --tw-ring-color: rgb(192 132 252 / var(--tw-ring-opacity));
 }
 
-.blur-sm{
-  --tw-blur: blur(4px);
+.blur{
+  --tw-blur: blur(8px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
-.blur{
-  --tw-blur: blur(8px);
+.blur-sm{
+  --tw-blur: blur(4px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
@@ -6397,14 +6437,14 @@ input[type=range].slider-purple::-moz-range-progress {
   border-color: rgb(192 132 252 / var(--tw-border-opacity));
 }
 
-.hover\:border-gray-300:hover{
-  --tw-border-opacity: 1;
-  border-color: rgb(209 213 219 / var(--tw-border-opacity));
-}
-
 .hover\:border-gray-600:hover{
   --tw-border-opacity: 1;
   border-color: rgb(75 85 99 / var(--tw-border-opacity));
+}
+
+.hover\:border-gray-300:hover{
+  --tw-border-opacity: 1;
+  border-color: rgb(209 213 219 / var(--tw-border-opacity));
 }
 
 .hover\:bg-green-500:hover{
@@ -6557,6 +6597,15 @@ input[type=range].slider-purple::-moz-range-progress {
   background-color: rgb(96 165 250 / var(--tw-bg-opacity));
 }
 
+.hover\:bg-gray-900:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-gray-700\/50:hover{
+  background-color: rgb(55 65 81 / 0.5);
+}
+
 .hover\:bg-purple-600:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(147 51 234 / var(--tw-bg-opacity));
@@ -6570,11 +6619,6 @@ input[type=range].slider-purple::-moz-range-progress {
 .hover\:bg-gray-100:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity));
-}
-
-.hover\:bg-gray-900:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(17 24 39 / var(--tw-bg-opacity));
 }
 
 .hover\:text-purple-300:hover{

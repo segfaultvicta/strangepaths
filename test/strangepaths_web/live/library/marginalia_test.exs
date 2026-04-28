@@ -64,6 +64,54 @@ defmodule StrangepathsWeb.LibraryLive.MarginaliaTest do
       assert hd(entries).content == "A new annotation"
       assert hd(entries).user_id == other_editor.id
     end
+
+    # Verifies: typeface selection with string IDs (AC6.2 regression test)
+    test "folio editor can submit marginalia with specific typeface selected (string ID)", %{conn: conn} do
+      author = user_typeface_fixture()
+      # Create an editor with two typefaces assigned
+      other_editor = user_typeface_fixture(user_fixture(), "jorule")
+      Library.assign_user_typeface(other_editor.id, "seraph")
+
+      folio = folio_fixture(author, %{"title" => "Typeface Selection Test"})
+      entry = note_entry_fixture(folio, author)
+
+      # Get the editor's typefaces (should be string IDs like "jorule", "seraph", etc.)
+      typefaces = Library.folio_editor_typefaces(other_editor.id)
+      assert length(typefaces) >= 2
+
+      # Take the second typeface for this test
+      second_tf = Enum.at(typefaces, 1)
+      assert is_binary(second_tf.id), "Typeface ID must be a string"
+
+      conn = log_in_user(conn, other_editor)
+      {:ok, view, _html} = live(conn, "/library/typeface-selection-test")
+
+      # Expand the marginalia thread for this entry
+      view
+      |> element("button[phx-click='toggle_marginalia_thread'][phx-value-entry-id='#{entry.id}']")
+      |> render_click()
+
+      # Open the marginalia form
+      view
+      |> element("button[phx-click='open_marginalia_form'][phx-value-entry-id='#{entry.id}']")
+      |> render_click()
+
+      # Submit with the second typeface's ID (a string like "seraph")
+      view
+      |> form("form[phx-submit='submit_marginalia']", marginalia: %{
+        "content" => "Comment with second typeface",
+        "typeface_id" => second_tf.id
+      })
+      |> render_submit()
+
+      # Verify the marginalia was created with the correct typeface
+      all_marginalia = Library.list_all_marginalia_for_folio(folio.id)
+      assert length(all_marginalia) == 1
+      m = hd(all_marginalia)
+      assert m.content == "Comment with second typeface"
+      assert m.font == second_tf.font
+      assert m.color == second_tf.color
+    end
   end
 
   # Verifies: liminal-library.AC6.7 (non-editor cannot add)
@@ -86,40 +134,30 @@ defmodule StrangepathsWeb.LibraryLive.MarginaliaTest do
       refute html =~ "open_marginalia_form"
     end
 
-    # AC6.7: Verify server-side rejection when non-editor attempts to create marginalia
-    test "non-editor cannot create marginalia via context", %{conn: conn} do
+    # AC6.7: Verify server-side rejection when non-editor attempts to create marginalia via LiveView
+    test "non-editor is blocked by LiveView guard when submitting marginalia", %{conn: conn} do
       author = user_typeface_fixture()
       non_editor = user_fixture()
       folio = folio_fixture(author, %{"title" => "Non Editor Malicious"})
       entry = note_entry_fixture(folio, author)
 
-      # Non-editor has no typefaces, so trying to create marginalia should fail
-      # (or the context should still prevent it)
-      # This test verifies the server-side checks are in place
-      result =
-        Library.create_marginalia(entry, non_editor, %{
+      # Log in as non-editor and mount the folio LiveView
+      conn = log_in_user(conn, non_editor)
+      {:ok, view, _html} = live(conn, "/library/non-editor-malicious")
+
+      # Attempt to submit a marginalia event directly (bypassing the form button check)
+      render_hook(view, "submit_marginalia", %{
+        "marginalia" => %{
           "content" => "Malicious marginalia",
-          "name" => "Hacker",
-          "font" => "'IM Fell English', serif",
-          "color" => "#8b5cf6"
-        })
+          "typeface_id" => ""
+        }
+      })
 
-      # The marginalia may be created (context doesn't check editor status),
-      # but the key point is the permission check is in the LiveView
-      # This test verifies the insert itself is server-safe with whitelisted fonts/colors
-      case result do
-        {:ok, m} ->
-          # If created, verify the validation worked (font/color are valid)
-          assert m.font == "'IM Fell English', serif"
-          assert m.color == "#8b5cf6"
+      # Verify the submission is rejected with "Unauthorized." flash
+      assert render(view) =~ "Unauthorized."
 
-        {:error, _} ->
-          # Error is also acceptable (DB constraints)
-          true
-      end
-
-      # The real protection is in the LiveView's is_folio_editor check
-      # which happens before calling Library.create_marginalia
+      # Verify no marginalia was created in the database
+      assert Library.list_all_marginalia_for_folio(folio.id) == []
     end
   end
 

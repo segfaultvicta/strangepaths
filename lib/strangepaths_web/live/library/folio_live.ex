@@ -210,56 +210,44 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
       # Determine which typeface to use
       typefaces = Library.folio_editor_typefaces(user.id)
 
-      # Coerce typeface_id string to integer, handling nil/"" gracefully
-      tf_id_str = attrs["typeface_id"]
-      tf_id =
+      # Compare typeface_id string to string directly (typeface IDs are strings like "jorule", not integers)
+      tf_id = attrs["typeface_id"]
+      tf =
         cond do
-          tf_id_str && tf_id_str != "" ->
-            case Integer.parse(tf_id_str) do
-              {id, _} -> id
-              :error -> nil
-            end
+          is_binary(tf_id) and tf_id != "" -> Enum.find(typefaces, &(&1.id == tf_id))
           true -> nil
         end
 
-      # Look up the typeface by id; validate it's in the user's assigned typefaces
-      tf =
-        cond do
-          tf_id ->
-            Enum.find(typefaces, &(&1.id == tf_id))
-          true ->
-            nil
-        end
+      cond do
+        typefaces == [] ->
+          {:noreply, put_flash(socket, :error, "You have no typefaces assigned.")}
 
-      # If typeface selection failed or was invalid, flash error and reject
-      if tf == nil and typefaces != [] do
-        {:noreply,
-         socket
-         |> put_flash(:error, "Invalid typeface selection.")}
-      else
-        # Fallback to first typeface if none selected and typefaces exist
-        selected_tf = tf || List.first(typefaces)
+        is_binary(tf_id) and tf_id != "" and tf == nil ->
+          {:noreply, put_flash(socket, :error, "Invalid typeface selection.")}
 
-        full_attrs =
-          attrs
-          |> Map.put("name", selected_tf && selected_tf.name || "")
-          |> Map.put("font", selected_tf && selected_tf.font || "")
-          |> Map.put("color", selected_tf && selected_tf.color || "")
-          |> Map.put("parent_id", socket.assigns.marginalia_reply_to_id)
+        true ->
+          selected_tf = tf || List.first(typefaces)
 
-        case Library.create_marginalia(entry, user, full_attrs) do
-          {:ok, _marginalia} ->
-            {:noreply,
-             socket
-             |> assign(:marginalia_form_entry_id, nil)
-             |> assign(:marginalia_reply_to_id, nil)}
+          full_attrs =
+            attrs
+            |> Map.put("name", selected_tf.name)
+            |> Map.put("font", selected_tf.font)
+            |> Map.put("color", selected_tf.color)
+            |> Map.put("parent_id", socket.assigns.marginalia_reply_to_id)
 
-          {:error, :max_depth_exceeded} ->
-            {:noreply, put_flash(socket, :error, "Cannot reply this deeply.")}
+          case Library.create_marginalia(entry, user, full_attrs) do
+            {:ok, _marginalia} ->
+              {:noreply,
+               socket
+               |> assign(:marginalia_form_entry_id, nil)
+               |> assign(:marginalia_reply_to_id, nil)}
 
-          {:error, _changeset} ->
-            {:noreply, put_flash(socket, :error, "Failed to post marginalia.")}
-        end
+            {:error, :max_depth_exceeded} ->
+              {:noreply, put_flash(socket, :error, "Cannot reply this deeply.")}
+
+            {:error, _changeset} ->
+              {:noreply, put_flash(socket, :error, "Failed to post marginalia.")}
+          end
       end
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
