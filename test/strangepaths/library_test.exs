@@ -291,6 +291,20 @@ defmodule Strangepaths.LibraryTest do
       assert info.locked_by_id == user2.id
     end
 
+    test "claim_body_lock allows same user to reclaim their own lock" do
+      folio = folio_fixture()
+      user = user_typeface_fixture()
+
+      # User claims the lock
+      :ok = Library.claim_body_lock(folio.id, user.id)
+
+      # User reconnects immediately and reclaims (simulates socket crash/reconnect)
+      assert :ok = Library.claim_body_lock(folio.id, user.id)
+
+      info = Library.get_folio_lock_info(folio.id)
+      assert info.locked_by_id == user.id
+    end
+
     test "release_body_lock clears the lock" do
       folio = folio_fixture()
       user = user_typeface_fixture()

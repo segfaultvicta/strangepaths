@@ -39,11 +39,6 @@ defmodule Strangepaths.Library.Folio do
     |> unique_constraint(:slug)
   end
 
-  def body_changeset(folio, attrs) do
-    folio
-    |> cast(attrs, [:body, :body_locked_by_id, :body_locked_at])
-  end
-
   defp put_slug(changeset) do
     case get_change(changeset, :title) do
       nil -> changeset

@@ -49,7 +49,7 @@ defmodule StrangepathsWeb.LibraryLive.BodyEditorTest do
 
       html = view |> element("button[phx-click='claim_body_lock']") |> render_click()
 
-      assert html =~ "Another editor" || render(view) =~ "Another editor"
+      assert html =~ "Another editor"
     end
   end
 

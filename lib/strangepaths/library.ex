@@ -87,7 +87,9 @@ defmodule Strangepaths.Library do
       from(f in Folio,
         where:
           f.id == ^folio_id and
-            (is_nil(f.body_locked_by_id) or f.body_locked_at < ^stale_before)
+            (is_nil(f.body_locked_by_id) or
+               f.body_locked_at < ^stale_before or
+               f.body_locked_by_id == ^user_id)
       )
       |> Repo.update_all(set: [body_locked_by_id: user_id, body_locked_at: now])
 
@@ -110,7 +112,7 @@ defmodule Strangepaths.Library do
         where: f.id == ^folio.id and f.body_locked_by_id == ^user_id
       )
       |> Repo.update_all(
-        set: [body: content, body_locked_by_id: nil, body_locked_at: nil, updated_at: DateTime.utc_now()]
+        set: [body: content, body_locked_by_id: nil, body_locked_at: nil, updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)]
       )
 
     if count == 1, do: :ok, else: {:error, :lock_lost}

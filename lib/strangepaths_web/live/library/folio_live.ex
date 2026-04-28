@@ -136,7 +136,10 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
            |> assign(:preview_html, render_library_content(content))}
 
         {:error, :lock_lost} ->
-          {:noreply, put_flash(socket, :error, "Lock was lost. Your changes were not saved. Please try again.")}
+          {:noreply,
+           socket
+           |> assign(:editing_body, false)
+           |> put_flash(:error, "Lock was lost. Your changes were not saved. Please try again.")}
       end
     else
       {:noreply, socket}
@@ -155,5 +158,13 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     else
       {:noreply, socket}
     end
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    if socket.assigns[:editing_body] do
+      Library.release_body_lock(socket.assigns.folio.id)
+    end
+    :ok
   end
 end
