@@ -1,4 +1,4 @@
-<div class="p-6 max-w-4xl mx-auto">
+<div class="library-root p-6 max-w-4xl mx-auto">
 
   <!-- Title block -->
   <div class="mb-6">
@@ -15,9 +15,9 @@
     <% else %>
       <div class="flex items-start gap-2">
         <div>
-          <h1 class="text-3xl font-bold"><%= @folio.title %></h1>
+          <h1 class="library-folio-title"><%= @folio.title %></h1>
           <%= if @folio.subtitle do %>
-            <p class="text-gray-400 mt-1"><%= @folio.subtitle %></p>
+            <p class="library-folio-subtitle"><%= @folio.subtitle %></p>
           <% end %>
         </div>
         <%= if @is_author || @is_dragon do %>
@@ -32,9 +32,33 @@
     </p>
 
     <!-- Tags -->
-    <div class="flex flex-wrap gap-1 mt-2">
-      <%= for tag <- @tags do %>
-        <span class="text-xs bg-gray-800 px-2 py-0.5 rounded"><%= tag %></span>
+    <div class="library-tags-row mt-3 flex flex-wrap gap-2 items-center">
+      <%= for tag <- (@folio_tags || []) do %>
+        <span class="library-tag inline-flex items-center gap-1">
+          <span>#<%= tag %></span>
+          <%= if @is_folio_editor do %>
+            <button
+              phx-click="remove_tag"
+              phx-value-tag={tag}
+              class="library-tag-remove"
+              title={"Remove tag ##{tag}"}
+            >×</button>
+          <% end %>
+        </span>
+      <% end %>
+
+      <%= if @is_folio_editor do %>
+        <form phx-submit="add_tag" class="inline-flex items-center gap-1">
+          <input
+            type="text"
+            name="tag"
+            placeholder="add tag…"
+            maxlength="50"
+            class="library-tag-input"
+            autocomplete="off"
+          />
+          <button type="submit" class="library-tag-add-btn">+</button>
+        </form>
       <% end %>
     </div>
   </div>
@@ -90,7 +114,7 @@
       </div>
     <% else %>
       <%= if @folio.body do %>
-        <div class="folio-body prose prose-invert mb-4">
+        <div class="library-body mb-4">
           <%= raw render_library_content(@folio.body) %>
         </div>
       <% end %>
@@ -105,24 +129,24 @@
 
   <!-- Entry stream -->
   <%= if Enum.any?(@entries) do %>
-    <div class="folio-entries space-y-4 mb-8">
+    <div class="space-y-4 mb-8">
       <%= for entry <- @entries do %>
         <!-- entry id used by Phase 6 marginalia anchors -->
-        <div id={"entry-#{entry.id}"} class="folio-entry">
+        <div id={"entry-#{entry.id}"} class="library-entry">
           <%= case entry.kind do %>
           <% :post_ref -> %>
             <%= if entry.scene_post do %>
-              <div class="folio-post-ref border-l-2 border-gray-700 pl-4">
+              <div class="border-l-2 border-gray-700 pl-4">
                 <div class="text-xs text-gray-500 mb-1">
                   <strong><%= entry.scene_post.user && entry.scene_post.user.nickname %></strong>
                 </div>
-                <div class="folio-post-content">
+                <div>
                   <%= raw render_post_content(entry.scene_post.content) %>
                 </div>
               </div>
             <% end %>
           <% :note -> %>
-            <div class="folio-note" style={"font-family: #{entry.font}; color: #{entry.color};"}>
+            <div class="library-entry-note" style={"font-family: #{entry.font}; color: #{entry.color};"}>
               <%= raw render_library_content(entry.content) %>
             </div>
           <% end %>
@@ -139,7 +163,7 @@
             <button
               phx-click="toggle_marginalia_thread"
               phx-value-entry-id={entry.id}
-              class="text-xs text-gray-600 hover:text-gray-400"
+              class="library-marginalia-toggle"
             >
               <%= cond do %>
               <% count == 0 -> %> ○ no marginalia
@@ -150,15 +174,15 @@
 
             <%= if is_expanded do %>
               <!-- Thread display (flat list with depth-based indentation) -->
-              <div class="mt-2 space-y-1">
+              <div class="library-marginalia-thread">
                 <%= for {m, depth} <- marginalia_with_depth do %>
                   <div
                     id={"marginalia-#{m.id}"}
-                    class="text-xs py-1 border-l-2 border-gray-800 pl-2"
+                    class="library-marginalia-item"
                     style={"margin-left: #{depth * 16}px; font-family: #{m.font}; color: #{m.color};"}
                   >
                     <span class="font-semibold"><%= m.name %></span>
-                    <span class="text-gray-500 ml-1 text-xs"><%= format_relative_time(m.inserted_at) %></span>
+                    <span class="library-marginalia-meta"><%= format_relative_time(m.inserted_at) %></span>
 
                     <%= if @is_folio_editor do %>
                       <button

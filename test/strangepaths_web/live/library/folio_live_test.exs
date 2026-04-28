@@ -58,7 +58,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioTest do
       {:ok, view, _html} = live(conn, "/library/old-title")
 
       view |> element("button[phx-click='start_edit_title']") |> render_click()
-      _html = view |> form("form", folio: %{title: "New Title", subtitle: "New Subtitle"}) |> render_submit()
+      _html = view |> form("form[phx-submit='save_title']", folio: %{title: "New Title", subtitle: "New Subtitle"}) |> render_submit()
 
       # Should push_patch to new slug URL
       assert_patch(view, "/library/new-title")
@@ -85,7 +85,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioTest do
       assert html =~ "✎"
 
       view |> element("button[phx-click='start_edit_title']") |> render_click()
-      view |> form("form", folio: %{title: "Dragon Renamed"}) |> render_submit()
+      view |> form("form[phx-submit='save_title']", folio: %{title: "Dragon Renamed"}) |> render_submit()
 
       assert_patch(view, "/library/dragon-renamed")
     end
@@ -156,6 +156,83 @@ defmodule StrangepathsWeb.LibraryLive.FolioTest do
       # Verify it's NOT using the first typeface
       refute m.font == first_tf.font
       refute m.color == first_tf.color
+    end
+  end
+
+  # Verifies: liminal-library.AC8.1
+  describe "tag management" do
+    test "folio editor can add a tag", %{conn: conn} do
+      editor = editor_fixture()
+      folio = folio_fixture(editor)
+      conn = log_in_user(conn, editor)
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}")
+
+      view
+      |> form("form[phx-submit='add_tag']", %{tag: "mythology"})
+      |> render_submit()
+
+      tags = Library.list_folio_tags(folio.id)
+      assert "mythology" in tags
+    end
+
+    test "tag is stored lowercased", %{conn: conn} do
+      editor = editor_fixture()
+      folio = folio_fixture(editor)
+      conn = log_in_user(conn, editor)
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}")
+
+      view
+      |> form("form[phx-submit='add_tag']", %{tag: "  RITES  "})
+      |> render_submit()
+
+      tags = Library.list_folio_tags(folio.id)
+      assert "rites" in tags
+      refute "  RITES  " in tags
+    end
+
+    test "duplicate add is a no-op", %{conn: conn} do
+      editor = editor_fixture()
+      folio = folio_fixture(editor)
+      Library.add_tag(folio, "ritual")
+      conn = log_in_user(conn, editor)
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}")
+
+      view
+      |> form("form[phx-submit='add_tag']", %{tag: "ritual"})
+      |> render_submit()
+
+      tags = Library.list_folio_tags(folio.id)
+      assert Enum.count(tags, &(&1 == "ritual")) == 1
+    end
+
+    test "folio editor can remove a tag", %{conn: conn} do
+      editor = editor_fixture()
+      folio = folio_fixture(editor)
+      Library.add_tag(folio, "purgatory")
+      conn = log_in_user(conn, editor)
+      {:ok, view, _html} = live(conn, "/library/#{folio.slug}")
+
+      view
+      |> element("button[phx-value-tag='purgatory']")
+      |> render_click()
+
+      tags = Library.list_folio_tags(folio.id)
+      refute "purgatory" in tags
+    end
+
+    # Verifies: liminal-library.AC8.2
+    test "non-folio-editor sees no add/remove tag UI", %{conn: conn} do
+      editor = editor_fixture()
+      folio = folio_fixture(editor)
+      non_editor = user_fixture()
+      Library.add_tag(folio, "visible-tag")
+      conn = log_in_user(conn, non_editor)
+      {:ok, _view, html} = live(conn, "/library/#{folio.slug}")
+
+      refute html =~ "phx-submit=\"add_tag\""
+      refute html =~ "phx-click=\"remove_tag\""
+      # Tag text still visible (read-only)
+      assert html =~ "visible-tag"
     end
   end
 end

@@ -21,7 +21,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
       folio ->
         user = socket.assigns.current_user
         entries = Library.list_entries(folio.id)
-        tags = Library.list_tags(folio.id)
+        folio_tags = Library.list_folio_tags(folio.id)
 
         all_marginalia = Library.list_all_marginalia_for_folio(folio.id)
 
@@ -42,7 +42,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:page_title, folio.title)
          |> assign(:folio, folio)
          |> assign(:entries, entries)
-         |> assign(:tags, tags)
+         |> assign(:folio_tags, folio_tags)
          |> assign(:editing_title, false)
          |> assign(:title_changeset, Library.change_folio(folio))
          |> assign(:is_author, user != nil && folio.user_id == user.id)
@@ -255,6 +255,28 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
   end
 
   @impl true
+  def handle_event("add_tag", %{"tag" => raw_tag}, socket) do
+    tag = raw_tag |> String.downcase() |> String.trim()
+
+    if socket.assigns.is_folio_editor && tag != "" do
+      Library.add_tag(socket.assigns.folio, tag)
+      {:noreply, load_folio_tags(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_tag", %{"tag" => tag}, socket) do
+    if socket.assigns.is_folio_editor do
+      Library.remove_tag(socket.assigns.folio, tag)
+      {:noreply, load_folio_tags(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info(:body_lock_timeout, socket) do
     if socket.assigns[:editing_body] do
       Library.release_body_lock(socket.assigns.folio.id)
@@ -295,5 +317,11 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     Enum.flat_map(children, fn m ->
       [{m, depth}] ++ flatten_marginalia_tree(all, m.id, depth + 1)
     end)
+  end
+
+  # Helper to load folio tags into @folio_tags assign
+  defp load_folio_tags(socket) do
+    tags = Library.list_folio_tags(socket.assigns.folio.id)
+    assign(socket, :folio_tags, tags)
   end
 end

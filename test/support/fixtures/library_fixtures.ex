@@ -76,4 +76,11 @@ defmodule Strangepaths.LibraryFixtures do
     {:ok, marginalia} = Library.create_marginalia(entry, user, merged)
     marginalia
   end
+
+  def editor_fixture(attrs \\ %{}) do
+    user = user_fixture(attrs)
+    [tf | _] = Strangepaths.Library.Typefaces.all()
+    Strangepaths.Library.assign_user_typeface(user.id, tf.id)
+    user
+  end
 end
