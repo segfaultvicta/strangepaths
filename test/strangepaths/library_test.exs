@@ -273,6 +273,73 @@ defmodule Strangepaths.LibraryTest do
     end
   end
 
+  describe "marginalia depth enforcement" do
+    test "creates top-level marginalia" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      entry = note_entry_fixture(folio, user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+
+      {:ok, m} =
+        Library.create_marginalia(entry, user, %{
+          "content" => "Top level",
+          "name" => tf.name,
+          "font" => tf.font,
+          "color" => tf.color
+        })
+
+      assert m.parent_id == nil
+    end
+
+    test "creates a reply (depth 1)" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      entry = note_entry_fixture(folio, user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+
+      {:ok, parent} =
+        Library.create_marginalia(entry, user, %{
+          "content" => "Top",
+          "name" => tf.name,
+          "font" => tf.font,
+          "color" => tf.color
+        })
+
+      {:ok, child} =
+        Library.create_marginalia(entry, user, %{
+          "content" => "Reply",
+          "name" => tf.name,
+          "font" => tf.font,
+          "color" => tf.color,
+          "parent_id" => parent.id
+        })
+
+      assert child.parent_id == parent.id
+    end
+
+    test "rejects marginalia that would exceed max depth" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      entry = note_entry_fixture(folio, user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+
+      base_attrs = %{
+        "content" => "x",
+        "name" => tf.name,
+        "font" => tf.font,
+        "color" => tf.color
+      }
+
+      {:ok, m1} = Library.create_marginalia(entry, user, base_attrs)
+      {:ok, m2} = Library.create_marginalia(entry, user, Map.put(base_attrs, "parent_id", m1.id))
+      {:ok, m3} = Library.create_marginalia(entry, user, Map.put(base_attrs, "parent_id", m2.id))
+
+      # Depth 3 (m3) should succeed; depth 4 (off m3) should fail
+      assert {:error, :max_depth_exceeded} =
+             Library.create_marginalia(entry, user, Map.put(base_attrs, "parent_id", m3.id))
+    end
+  end
+
   describe "body mutex" do
     test "claim_body_lock succeeds when no lock" do
       folio = folio_fixture()

@@ -285,7 +285,40 @@ defmodule Strangepaths.Library do
     |> Repo.all()
   end
 
+  def list_all_marginalia_for_folio(folio_id) do
+    entry_ids =
+      from(e in Entry, where: e.folio_id == ^folio_id, select: e.id)
+      |> Repo.all()
+
+    from(m in Marginalia,
+      where: m.entry_id in ^entry_ids,
+      order_by: m.inserted_at,
+      preload: [:user]
+    )
+    |> Repo.all()
+  end
+
+  @max_marginalia_depth 3
+
   def create_marginalia(entry, user, attrs) do
+    parent_id = attrs["parent_id"] || attrs[:parent_id]
+
+    cond do
+      parent_id != nil && parent_id != "" ->
+        depth = marginalia_depth(String.to_integer(to_string(parent_id)))
+
+        if depth >= @max_marginalia_depth do
+          {:error, :max_depth_exceeded}
+        else
+          do_create_marginalia(entry, user, attrs)
+        end
+
+      true ->
+        do_create_marginalia(entry, user, attrs)
+    end
+  end
+
+  defp do_create_marginalia(entry, user, attrs) do
     changeset =
       %Marginalia{}
       |> Marginalia.create_changeset(
@@ -298,7 +331,21 @@ defmodule Strangepaths.Library do
     # is in the changeset; DB validation is here per FCIS pattern).
     case validate_parent_marginalia(changeset, entry.id) do
       {:ok, validated_changeset} ->
-        Repo.insert(validated_changeset)
+        result = Repo.insert(validated_changeset)
+
+        case result do
+          {:ok, marginalia} ->
+            StrangepathsWeb.Endpoint.broadcast(
+              "library_folio:#{entry.folio_id}",
+              "new_marginalia",
+              %{marginalia: Repo.preload(marginalia, :user), entry_id: entry.id}
+            )
+            {:ok, marginalia}
+
+          error ->
+            error
+        end
+
       {:error, error_changeset} ->
         {:error, error_changeset}
     end
@@ -320,6 +367,14 @@ defmodule Strangepaths.Library do
       end
     else
       {:ok, changeset}
+    end
+  end
+
+  defp marginalia_depth(nil), do: 0
+  defp marginalia_depth(parent_id) when is_integer(parent_id) do
+    case Repo.get(Marginalia, parent_id) do
+      nil -> 0
+      parent -> 1 + marginalia_depth(parent.parent_id)
     end
   end
 end
