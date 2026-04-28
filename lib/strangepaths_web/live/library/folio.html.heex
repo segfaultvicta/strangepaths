@@ -126,6 +126,112 @@
               <%= raw render_library_content(entry.content) %>
             </div>
           <% end %>
+
+          <% # ── Marginalia thread for this entry ── %>
+          <div class="ml-4 mt-1">
+            <%
+              marginalia_with_depth = Map.get(@marginalia_flat_map, entry.id, [])
+              count = length(marginalia_with_depth)
+              is_expanded = MapSet.member?(@expanded_entries, entry.id)
+            %>
+
+            <% # Collapsed: count badge + toggle %>
+            <button
+              phx-click="toggle_marginalia_thread"
+              phx-value-entry-id={entry.id}
+              class="text-xs text-gray-600 hover:text-gray-400"
+            >
+              <%= cond do %>
+              <% count == 0 -> %> ○ no marginalia
+              <% is_expanded -> %> ▾ <%= count %> marginalia
+              <% true -> %> ▸ <%= count %> marginalia
+              <% end %>
+            </button>
+
+            <%= if is_expanded do %>
+              <% # Thread display (flat list with depth-based indentation) %>
+              <div class="mt-2 space-y-1">
+                <%= for {m, depth} <- marginalia_with_depth do %>
+                  <div
+                    id={"marginalia-#{m.id}"}
+                    class="text-xs py-1 border-l-2 border-gray-800 pl-2"
+                    style={"margin-left: #{depth * 16}px; font-family: #{m.font}; color: #{m.color};"}
+                  >
+                    <span class="font-semibold"><%= m.name %></span>
+                    <span class="text-gray-500 ml-1 text-xs"><%= format_relative_time(m.inserted_at) %></span>
+
+                    <%= if @is_folio_editor do %>
+                      <button
+                        phx-click="open_marginalia_form"
+                        phx-value-entry-id={entry.id}
+                        phx-value-reply-to={m.id}
+                        class="ml-2 text-gray-600 hover:text-gray-400"
+                        title="Reply to this"
+                      >↩ Reply</button>
+                    <% end %>
+
+                    <% # Reply form inline when this is the reply target %>
+                    <%= if @marginalia_form_entry_id == entry.id && @marginalia_reply_to_id == m.id do %>
+                      <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-1">
+                        <%= if length(@editor_typefaces) > 1 do %>
+                          <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
+                            <%= for tf <- @editor_typefaces do %>
+                              <option value={tf.id}><%= tf.name %></option>
+                            <% end %>
+                          </select>
+                        <% end %>
+                        <textarea
+                          name="marginalia[content]"
+                          placeholder="Reply..."
+                          class="w-full h-16 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
+                        ></textarea>
+                        <div class="flex gap-2 mt-1">
+                          <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded">Post Reply</button>
+                          <button type="button" phx-click="close_marginalia_form" class="text-xs text-gray-500">Cancel</button>
+                        </div>
+                      </.form>
+                    <% end %>
+
+                    <div class="mt-1"><%= raw render_library_content(m.content) %></div>
+                  </div>
+                <% end %>
+              </div>
+
+              <% # Top-level marginalia form %>
+              <%= if @is_folio_editor do %>
+                <%= if @marginalia_form_entry_id == entry.id && is_nil(@marginalia_reply_to_id) do %>
+                  <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-2">
+                    <%= if length(@editor_typefaces) > 1 do %>
+                      <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
+                        <%= for tf <- @editor_typefaces do %>
+                          <option value={tf.id} style={"font-family: #{tf.font}; color: #{tf.color};"}>
+                            <%= tf.name %>
+                          </option>
+                        <% end %>
+                      </select>
+                    <% end %>
+                    <textarea
+                      name="marginalia[content]"
+                      placeholder="Add marginalia..."
+                      class="w-full h-20 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
+                    ></textarea>
+                    <div class="flex gap-2 mt-1">
+                      <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded">Post</button>
+                      <button type="button" phx-click="close_marginalia_form" class="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
+                    </div>
+                  </.form>
+                <% else %>
+                  <button
+                    phx-click="open_marginalia_form"
+                    phx-value-entry-id={entry.id}
+                    class="text-xs text-gray-600 hover:text-gray-400 mt-1"
+                  >
+                    + Annotate
+                  </button>
+                <% end %>
+              <% end %>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>

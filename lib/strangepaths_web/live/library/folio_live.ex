@@ -1,6 +1,7 @@
 defmodule StrangepathsWeb.LibraryLive.Folio do
   use StrangepathsWeb, :live_view
   import StrangepathsWeb.SceneHelpers, only: [render_post_content: 1]
+  import StrangepathsWeb.LibraryHelpers, only: [render_library_content: 1]
 
   alias Strangepaths.Library
 
@@ -22,6 +23,20 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
         entries = Library.list_entries(folio.id)
         tags = Library.list_tags(folio.id)
 
+        all_marginalia = Library.list_all_marginalia_for_folio(folio.id)
+
+        marginalia_flat_map =
+          all_marginalia
+          |> Enum.group_by(& &1.entry_id)
+          |> Enum.map(fn {entry_id, items} ->
+            {entry_id, flatten_marginalia_tree(items)}
+          end)
+          |> Map.new()
+
+        if connected?(socket) do
+          StrangepathsWeb.Endpoint.subscribe("library_folio:#{folio.id}")
+        end
+
         {:ok,
          socket
          |> assign(:page_title, folio.title)
@@ -36,7 +51,11 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:editing_body, false)
          |> assign(:body_content, folio.body || "")
          |> assign(:preview_html, render_library_content(folio.body || ""))
-         |> assign(:editor_typefaces, if(user, do: Library.folio_editor_typefaces(user.id), else: []))}
+         |> assign(:editor_typefaces, if(user, do: Library.folio_editor_typefaces(user.id), else: []))
+         |> assign(:marginalia_flat_map, marginalia_flat_map)
+         |> assign(:expanded_entries, MapSet.new())
+         |> assign(:marginalia_form_entry_id, nil)
+         |> assign(:marginalia_reply_to_id, nil)}
     end
   end
 
@@ -166,5 +185,97 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
       Library.release_body_lock(socket.assigns.folio.id)
     end
     :ok
+  end
+
+  def handle_event("toggle_marginalia_thread", %{"entry-id" => entry_id_str}, socket) do
+    entry_id = String.to_integer(entry_id_str)
+
+    updated = if MapSet.member?(socket.assigns.expanded_entries, entry_id) do
+      MapSet.delete(socket.assigns.expanded_entries, entry_id)
+    else
+      MapSet.put(socket.assigns.expanded_entries, entry_id)
+    end
+
+    {:noreply, assign(socket, :expanded_entries, updated)}
+  end
+
+  def handle_event("open_marginalia_form", %{"entry-id" => entry_id_str} = params, socket) do
+    if socket.assigns.is_folio_editor do
+      entry_id = String.to_integer(entry_id_str)
+      reply_to = params["reply-to"] && String.to_integer(params["reply-to"])
+
+      {:noreply,
+       socket
+       |> assign(:marginalia_form_entry_id, entry_id)
+       |> assign(:marginalia_reply_to_id, reply_to)
+       |> update(:expanded_entries, &MapSet.put(&1, entry_id))}
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  def handle_event("close_marginalia_form", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:marginalia_form_entry_id, nil)
+     |> assign(:marginalia_reply_to_id, nil)}
+  end
+
+  def handle_event("submit_marginalia", %{"marginalia" => attrs}, socket) do
+    if socket.assigns.is_folio_editor do
+      user = socket.assigns.current_user
+      entry_id = socket.assigns.marginalia_form_entry_id
+
+      # Find the entry from the current assigns
+      entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id))
+
+      # Determine which typeface to use
+      typefaces = Library.folio_editor_typefaces(user.id)
+
+      tf_id = attrs["typeface_id"] || (typefaces != [] && List.first(typefaces).id)
+      tf = Enum.find(typefaces, &(&1.id == tf_id)) || List.first(typefaces)
+
+      full_attrs =
+        attrs
+        |> Map.put("name", tf && tf.name || "")
+        |> Map.put("font", tf && tf.font || "")
+        |> Map.put("color", tf && tf.color || "")
+        |> Map.put("parent_id", socket.assigns.marginalia_reply_to_id)
+
+      case Library.create_marginalia(entry, user, full_attrs) do
+        {:ok, _marginalia} ->
+          {:noreply,
+           socket
+           |> assign(:marginalia_form_entry_id, nil)
+           |> assign(:marginalia_reply_to_id, nil)}
+
+        {:error, :max_depth_exceeded} ->
+          {:noreply, put_flash(socket, :error, "Cannot reply this deeply.")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to post marginalia.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  @impl true
+  def handle_info(%Phoenix.Socket.Broadcast{event: "new_marginalia", payload: %{marginalia: m, entry_id: entry_id}}, socket) do
+    # Recompute the flat tree for this entry's marginalia
+    all_for_entry = Map.get(socket.assigns.marginalia_flat_map, entry_id, [])
+                    |> Enum.map(fn {item, _depth} -> item end)
+    updated_flat = flatten_marginalia_tree(all_for_entry ++ [m])
+
+    updated_map = Map.put(socket.assigns.marginalia_flat_map, entry_id, updated_flat)
+    {:noreply, assign(socket, :marginalia_flat_map, updated_map)}
+  end
+
+  # Helper function to flatten marginalia tree with depth information
+  defp flatten_marginalia_tree(all, parent_id \\ nil, depth \\ 0) do
+    children = Enum.filter(all, &(&1.parent_id == parent_id))
+    Enum.flat_map(children, fn m ->
+      [{m, depth}] ++ flatten_marginalia_tree(all, m.id, depth + 1)
+    end)
   end
 end
