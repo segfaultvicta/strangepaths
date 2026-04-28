@@ -134,6 +134,22 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     {:noreply, assign(socket, :caret_position, String.to_integer(pos_str))}
   end
 
+  def handle_event("shift_select_post", %{"post-id" => post_id_str, "scene-id" => scene_id_str}, socket) do
+    case socket.assigns.range_anchor_post_id do
+      nil ->
+        # No anchor set — treat as regular add
+        handle_event("add_post", %{"post-id" => post_id_str}, socket)
+
+      anchor_id ->
+        # Has anchor — add the range
+        handle_event("add_range", %{
+          "from-post-id" => to_string(anchor_id),
+          "to-post-id" => post_id_str,
+          "scene-id" => scene_id_str
+        }, socket)
+    end
+  end
+
   # --- Note insertion ---
 
   def handle_event("add_note", %{"note" => attrs, "position" => pos_str}, socket) do

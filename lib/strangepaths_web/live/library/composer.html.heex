@@ -28,7 +28,7 @@
     <div class="overflow-y-auto flex-1 p-2">
       <%= for scene <- @visible_scenes do %>
         <!-- full cast session scenes get a distinct background -->
-        <div class={"mb-1 rounded " <> if("full cast session" in scene.tags, do: "bg-emerald-950/30 border border-emerald-900/50", else: "")}>
+        <div data-scene-id={scene.id} class={"mb-1 rounded " <> if("full cast session" in scene.tags, do: "bg-emerald-950/30 border border-emerald-900/50", else: "")}>
           <button
             phx-click="expand_scene"
             phx-value-scene-id={scene.id}

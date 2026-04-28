@@ -829,6 +829,53 @@ Hooks.TooltipUpdater = {
     }
 }
 
+Hooks.LibraryComposer = {
+    mounted() {
+        this.initSortable();
+        this.initShiftClick();
+    },
+
+    updated() {
+        this.initSortable();
+    },
+
+    initSortable() {
+        const list = this.el.querySelector("#composer-entry-list") || this.el;
+        new Sortable(list, {
+            animation: 150,
+            ghostClass: "opacity-50",
+            handle: ".drag-handle",
+            onEnd: (event) => {
+                const items = list.querySelectorAll("[data-entry-id]");
+                const orderedIds = Array.from(items)
+                    .map((el) => el.dataset.entryId)
+                    .filter(Boolean)
+                    .join(",");
+
+                this.pushEvent("reorder_entries", { ids: orderedIds });
+            },
+        });
+    },
+
+    initShiftClick() {
+        document.addEventListener("click", (e) => {
+            const postEl = e.target.closest("[id^='browser-post-']");
+            if (!postEl || !e.shiftKey) return;
+
+            const postId = postEl.id.replace("browser-post-", "");
+            const sceneEl = postEl.closest("[data-scene-id]");
+            const sceneId = sceneEl ? sceneEl.dataset.sceneId : null;
+
+            if (postId && sceneId) {
+                this.pushEvent("shift_select_post", {
+                    "post-id": postId,
+                    "scene-id": sceneId,
+                });
+            }
+        });
+    },
+}
+
 Hooks.CardReferenceTooltip = {
     _initTooltips() {
         const links = this.el.querySelectorAll('a.card-reference[data-card-img]');
