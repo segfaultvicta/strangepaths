@@ -121,9 +121,12 @@
       <% end %>
 
       <%= if @is_folio_editor do %>
-        <button phx-click="claim_body_lock" class="text-xs text-gray-500 hover:text-gray-300">
-          <%= if @folio.body, do: "Edit body", else: "+ Add body" %>
-        </button>
+        <div class="flex gap-3 items-center">
+          <button phx-click="claim_body_lock" class="text-xs text-gray-500 hover:text-gray-300">
+            <%= if @folio.body, do: "Edit body", else: "+ Add body" %>
+          </button>
+          <%= live_redirect "Edit entries →", to: "/library/#{@folio.slug}/compose", class: "text-xs text-gray-500 hover:text-gray-300" %>
+        </div>
       <% end %>
     <% end %>
   </div>
