@@ -127,7 +127,7 @@
             </div>
           <% end %>
 
-          <% # ── Marginalia thread for this entry ── %>
+          <!-- Marginalia thread for this entry -->
           <div class="ml-4 mt-1">
             <%
               marginalia_with_depth = Map.get(@marginalia_flat_map, entry.id, [])
@@ -135,7 +135,7 @@
               is_expanded = MapSet.member?(@expanded_entries, entry.id)
             %>
 
-            <% # Collapsed: count badge + toggle %>
+            <!-- Collapsed: count badge + toggle -->
             <button
               phx-click="toggle_marginalia_thread"
               phx-value-entry-id={entry.id}
@@ -149,7 +149,7 @@
             </button>
 
             <%= if is_expanded do %>
-              <% # Thread display (flat list with depth-based indentation) %>
+              <!-- Thread display (flat list with depth-based indentation) -->
               <div class="mt-2 space-y-1">
                 <%= for {m, depth} <- marginalia_with_depth do %>
                   <div
@@ -170,7 +170,7 @@
                       >↩ Reply</button>
                     <% end %>
 
-                    <% # Reply form inline when this is the reply target %>
+                    <!-- Reply form inline when this is the reply target -->
                     <%= if @marginalia_form_entry_id == entry.id && @marginalia_reply_to_id == m.id do %>
                       <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-1">
                         <%= if length(@editor_typefaces) > 1 do %>
@@ -197,7 +197,7 @@
                 <% end %>
               </div>
 
-              <% # Top-level marginalia form %>
+              <!-- Top-level marginalia form -->
               <%= if @is_folio_editor do %>
                 <%= if @marginalia_form_entry_id == entry.id && is_nil(@marginalia_reply_to_id) do %>
                   <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-2">

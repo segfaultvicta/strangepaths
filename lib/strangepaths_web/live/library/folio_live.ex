@@ -165,28 +165,6 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     end
   end
 
-  @impl true
-  def handle_info(:body_lock_timeout, socket) do
-    if socket.assigns[:editing_body] do
-      Library.release_body_lock(socket.assigns.folio.id)
-
-      {:noreply,
-       socket
-       |> assign(:editing_body, false)
-       |> put_flash(:warning, "Body editing session timed out. Changes were not saved.")}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def terminate(_reason, socket) do
-    if socket.assigns[:editing_body] do
-      Library.release_body_lock(socket.assigns.folio.id)
-    end
-    :ok
-  end
-
   def handle_event("toggle_marginalia_thread", %{"entry-id" => entry_id_str}, socket) do
     entry_id = String.to_integer(entry_id_str)
 
@@ -232,31 +210,73 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
       # Determine which typeface to use
       typefaces = Library.folio_editor_typefaces(user.id)
 
-      tf_id = attrs["typeface_id"] || (typefaces != [] && List.first(typefaces).id)
-      tf = Enum.find(typefaces, &(&1.id == tf_id)) || List.first(typefaces)
+      # Coerce typeface_id string to integer, handling nil/"" gracefully
+      tf_id_str = attrs["typeface_id"]
+      tf_id =
+        cond do
+          tf_id_str && tf_id_str != "" ->
+            case Integer.parse(tf_id_str) do
+              {id, _} -> id
+              :error -> nil
+            end
+          true -> nil
+        end
 
-      full_attrs =
-        attrs
-        |> Map.put("name", tf && tf.name || "")
-        |> Map.put("font", tf && tf.font || "")
-        |> Map.put("color", tf && tf.color || "")
-        |> Map.put("parent_id", socket.assigns.marginalia_reply_to_id)
+      # Look up the typeface by id; validate it's in the user's assigned typefaces
+      tf =
+        cond do
+          tf_id ->
+            Enum.find(typefaces, &(&1.id == tf_id))
+          true ->
+            nil
+        end
 
-      case Library.create_marginalia(entry, user, full_attrs) do
-        {:ok, _marginalia} ->
-          {:noreply,
-           socket
-           |> assign(:marginalia_form_entry_id, nil)
-           |> assign(:marginalia_reply_to_id, nil)}
+      # If typeface selection failed or was invalid, flash error and reject
+      if tf == nil and typefaces != [] do
+        {:noreply,
+         socket
+         |> put_flash(:error, "Invalid typeface selection.")}
+      else
+        # Fallback to first typeface if none selected and typefaces exist
+        selected_tf = tf || List.first(typefaces)
 
-        {:error, :max_depth_exceeded} ->
-          {:noreply, put_flash(socket, :error, "Cannot reply this deeply.")}
+        full_attrs =
+          attrs
+          |> Map.put("name", selected_tf && selected_tf.name || "")
+          |> Map.put("font", selected_tf && selected_tf.font || "")
+          |> Map.put("color", selected_tf && selected_tf.color || "")
+          |> Map.put("parent_id", socket.assigns.marginalia_reply_to_id)
 
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Failed to post marginalia.")}
+        case Library.create_marginalia(entry, user, full_attrs) do
+          {:ok, _marginalia} ->
+            {:noreply,
+             socket
+             |> assign(:marginalia_form_entry_id, nil)
+             |> assign(:marginalia_reply_to_id, nil)}
+
+          {:error, :max_depth_exceeded} ->
+            {:noreply, put_flash(socket, :error, "Cannot reply this deeply.")}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to post marginalia.")}
+        end
       end
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  @impl true
+  def handle_info(:body_lock_timeout, socket) do
+    if socket.assigns[:editing_body] do
+      Library.release_body_lock(socket.assigns.folio.id)
+
+      {:noreply,
+       socket
+       |> assign(:editing_body, false)
+       |> put_flash(:warning, "Body editing session timed out. Changes were not saved.")}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -265,10 +285,20 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     # Recompute the flat tree for this entry's marginalia
     all_for_entry = Map.get(socket.assigns.marginalia_flat_map, entry_id, [])
                     |> Enum.map(fn {item, _depth} -> item end)
-    updated_flat = flatten_marginalia_tree(all_for_entry ++ [m])
+    # Deduplicate in case the same broadcast payload is delivered twice
+    deduplicated = Enum.uniq_by(all_for_entry ++ [m], & &1.id)
+    updated_flat = flatten_marginalia_tree(deduplicated)
 
     updated_map = Map.put(socket.assigns.marginalia_flat_map, entry_id, updated_flat)
     {:noreply, assign(socket, :marginalia_flat_map, updated_map)}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    if socket.assigns[:editing_body] do
+      Library.release_body_lock(socket.assigns.folio.id)
+    end
+    :ok
   end
 
   # Helper function to flatten marginalia tree with depth information

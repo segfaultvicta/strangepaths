@@ -19,6 +19,19 @@ defmodule Strangepaths.Library.Marginalia do
     marginalia
     |> cast(attrs, [:entry_id, :user_id, :parent_id, :content, :name, :font, :color])
     |> validate_required([:entry_id, :user_id, :content, :name, :font, :color])
+    |> validate_color()
+    |> validate_font()
     |> validate_length(:content, min: 1, max: 10_000)
+  end
+
+  defp validate_color(changeset) do
+    validate_format(changeset, :color, ~r/\A#[0-9a-fA-F]{3,8}\z/, message: "must be a hex color")
+  end
+
+  defp validate_font(changeset) do
+    validate_change(changeset, :font, fn :font, font ->
+      valid_fonts = Enum.map(Strangepaths.Library.Typefaces.all(), & &1.font)
+      if font in valid_fonts, do: [], else: [font: "must be a valid typeface font"]
+    end)
   end
 end

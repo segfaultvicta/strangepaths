@@ -370,6 +370,9 @@ defmodule Strangepaths.Library do
     end
   end
 
+  # Computes the depth of a marginalia by walking up the parent chain.
+  # Note: Does O(depth) queries via Repo.get/1 per ancestor, bounded by @max_marginalia_depth.
+  # Max queries = @max_marginalia_depth (3), so this is acceptable despite the N+1 pattern.
   defp marginalia_depth(nil), do: 0
   defp marginalia_depth(parent_id) when is_integer(parent_id) do
     case Repo.get(Marginalia, parent_id) do

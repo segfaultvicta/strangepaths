@@ -416,4 +416,71 @@ defmodule Strangepaths.LibraryTest do
       assert is_nil(info.locked_by_id)
     end
   end
+
+  describe "marginalia validation" do
+    test "create_changeset rejects invalid hex color" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      entry = note_entry_fixture(folio, user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+
+      # Invalid color: not a hex code
+      changeset =
+        %Strangepaths.Library.Marginalia{}
+        |> Strangepaths.Library.Marginalia.create_changeset(%{
+          "entry_id" => entry.id,
+          "user_id" => user.id,
+          "content" => "Test",
+          "name" => tf.name,
+          "font" => tf.font,
+          "color" => "not-a-color"
+        })
+
+      refute changeset.valid?
+      assert Enum.any?(changeset.errors, fn {field, _} -> field == :color end)
+    end
+
+    test "create_changeset rejects non-whitelisted font" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      entry = note_entry_fixture(folio, user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+
+      # Invalid font: not in whitelist
+      changeset =
+        %Strangepaths.Library.Marginalia{}
+        |> Strangepaths.Library.Marginalia.create_changeset(%{
+          "entry_id" => entry.id,
+          "user_id" => user.id,
+          "content" => "Test",
+          "name" => tf.name,
+          "font" => "Comic Sans MS",
+          "color" => tf.color
+        })
+
+      refute changeset.valid?
+      assert Enum.any?(changeset.errors, fn {field, _} -> field == :font end)
+    end
+
+    test "create_changeset accepts valid hex color and whitelisted font" do
+      user = user_typeface_fixture()
+      folio = folio_fixture(user)
+      entry = note_entry_fixture(folio, user)
+      [tf | _] = Library.folio_editor_typefaces(user.id)
+
+      # Valid color and font
+      changeset =
+        %Strangepaths.Library.Marginalia{}
+        |> Strangepaths.Library.Marginalia.create_changeset(%{
+          "entry_id" => entry.id,
+          "user_id" => user.id,
+          "content" => "Test",
+          "name" => tf.name,
+          "font" => tf.font,
+          "color" => tf.color
+        })
+
+      assert changeset.valid?
+    end
+  end
 end
