@@ -91,6 +91,7 @@ defmodule StrangepathsWeb.SceneHelpers do
   """
   def render_post_content(content, opts \\ []) do
     starts_possessive = Regex.match?(~r/^\*?'[[:alpha:]\s]/u, content)
+    starts_comma = Regex.match?(~r/^\*?,/, content)
 
     {tokenized, token_map} =
       content
@@ -105,6 +106,7 @@ defmodule StrangepathsWeb.SceneHelpers do
     |> restore_escapes()
     |> deitalicize_nested_ems()
     |> mark_possessive_paragraph(starts_possessive)
+    |> mark_comma_paragraph(starts_comma)
   end
 
   defp extract_glyph_tokens(text) do
@@ -162,4 +164,10 @@ defmodule StrangepathsWeb.SceneHelpers do
   end
 
   defp mark_possessive_paragraph(html, false), do: html
+
+  defp mark_comma_paragraph(html, true) do
+    String.replace(html, "<p>", "<p class=\"post-ic-comma\">", global: false)
+  end
+
+  defp mark_comma_paragraph(html, false), do: html
 end
