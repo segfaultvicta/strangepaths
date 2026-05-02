@@ -1199,6 +1199,12 @@
 
             <%= if @role != :dragon do %>
               <div id="dice-ascension" class="mt-4">
+                <button phx-click="toggle_ascend" class="slim-accordion">
+                  <span>Ascend</span>
+                  <div class="line"></div>
+                  <i class={"fa-solid #{if @collapse_ascend, do: "fa-plus", else: "fa-minus"}"}></i>
+                </button>
+                <%= if !@collapse_ascend do %>
                 <div class="grid grid-cols-3 gap-2">
                   <%= for {color, display_name} <- [
                     {"red", "Red"},
@@ -1241,7 +1247,8 @@
                     <% end %>
                   <% end %>
                 </div>
-              </div> 
+                <% end %> <!-- ends collapse_ascend -->
+              </div>
             <% end %> <!-- ends @role != :dragon ascension controls -->
           </div>
         <% end %> <!-- ends collapse_rhs_controls -->

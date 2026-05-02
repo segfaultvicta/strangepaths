@@ -68,6 +68,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:arete_expenditure, 0)
         |> assign(:crimes, System.unique_integer())
         |> assign(:collapse_new_techne, true)
+        |> assign(:collapse_ascend, true)
         |> assign(:new_techne_name, "")
         |> assign(:new_techne_desc, "")
         |> assign(:selected_techne_name, "")
@@ -834,6 +835,10 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("toggle_new_techne", _params, socket) do
     {:noreply, assign(socket, :collapse_new_techne, !socket.assigns.collapse_new_techne)}
+  end
+
+  defp handle_scene_event("toggle_ascend", _params, socket) do
+    {:noreply, assign(socket, :collapse_ascend, !socket.assigns.collapse_ascend)}
   end
 
   defp handle_scene_event("edit_narr_author", _params, socket) do
