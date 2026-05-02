@@ -52,7 +52,7 @@ defmodule StrangepathsWeb.LibraryHelpers do
 
           tf ->
             escaped = Phoenix.HTML.html_escape(raw_text) |> Phoenix.HTML.safe_to_string()
-            ~s(<span style="font-family: #{tf.font}; color: #{tf.color};">#{escaped}</span>)
+            ~s(<span style="font-family: #{tf.font}; color: #{tf.color}; font-size: #{tf.font_size};">#{escaped}</span>)
         end
 
       String.replace(acc, token, replacement)

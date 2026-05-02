@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;1,100&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;1,100&family=Caveat:wght@400..700&family=Eagle+Lake&family=Parisienne&family=Protest+Revolution&family=Rock+Salt&&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/@popperjs/core@2"></script>
     <script defer src="https://unpkg.com/tippy.js@6"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@ryangjchandler/alpine-tooltip@1.x.x/dist/cdn.min.js"></script>
@@ -48,25 +48,32 @@
     <nav class="fixed inset-x-0 z-50 bg-indigo-200 dark:bg-gray-900 shadow h-[100px] overflow-hidden">
       <div class="container mx-auto px-6 h-full flex items-center justify-between">
         <!-- Desktop nav links (hidden on mobile) -->
-        <div class="hidden lg:flex items-center gap-4">
+        <div class="hidden lg:flex items-center gap-3">
           <%= if @devour_count > 0 do %>
-            <span class="text-red-700 dark:text-red-600 mr-2">CYCLE <%= @devour_count + 217 %></span>
+            <span class="text-red-700 dark:text-red-600 whitespace-nowrap">CYCLE <%= @devour_count + 217 %></span>
           <% end %>
-          <span x-data={"{ loggedIn: #{!is_nil(@current_user)}, onScenes: window.location.pathname === '/scenes' }"}
-                x-init="window.addEventListener('phx:page-loading-stop', () => { onScenes = window.location.pathname === '/scenes' })">
-            <a href="/scenes/archives" class="inactivenav" x-show="!loggedIn || onScenes">ARCHIVES</a>
-            <a href="/scenes" class="inactivenav" x-show="loggedIn && !onScenes">STILLNESS</a>
-          </span>
-          <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav" %>
-          <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav" %>
-          <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
-          <%= live_redirect "CODEX", to: "/content", class: "inactivenav" %>
-          <%= live_redirect "MAP", to: "/rumor", class: "inactivenav" %>
-          <%= if @site_settings.bbs_enabled do %>
-            <%= live_redirect "BBS", to: "/bbs", class: "inactivenav" %>
-          <% end %>
-          <%= live_redirect "SONG", to: "/ost", class: "inactivenav" %>
-
+          <div class="flex flex-col justify-center gap-y-1">
+            <!-- Row 1: ARCHIVES/STILLNESS → DECK -->
+            <div class="flex items-center">
+              <%= live_redirect "STILLNESS", to: "/scenes", class: "inactivenav" %>
+              <%= live_redirect "ARCHIVES", to: "/scenes/archives", class: "inactivenav" %>
+              <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav" %>
+              <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav" %>
+              <%= live_redirect "DECK", to: "/codex", class: "inactivenav" %>
+            </div>
+            <!-- Row 2: CODEX → SONG (+ optional BBS, LIBRARY) -->
+            <div class="flex items-center">
+              <%= live_redirect "CODEX", to: "/content", class: "inactivenav" %>
+              <%= live_redirect "MAP", to: "/rumor", class: "inactivenav" %>
+              <%= if @site_settings.bbs_enabled do %>
+                <%= live_redirect "BBS", to: "/bbs", class: "inactivenav" %>
+              <% end %>
+              <%= if @site_settings.library_enabled do %>
+                <%= live_redirect "LIBRARY", to: "/library", class: "inactivenav" %>
+              <% end %>
+              <%= live_redirect "SONG", to: "/ost", class: "inactivenav" %>
+            </div>
+          </div>
         </div>
 
         <!-- Mobile: just hamburger on left -->
@@ -111,11 +118,8 @@
           <%= if @devour_count > 0 do %>
             <span class="text-red-700 dark:text-red-600">CYCLE <%= @devour_count + 217 %></span>
           <% end %>
-          <span x-data={"{ loggedIn: #{!is_nil(@current_user)}, onScenes: window.location.pathname === '/scenes' }"}
-                x-init="window.addEventListener('phx:page-loading-stop', () => { onScenes = window.location.pathname === '/scenes' })">
-            <a href="/scenes/archives" class="inactivenav" x-show="!loggedIn || onScenes" x-on:click="mobileMenuOpen = false">ARCHIVES</a>
-            <a href="/scenes" class="inactivenav" x-show="loggedIn && !onScenes" x-on:click="mobileMenuOpen = false">STILLNESS</a>
-          </span>
+          <%= live_redirect "STILLNESS", to: "/scenes", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <%= live_redirect "ARCHIVES", to: "/scenes/archives", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "RITE", to: "/ceremony", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "DECK", to: "/codex", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "CARD", to: "/cosmos", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
@@ -123,7 +127,10 @@
           <%= live_redirect "MAP", to: "/rumor", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= live_redirect "SONG", to: "/ost", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <%= if @site_settings.bbs_enabled do %>
-            <%= live_redirect "AETHERNET", to: "/bbs", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+            <%= live_redirect "BBS", to: "/bbs", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
+          <% end %>
+          <%= if @site_settings.library_enabled do %>
+            <%= live_redirect "LIBRARY", to: "/library", class: "inactivenav", "x-on:click": "mobileMenuOpen = false" %>
           <% end %>
           <%= if function_exported?(Routes, :live_dashboard_path, 2) and @role == :dragon do %>
             <%= link "Dashboard", to: Routes.live_dashboard_path(@conn, :home), class: "inactivenav lg:hidden", "x-on:click": "mobileMenuOpen = false" %>

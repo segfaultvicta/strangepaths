@@ -16,20 +16,11 @@
         />
       </form>
 
-      <label class="flex items-center gap-2 text-sm cursor-pointer">
-        <input
-          type="checkbox"
-          phx-click="toggle_my_scenes"
-          checked={@my_scenes_only}
-        />
-        Scenes I was in
-      </label>
     </div>
 
-    <div class="overflow-y-auto flex-1 p-2">
+    <div class="overflow-y-auto flex-1 p-2 pb-24">
       <%= for scene <- @visible_scenes do %>
-        <!-- full cast session scenes get a distinct background -->
-        <div data-scene-id={scene.id} class={"mb-1 rounded " <> if("full cast session" in scene.tags, do: "bg-emerald-950/30 border border-emerald-900/50", else: "")}>
+        <div data-scene-id={scene.id} class={"mb-1 rounded " <> if("full cast session" in scene.tags, do: "bg-emerald-900/25 border border-emerald-700/50 shadow-[inset_0_0_12px_rgba(16,185,129,0.07)]", else: "")}>
           <button
             phx-click="expand_scene"
             phx-value-scene-id={scene.id}
@@ -47,10 +38,30 @@
           <%= if @expanded_scene_id == scene.id do %>
             <div class="ml-3 border-l border-gray-700 pl-2">
               <%= for post <- Map.get(@scene_posts_cache, scene.id, []) do %>
-                <div id={"browser-post-#{post.id}"} class="py-2 border-b border-gray-800/50 text-sm">
+                <%
+                  is_pure_narrator = post.post_type == :narrative && post.narrative_author_name in [nil, ""]
+                  has_attributed_name = post.narrative_author_name not in [nil, ""]
+                  color_classes = case post.color_category do
+                    "red" -> "text-burning-gnosis font-burning-gnosis"
+                    "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
+                    "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
+                    "white" -> "text-radiant-gnosis font-radiant-gnosis"
+                    "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
+                    _ -> ""
+                  end
+                %>
+                <div id={"browser-post-#{post.id}"} class={"py-2 border-b border-gray-800/50 text-sm #{color_classes} " <> if(is_pure_narrator, do: "border-l-2 border-l-purple-800/60 pl-1", else: "")}>
                   <div class="flex items-center justify-between mb-1">
                     <span class="font-medium text-xs text-gray-400">
-                      <%= post.author_nickname || (post.user && post.user.nickname) %>
+                      <%= cond do %>
+                        <% is_pure_narrator -> %>
+                          <span class="text-purple-400/70 italic">narrator</span>
+                        <% has_attributed_name -> %>
+                          <span class="text-purple-400"><%= post.narrative_author_name %></span>
+                        <% post.user && post.user.role == :dragon -> %>
+                        <% true -> %>
+                          <%= post.author_nickname || (post.user && post.user.nickname) %>
+                      <% end %>
                     </span>
                     <div class="flex gap-1">
                       <button
@@ -77,8 +88,8 @@
                     phx-value-post-id={post.id}
                     title="Add post at caret position"
                   >
-                    <div class="text-xs text-gray-300 line-clamp-3">
-                      <%= raw render_post_content(post.content) %>
+                    <div class="text-xs line-clamp-3">
+                      <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
                     </div>
                   </div>
                 </div>
@@ -95,7 +106,7 @@
     <div class="p-4 border-b border-gray-800 flex-shrink-0">
       <h2 class="font-semibold">
         <%= @folio.title %>
-        <%= live_redirect "← View folio", to: "/library/#{@folio.slug}", class: "text-xs text-gray-500 hover:text-gray-300 ml-2" %>
+        <%= live_redirect "← View folio", to: "/library/#{@folio.slug}", class: "text-xs text-gray-400 no-underline hover:text-indigo-300 ml-2" %>
       </h2>
       <p class="text-xs text-gray-500 mt-1">
         Caret at position <%= @caret_position %> · <%= length(@entries) %> entries
@@ -114,15 +125,15 @@
     <div
       id="composer-entry-list"
       phx-hook="LibraryComposer"
-      class="overflow-y-auto flex-1 p-2"
+      class="overflow-y-auto flex-1 p-2 pb-24"
     >
       <!-- Caret at position 1 (before all entries) -->
       <div
-        class={"caret-slot py-1 cursor-pointer " <> if(@caret_position == 1, do: "border-t-2 border-purple-500", else: "border-t border-gray-800 hover:border-gray-600")}
+        class={"caret-slot py-0.5 cursor-pointer" <> if(@caret_position == 1, do: "caret-slot--active border-t-2 border-purple-500", else: "border-t border-gray-800 hover:border-gray-600")}
         phx-click="set_caret"
         phx-value-position="1"
         title="Set insertion point here"
-      ></div>
+      ><span class="caret-slot-label">+ insert here</span></div>
 
       <!-- Add note form at position 1 if list is empty or caret is at position 1 -->
       <%= if Enum.empty?(@entries) || @caret_position == 1 do %>
@@ -134,6 +145,15 @@
               placeholder="Add inline note..."
               class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
             ></textarea>
+            <%= if length(@editor_typefaces) > 1 do %>
+              <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
+                <%= for tf <- @editor_typefaces do %>
+                  <option value={tf.id} style={"font-family: #{tf.font}; color: #{tf.color};"}>
+                    <%= tf.name %>
+                  </option>
+                <% end %>
+              </select>
+            <% end %>
             <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded mt-1">+ Add note</button>
           </form>
         </div>
@@ -148,18 +168,44 @@
         >
           <div class="flex items-start justify-between gap-2">
             <div
-              class={"flex-1 min-w-0 " <> if(@is_author || @is_dragon, do: "cursor-pointer", else: "")}
+              class={"flex-1 min-w-0 #{cond do
+                not (@is_author || @is_dragon) -> ""
+                entry.group_id -> "drag-handle cursor-grab"
+                true -> "cursor-pointer"
+              end}"}
               phx-click={if @is_author || @is_dragon, do: "toggle_entry_group"}
               phx-value-entry-id={entry.id}
             >
               <%= case entry.kind do %>
               <% :post_ref -> %>
-                <div class="text-xs text-gray-500 mb-1">
-                  <%= entry.scene_post && (entry.scene_post.author_nickname || (entry.scene_post.user && entry.scene_post.user.nickname)) %>
-                </div>
-                <div class="text-xs text-gray-300 line-clamp-3">
-                  <%= raw(entry.scene_post && render_post_content(entry.scene_post.content)) %>
-                </div>
+                <%= if entry.scene_post do %>
+                  <%
+                    post = entry.scene_post
+                    is_pure_narrator = post.post_type == :narrative && is_nil(post.narrative_author_name)
+                    is_npc = post.post_type == :narrative && not is_nil(post.narrative_author_name)
+                    color_classes = case post.color_category do
+                      "red" -> "text-burning-gnosis font-burning-gnosis"
+                      "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
+                      "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
+                      "white" -> "text-radiant-gnosis font-radiant-gnosis"
+                      "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
+                      _ -> ""
+                    end
+                  %>
+                  <div class="text-xs text-gray-500 mb-1">
+                    <%= cond do %>
+                      <% is_pure_narrator -> %>
+                        <span class="text-purple-400/70 italic">narrator</span>
+                      <% is_npc -> %>
+                        <span class="text-purple-400"><%= post.narrative_author_name %></span>
+                      <% true -> %>
+                        <%= post.author_nickname || (post.user && post.user.nickname) %>
+                    <% end %>
+                  </div>
+                  <div class={"text-xs line-clamp-3 #{color_classes}"}>
+                    <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
+                  </div>
+                <% end %>
               <% :note -> %>
                 <div class="text-xs italic" style={"font-family: #{entry.font}; color: #{entry.color};"}>
                   <%= raw render_library_content(entry.content) %>
@@ -169,13 +215,6 @@
 
             <%= if @is_author || @is_dragon do %>
               <div class="flex gap-1 flex-shrink-0 items-center">
-                <button
-                  phx-click="toggle_entry_group"
-                  phx-value-entry-id={entry.id}
-                  class={"text-sm leading-none " <> if(entry.group_id, do: "text-amber-400 hover:text-amber-200", else: "text-gray-700 hover:text-gray-400")}
-                  title={if entry.group_id, do: "Remove from group", else: "Add to group"}
-                >⛓</button>
-                <span class="drag-handle cursor-grab text-gray-600 hover:text-gray-400 text-sm" title="Drag to reorder">⣿</span>
                 <button
                   phx-click="delete_entry"
                   phx-value-entry-id={entry.id}
@@ -189,11 +228,11 @@
 
         <!-- Caret slot AFTER this entry -->
         <div
-          class={"caret-slot py-1 cursor-pointer " <> if(@caret_position == index + 1, do: "border-t-2 border-purple-500", else: "border-t border-gray-800 hover:border-gray-600")}
+          class={"caret-slot py-0.5 cursor-pointer" <> if(@caret_position == index + 1, do: "caret-slot--active border-t-2 border-purple-500", else: "border-t border-gray-800 hover:border-gray-600")}
           phx-click="set_caret"
           phx-value-position={index + 1}
           title="Set insertion point here"
-        ></div>
+        ><span class="caret-slot-label">+ insert here</span></div>
 
         <!-- Add note affordance between entries (only when caret is here) -->
         <%= if @caret_position == index + 1 do %>
@@ -205,6 +244,15 @@
                 placeholder="Add inline note..."
                 class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
               ></textarea>
+              <%= if length(@editor_typefaces) > 1 do %>
+                <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
+                  <%= for tf <- @editor_typefaces do %>
+                    <option value={tf.id} style={"font-family: #{tf.font}; color: #{tf.color};"}>
+                      <%= tf.name %>
+                    </option>
+                  <% end %>
+                </select>
+              <% end %>
               <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded mt-1">+ Add note</button>
             </form>
           </div>

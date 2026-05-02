@@ -1559,13 +1559,20 @@ input[type=range].slider-purple::-moz-range-progress {
 /* CSS variable for library typography */
 :root {
   --library-font: Georgia, "Times New Roman", serif;
-  --library-accent: #b8975a; /* warm amber */
-  --library-accent-muted: #7a6038;
-  --library-bg: #0c0b08;
-  --library-surface: #141209;
-  --library-border: #2a2416;
-  --library-text: #d4c9a8;
-  --library-text-muted: #7a7060;
+  --library-accent: #a5b4fc;
+  /* indigo-300 */
+  --library-accent-muted: #6366f1;
+  /* indigo-500 */
+  --library-bg: #111827;
+  /* gray-900 */
+  --library-surface: #111827;
+  /* gray-900 */
+  --library-border: #312e81;
+  /* indigo-900 */
+  --library-text: #c7d2fe;
+  /* indigo-200, matches site dark:text-indigo-200 */
+  --library-text-muted: #818cf8;
+  /* indigo-400 */
 }
 
 /* Root wrapper — all library pages */
@@ -1575,17 +1582,20 @@ input[type=range].slider-purple::-moz-range-progress {
   color: var(--library-text);
   min-height: 100vh;
 }
+.library-root h2 {
+  text-decoration: none;
+}
 
 /* Folio header area */
 .library-folio-title {
-  font-size: 1.6rem;
+  font-size: 1.9rem;
   font-weight: normal;
   color: var(--library-accent);
   letter-spacing: 0.02em;
 }
 
 .library-folio-subtitle {
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: var(--library-text-muted);
   font-style: italic;
   margin-top: 0.2rem;
@@ -1595,7 +1605,7 @@ input[type=range].slider-purple::-moz-range-progress {
 .library-body {
   line-height: 1.8;
   color: var(--library-text);
-  font-size: 0.95rem;
+  font-size: 1.125rem;
 }
 .library-body p {
   margin-bottom: 1em;
@@ -1617,6 +1627,7 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 .library-entry-note {
+  font-size: 1.125rem;
   font-style: italic;
   color: var(--library-text-muted);
   padding-left: 1rem;
@@ -1625,7 +1636,7 @@ input[type=range].slider-purple::-moz-range-progress {
 
 /* Marginalia */
 .library-marginalia-toggle {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--library-text-muted);
   cursor: pointer;
   user-select: none;
@@ -1641,14 +1652,14 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 .library-marginalia-item {
-  font-size: 0.85rem;
+  font-size: 1rem;
   line-height: 1.6;
   color: var(--library-text);
   padding: 0.3rem 0;
 }
 
 .library-marginalia-meta {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--library-text-muted);
   margin-bottom: 0.15rem;
 }
@@ -1658,7 +1669,7 @@ input[type=range].slider-purple::-moz-range-progress {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   background: var(--library-surface);
@@ -1687,7 +1698,7 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .library-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--library-text-muted);
@@ -1741,16 +1752,62 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .library-folio-row-title {
   color: var(--library-accent);
-  font-size: 1rem;
+  font-size: 1.15rem;
 }
 .library-folio-row-title:hover {
-  color: #d4a84a;
+  color: var(--library-text);
 }
 
 .library-folio-row-meta {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--library-text-muted);
   margin-top: 0.2rem;
+}
+
+/* Composer caret slots */
+.caret-slot {
+  position: relative;
+  text-align: center;
+}
+.caret-slot .caret-slot-label {
+  display: inline-block;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: transparent;
+  transition: color 0.15s ease;
+  user-select: none;
+  pointer-events: none;
+}
+.caret-slot:hover .caret-slot-label {
+  color: #4b5563; /* gray-600 */
+}
+.caret-slot.caret-slot--active .caret-slot-label {
+  color: #a78bfa; /* purple-400 */
+}
+
+.tippy-box[data-theme~=library-scene] {
+  background-color: var(--library-surface, #111827);
+  border: 1px solid var(--library-border, #312e81);
+  color: var(--library-text-muted, #818cf8);
+  font-family: var(--library-font, Georgia, serif);
+  font-size: 0.75rem;
+}
+.tippy-box[data-theme~=library-scene] .tippy-content {
+  padding: 0.3rem 0.6rem;
+}
+.tippy-box[data-theme~=library-scene] .tippy-arrow {
+  color: var(--library-border, #312e81);
+}
+.tippy-box[data-theme~=library-scene] .library-scene-tooltip span:first-child {
+  opacity: 0.6;
+}
+.tippy-box[data-theme~=library-scene] .library-scene-tooltip a {
+  color: var(--library-accent, #a5b4fc);
+  text-decoration: none;
+}
+.tippy-box[data-theme~=library-scene] .library-scene-tooltip a:hover {
+  text-decoration: underline;
 }
 
 /*# sourceMappingURL=app.css.tailwind.map */

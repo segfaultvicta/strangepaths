@@ -7,7 +7,7 @@ defmodule Strangepaths.Library.Marginalia do
     field(:name, :string)
     field(:font, :string)
     field(:color, :string)
-    # bare :id field (not belongs_to) to avoid circular preload; depth computed via Repo.get in Library.marginalia_depth/1
+    field(:depth, :integer, default: 0)
     field(:parent_id, :id)
 
     belongs_to(:entry, Strangepaths.Library.Entry)
@@ -18,10 +18,17 @@ defmodule Strangepaths.Library.Marginalia do
 
   def create_changeset(marginalia, attrs) do
     marginalia
-    |> cast(attrs, [:entry_id, :user_id, :parent_id, :content, :name, :font, :color])
+    |> cast(attrs, [:entry_id, :user_id, :parent_id, :depth, :content, :name, :font, :color])
     |> validate_required([:entry_id, :user_id, :content, :name, :font, :color])
     |> validate_color()
     |> validate_font()
+    |> validate_length(:content, min: 1, max: 10_000)
+  end
+
+  def update_changeset(marginalia, attrs) do
+    marginalia
+    |> cast(attrs, [:content])
+    |> validate_required([:content])
     |> validate_length(:content, min: 1, max: 10_000)
   end
 

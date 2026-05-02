@@ -844,11 +844,12 @@ Hooks.LibraryComposer = {
     },
 
     destroyed() {
-        // Clean up Sortable instance when the hook is destroyed
         if (this.sortable) {
             this.sortable.destroy();
         }
-        // Remove the shift-click listener when the hook is destroyed
+        if (this._clickSuppressor) {
+            this.el.removeEventListener("click", this._clickSuppressor, true);
+        }
         if (this.onDocClick) {
             document.removeEventListener("click", this.onDocClick);
         }
@@ -856,32 +857,49 @@ Hooks.LibraryComposer = {
 
     initSortable() {
         const list = this.el.querySelector("#composer-entry-list") || this.el;
+        this.justDragged = false;
+
         this.sortable = new Sortable(list, {
             animation: 150,
             ghostClass: "opacity-50",
             handle: ".drag-handle",
+            onStart: (event) => {
+                this.justDragged = false;
+                const groupId = event.item.dataset.groupId;
+                // Snapshot the group's pre-drag member order so we can restore it
+                // regardless of which member was grabbed.
+                this.groupSnapshot = groupId
+                    ? Array.from(list.querySelectorAll(`[data-group-id="${groupId}"]`))
+                          .map(el => el.dataset.entryId)
+                    : null;
+            },
             onEnd: (event) => {
-                // Check if the dragged entry belongs to a group
+                this.justDragged = true;
                 const draggedEl = event.item;
                 const draggedGroupId = draggedEl.dataset.groupId;
 
-                // If the entry has a group_id, move all group members together
-                if (draggedGroupId) {
-                    const groupEntries = Array.from(list.querySelectorAll(`[data-group-id="${draggedGroupId}"]`));
+                if (draggedGroupId && this.groupSnapshot) {
+                    // Resolve snapshot IDs back to live elements (in original group order).
+                    const groupEls = this.groupSnapshot
+                        .map(id => list.querySelector(`[data-entry-id="${id}"]`))
+                        .filter(Boolean);
 
-                    // Move all group members to follow the dragged entry, maintaining their relative order.
-                    // Use a running insertion anchor to avoid reversing group order (each insertBefore after
-                    // the first changes nextSibling, so we track and update the anchor as we go).
+                    const draggedRank = groupEls.indexOf(draggedEl);
+
+                    // Members that originally preceded the dragged element go before it.
+                    for (const el of groupEls.slice(0, draggedRank)) {
+                        list.insertBefore(el, draggedEl);
+                    }
+
+                    // Members that originally followed the dragged element go after it, in order.
                     let anchor = draggedEl.nextSibling;
-                    for (const entry of groupEntries) {
-                        if (entry !== draggedEl) {
-                            list.insertBefore(entry, anchor);
-                            anchor = entry.nextSibling;
-                        }
+                    for (const el of groupEls.slice(draggedRank + 1)) {
+                        list.insertBefore(el, anchor);
+                        anchor = el.nextSibling;
                     }
                 }
 
-                // Collect the final order and send to server
+                // Collect the final order and send to server.
                 const items = list.querySelectorAll("[data-entry-id]");
                 const orderedIds = Array.from(items)
                     .map((el) => el.dataset.entryId)
@@ -891,6 +909,17 @@ Hooks.LibraryComposer = {
                 this.pushEvent("reorder_entries", { ids: orderedIds });
             },
         });
+
+        // Suppress the click event that fires after a drag completes, so the
+        // phx-click toggle_entry_group handler doesn't fire unintentionally.
+        this._clickSuppressor = (e) => {
+            if (this.justDragged) {
+                this.justDragged = false;
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        };
+        this.el.addEventListener("click", this._clickSuppressor, true);
     },
 
     initShiftClick() {
@@ -918,6 +947,49 @@ Hooks.LibraryComposer = {
         document.addEventListener("click", this.onDocClick);
     },
 }
+
+Hooks.LibrarySceneTooltip = {
+    mounted() { this.initTooltips(); },
+    updated() { this.initTooltips(); },
+
+    initTooltips() {
+        if (!window.tippy) return;
+
+        this.el.querySelectorAll("[data-scene-name]").forEach(el => {
+            if (el._tippy) el._tippy.destroy();
+
+            const sceneName = el.dataset.sceneName;
+            const sceneSlug = el.dataset.sceneSlug || "";
+
+            const wrap = document.createElement("div");
+            wrap.className = "library-scene-tooltip";
+
+            const label = document.createElement("span");
+            label.textContent = "from: ";
+
+            if (sceneSlug && /^[a-z0-9-]+$/.test(sceneSlug)) {
+                const a = document.createElement("a");
+                a.href = "/scenes/archives/" + sceneSlug;
+                a.textContent = sceneName;
+                wrap.append(label, a);
+            } else {
+                const name = document.createElement("span");
+                name.textContent = sceneName;
+                wrap.append(label, name);
+            }
+
+            window.tippy(el, {
+                content: wrap,
+                allowHTML: true,
+                interactive: !!sceneSlug,
+                theme: "library-scene",
+                trigger: "mouseenter",
+                placement: "left",
+                delay: [300, 0]
+            });
+        });
+    }
+};
 
 Hooks.CardReferenceTooltip = {
     _initTooltips() {

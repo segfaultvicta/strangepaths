@@ -1,6 +1,6 @@
 defmodule StrangepathsWeb.LibraryLive.Folio do
   use StrangepathsWeb, :live_view
-  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 1]
+  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 1, render_post_content: 2]
   import StrangepathsWeb.LibraryHelpers, only: [render_library_content: 1]
 
   alias Strangepaths.Library
@@ -57,6 +57,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:expanded_entries, MapSet.new())
          |> assign(:marginalia_form_entry_id, nil)
          |> assign(:marginalia_reply_to_id, nil)
+         |> assign(:editing_marginalia_id, nil)
          |> assign(:lock_timer_ref, nil)}
     end
   end
@@ -212,6 +213,70 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
      |> assign(:marginalia_reply_to_id, nil)}
   end
 
+  def handle_event("edit_marginalia", %{"marginalia-id" => id_str}, socket) do
+    user = socket.assigns.current_user
+    marginalia_id = String.to_integer(id_str)
+
+    owned = user && Enum.any?(
+      Map.values(socket.assigns.marginalia_flat_map),
+      fn flat -> Enum.any?(flat, fn {m, _depth} -> m.id == marginalia_id && m.user_id == user.id end) end
+    )
+
+    if owned do
+      {:noreply,
+       socket
+       |> assign(:editing_marginalia_id, marginalia_id)
+       |> assign(:marginalia_form_entry_id, nil)
+       |> assign(:marginalia_reply_to_id, nil)}
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  def handle_event("cancel_edit_marginalia", _params, socket) do
+    {:noreply, assign(socket, :editing_marginalia_id, nil)}
+  end
+
+  def handle_event("save_marginalia_edit", %{"marginalia" => %{"content" => content}, "marginalia-id" => id_str}, socket) do
+    user = socket.assigns.current_user
+    marginalia_id = String.to_integer(id_str)
+
+    flat_entries = Map.values(socket.assigns.marginalia_flat_map)
+
+    marginalia =
+      flat_entries
+      |> Enum.concat()
+      |> Enum.find_value(fn {m, _depth} ->
+        if m.id == marginalia_id && m.user_id == user.id, do: m
+      end)
+
+    if marginalia do
+      case Library.update_marginalia(marginalia, %{"content" => content}) do
+        {:ok, updated} ->
+          updated_flat_map =
+            Map.update!(
+              socket.assigns.marginalia_flat_map,
+              marginalia.entry_id,
+              fn flat ->
+                Enum.map(flat, fn {m, depth} ->
+                  if m.id == updated.id, do: {updated, depth}, else: {m, depth}
+                end)
+              end
+            )
+
+          {:noreply,
+           socket
+           |> assign(:marginalia_flat_map, updated_flat_map)
+           |> assign(:editing_marginalia_id, nil)}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to save edit.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
   def handle_event("submit_marginalia", %{"marginalia" => attrs}, socket) do
     if socket.assigns.is_folio_editor do
       user = socket.assigns.current_user
@@ -254,9 +319,6 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
                socket
                |> assign(:marginalia_form_entry_id, nil)
                |> assign(:marginalia_reply_to_id, nil)}
-
-            {:error, :max_depth_exceeded} ->
-              {:noreply, put_flash(socket, :error, "Cannot reply this deeply.")}
 
             {:error, _changeset} ->
               {:noreply, put_flash(socket, :error, "Failed to post marginalia.")}

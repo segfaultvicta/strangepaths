@@ -119,6 +119,7 @@
           <%= csrf_input_tag(Routes.user_settings_path(@conn, :update)) %>
 
           <label class="flex items-center gap-3 cursor-pointer mb-4">
+            <input type="hidden" name="site_settings[bbs_enabled]" value="false" />
             <input
               type="checkbox"
               name="site_settings[bbs_enabled]"
@@ -129,10 +130,26 @@
             <span>Show Aethernet (BBS) in navigation for all users</span>
           </label>
 
+          <label class="flex items-center gap-3 cursor-pointer mb-4">
+            <input type="hidden" name="site_settings[library_enabled]" value="false" />
+            <input
+              type="checkbox"
+              name="site_settings[library_enabled]"
+              value="true"
+              class="mr-2"
+              checked={@site_settings.library_enabled}
+            />
+            <span>Show Liminal Library in navigation for all users</span>
+          </label>
+
           <div class="pt-2">
             <button type="submit" class="submit">Save Site Settings</button>
           </div>
         </form>
+
+        <div class="mt-4 pt-4 border-t border-purple-800">
+          <a href="/library/admin" class="text-purple-400 hover:text-purple-200 text-sm">→ Library Admin (typeface assignments)</a>
+        </div>
       </div>
     <% end %>
 

@@ -133,24 +133,54 @@
 
   <!-- Entry stream -->
   <%= if Enum.any?(@entries) do %>
-    <div class="space-y-4 mb-8">
+    <div id="library-entries" class="space-y-4 mb-8" phx-hook="LibrarySceneTooltip">
       <%= for entry <- @entries do %>
-        <!-- entry id used by Phase 6 marginalia anchors -->
+        <!-- entry id used by marginalia anchors -->
         <div id={"entry-#{entry.id}"} class="library-entry">
           <%= case entry.kind do %>
           <% :post_ref -> %>
             <%= if entry.scene_post do %>
-              <div class="border-l-2 border-gray-700 pl-4">
+              <%
+                post = entry.scene_post
+                scene = post.scene
+                scene_name = scene && scene.name
+                scene_slug = if scene && scene.status == :archived, do: scene.slug, else: nil
+                is_pure_narrator = post.post_type == :narrative && post.narrative_author_name in [nil, ""]
+                has_attributed_name = post.narrative_author_name not in [nil, ""]
+                color_classes = case post.color_category do
+                  "red" -> "text-burning-gnosis font-burning-gnosis"
+                  "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
+                  "blue" -> "text-pellucid-gnosis font-pellucid-gnosis"
+                  "white" -> "text-radiant-gnosis font-radiant-gnosis"
+                  "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
+                  _ -> ""
+                end
+              %>
+              <div
+                class={"border-l-2 pl-4 #{color_classes} #{if is_pure_narrator, do: "border-purple-600", else: "border-gray-700"}"}
+                {if scene_name, do: ["data-scene-name": scene_name, "data-scene-slug": scene_slug], else: []}
+              >
                 <div class="text-xs text-gray-500 mb-1">
-                  <strong><%= entry.scene_post.user && entry.scene_post.user.nickname %></strong>
+                  <%= cond do %>
+                    <% is_pure_narrator -> %>
+                    <% has_attributed_name -> %>
+                      <strong class="text-purple-500"><%= post.narrative_author_name %></strong>
+                    <% post.user && post.user.role == :dragon -> %>
+                    <% true -> %>
+                      <strong><%= post.author_nickname || (post.user && post.user.nickname) %></strong>
+                  <% end %>
                 </div>
-                <div>
-                  <%= raw render_post_content(entry.scene_post.content) %>
+                <div class={if is_pure_narrator, do: "lyrics-alternate-font"}>
+                  <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
                 </div>
               </div>
             <% end %>
           <% :note -> %>
-            <div class="library-entry-note" style={"font-family: #{entry.font}; color: #{entry.color};"}>
+            <%
+              note_tf = Strangepaths.Library.Typefaces.find_by_font_and_color(entry.font, entry.color)
+              note_font_size = if note_tf, do: note_tf.font_size, else: "1em"
+            %>
+            <div class="library-entry-note" style={"font-family: #{entry.font}; color: #{entry.color}; font-size: #{note_font_size};"}>
               <%= raw render_library_content(entry.content) %>
             </div>
           <% end %>
@@ -180,12 +210,16 @@
               <!-- Thread display (flat list with depth-based indentation) -->
               <div class="library-marginalia-thread">
                 <%= for {m, depth} <- marginalia_with_depth do %>
+                  <%
+                    m_tf = Strangepaths.Library.Typefaces.find_by_font_and_color(m.font, m.color)
+                    m_font_size = if m_tf, do: m_tf.font_size, else: "1em"
+                  %>
                   <div
                     id={"marginalia-#{m.id}"}
                     class="library-marginalia-item"
                     style={"margin-left: #{depth * 16}px; font-family: #{m.font}; color: #{m.color};"}
                   >
-                    <span class="font-semibold"><%= m.name %></span>
+                    <span class="font-semibold library-marginalia-meta"><%= m.name %></span>
                     <span class="library-marginalia-meta"><%= format_relative_time(m.inserted_at) %></span>
 
                     <%= if @is_folio_editor do %>
@@ -193,9 +227,34 @@
                         phx-click="open_marginalia_form"
                         phx-value-entry-id={entry.id}
                         phx-value-reply-to={m.id}
-                        class="ml-2 text-gray-600 hover:text-gray-400"
+                        class="ml-2 text-gray-600 hover:text-gray-400 library-marginalia-meta"
                         title="Reply to this"
                       >↩ Reply</button>
+                    <% end %>
+
+                    <%= if @current_user && m.user_id == @current_user.id do %>
+                      <button
+                        phx-click="edit_marginalia"
+                        phx-value-marginalia-id={m.id}
+                        class="ml-2 text-gray-600 hover:text-gray-400 library-marginalia-meta"
+                        title="Edit"
+                      >✎ Edit</button>
+                    <% end %>
+
+                    <%= if @editing_marginalia_id == m.id do %>
+                      <form phx-submit="save_marginalia_edit" class="mt-1">
+                        <input type="hidden" name="marginalia-id" value={m.id} />
+                        <textarea
+                          name="marginalia[content]"
+                          class="w-full h-20 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
+                        ><%= m.content %></textarea>
+                        <div class="flex gap-2 mt-1">
+                          <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded">Save</button>
+                          <button type="button" phx-click="cancel_edit_marginalia" class="text-xs text-gray-500">Cancel</button>
+                        </div>
+                      </form>
+                    <% else %>
+                      <div class="mt-1" style={"font-size: #{m_font_size};"}><%= raw render_library_content(m.content) %></div>
                     <% end %>
 
                     <!-- Reply form inline when this is the reply target -->
@@ -219,8 +278,6 @@
                         </div>
                       </.form>
                     <% end %>
-
-                    <div class="mt-1"><%= raw render_library_content(m.content) %></div>
                   </div>
                 <% end %>
               </div>
