@@ -16,6 +16,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
      |> assign(:filter_tag, "")
      |> assign(:sort_by, :date)
      |> assign(:all_users, Library.list_folio_authors())
+     |> assign(:all_tags, Library.list_all_folio_tags())
      |> assign(:folios, Library.search_folios([]))
      |> assign(:folio_changeset, nil)
      |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))}

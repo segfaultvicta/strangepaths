@@ -50,47 +50,44 @@
                     _ -> ""
                   end
                 %>
-                <div id={"browser-post-#{post.id}"} class={"py-2 border-b border-gray-800/50 text-sm #{color_classes} " <> if(is_pure_narrator, do: "border-l-2 border-l-purple-800/60 pl-1", else: "")}>
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="font-medium text-xs text-gray-400">
-                      <%= cond do %>
-                        <% is_pure_narrator -> %>
-                          <span class="text-purple-400/70 italic">narrator</span>
-                        <% has_attributed_name -> %>
-                          <span class="text-purple-400"><%= post.narrative_author_name %></span>
-                        <% post.user && post.user.role == :dragon -> %>
-                        <% true -> %>
-                          <%= post.author_nickname || (post.user && post.user.nickname) %>
-                      <% end %>
-                    </span>
-                    <div class="flex gap-1">
-                      <button
-                        phx-click="set_range_anchor"
-                        phx-value-post-id={post.id}
-                        title="Set as range start (From)"
-                        class={"text-xs px-1 rounded " <> if(@range_anchor_post_id == post.id, do: "text-purple-300 bg-purple-900/50", else: "text-gray-500 hover:text-gray-300")}
-                      >↑ From</button>
-                      <%= if @range_anchor_post_id && @range_anchor_post_id != post.id do %>
-                        <button
-                          phx-click="add_range"
-                          phx-value-from-post-id={@range_anchor_post_id}
-                          phx-value-to-post-id={post.id}
-                          phx-value-scene-id={scene.id}
-                          title="Add range from anchor to here"
-                          class="text-xs px-1 text-purple-400 hover:text-purple-200"
-                        >↓ To</button>
-                      <% end %>
-                    </div>
-                  </div>
+                <div id={"browser-post-#{post.id}"} class={"flex gap-1 items-start py-1 border-b border-gray-800/50 text-sm #{color_classes} " <> if(is_pure_narrator, do: "border-l-2 border-l-purple-800/60 pl-1", else: "")}>
                   <div
-                    class="cursor-pointer hover:bg-gray-700/50 rounded p-1"
+                    class="flex-1 min-w-0 cursor-pointer hover:bg-gray-700/50 rounded px-1"
                     phx-click="add_post"
                     phx-value-post-id={post.id}
                     title="Add post at caret position"
                   >
-                    <div class="text-xs line-clamp-3">
+                    <div class="post-ic-content-icecylee text-xs line-clamp-2">
+                      <span class="post-ic-authorspan">
+                        <%= cond do %>
+                          <% is_pure_narrator -> %>
+                          <% has_attributed_name -> %>
+                            <span class="text-purple-400"><%= post.narrative_author_name %></span>
+                          <% post.user && post.user.role == :dragon -> %>
+                          <% true -> %>
+                            <%= post.author_nickname || (post.user && post.user.nickname) %>
+                        <% end %>
+                      </span>
                       <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
                     </div>
+                  </div>
+                  <div class="flex flex-col gap-0.5 items-end flex-shrink-0 pt-0.5">
+                    <button
+                      phx-click="set_range_anchor"
+                      phx-value-post-id={post.id}
+                      title="Set as range start (From)"
+                      class={"text-xs px-1 rounded leading-tight " <> if(@range_anchor_post_id == post.id, do: "text-purple-300 bg-purple-900/50", else: "text-gray-600 hover:text-gray-300")}
+                    >↑</button>
+                    <%= if @range_anchor_post_id && @range_anchor_post_id != post.id do %>
+                      <button
+                        phx-click="add_range"
+                        phx-value-from-post-id={@range_anchor_post_id}
+                        phx-value-to-post-id={post.id}
+                        phx-value-scene-id={scene.id}
+                        title="Add range to here"
+                        class="text-xs px-1 text-purple-400 hover:text-purple-200 leading-tight"
+                      >↓</button>
+                    <% end %>
                   </div>
                 </div>
               <% end %>
@@ -102,24 +99,24 @@
   </div>
 
   <!-- === RIGHT PANEL: Entry List === -->
-  <div class="w-1/2 flex flex-col overflow-hidden">
+  <div class="w-1/2 flex flex-col overflow-hidden relative z-10">
     <div class="p-4 border-b border-gray-800 flex-shrink-0">
       <h2 class="font-semibold">
         <%= @folio.title %>
         <%= live_redirect "← View folio", to: "/library/#{@folio.slug}", class: "text-xs text-gray-400 no-underline hover:text-indigo-300 ml-2" %>
       </h2>
-      <p class="text-xs text-gray-500 mt-1">
-        Caret at position <%= @caret_position %> · <%= length(@entries) %> entries
-      </p>
-      <%= if (@is_author || @is_dragon) && Enum.any?(@entries, & &1.group_id) do %>
-        <div class="mt-2">
+      <div class="flex items-center justify-between mt-1">
+        <p class="text-xs text-gray-500">
+          Caret at position <%= @caret_position %> · <%= length(@entries) %> entries
+        </p>
+        <%= if @is_author || @is_dragon do %>
           <button
             phx-click="ungroup_all"
-            class="text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-amber-400"
+            class={"text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-amber-400 " <> if(Enum.any?(@entries, & &1.group_id), do: "visible", else: "invisible")}
             title="Remove all grouping"
           >⛓ Ungroup all</button>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     </div>
 
     <div
@@ -137,13 +134,15 @@
 
       <!-- Add note form at position 1 if list is empty or caret is at position 1 -->
       <%= if Enum.empty?(@entries) || @caret_position == 1 do %>
-        <div class="mb-2">
-          <form phx-submit="add_note">
+        <div id="note-form-wrap-1" phx-update="ignore" class="mb-2">
+          <form phx-submit="add_note" x-data="{ noteContent: '' }">
             <input type="hidden" name="position" value="1" />
             <textarea
+              id="composer-note-textarea"
               name="note[content]"
               placeholder="Add inline note..."
               class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
+              x-model="noteContent"
             ></textarea>
             <%= if length(@editor_typefaces) > 1 do %>
               <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
@@ -154,28 +153,44 @@
                 <% end %>
               </select>
             <% end %>
-            <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded mt-1">+ Add note</button>
+            <div class="flex gap-2 mt-1 items-center">
+              <div id="composer-note-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="composer-note-textarea">
+                <button type="button" class="grimoire-trigger" title="Ctrl+G">◆</button>
+                <div class="grimoire-popover" style="display:none;">
+                  <div class="grimoire-glyphs"></div>
+                  <button type="button" class="grimoire-add-btn">+</button>
+                  <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                </div>
+              </div>
+              <button type="submit" class="btn-primary-sm disabled:opacity-40 disabled:cursor-not-allowed" :disabled="noteContent.trim() === ''">+ Add note</button>
+            </div>
           </form>
         </div>
       <% end %>
 
       <%= for {entry, index} <- Enum.with_index(@entries, 1) do %>
+        <% action = Map.get(@group_actions, entry.id, :no_op) %>
         <div
           id={"entry-#{entry.id}"}
           data-entry-id={entry.id}
           data-group-id={entry.group_id || ""}
-          class={"entry-item mb-1 p-2 rounded border-l-4 " <> if(entry.group_id, do: "bg-amber-950/20 border-l-amber-500 border border-amber-800/30", else: "bg-gray-900 border-l-transparent border border-gray-800")}
+          phx-click={if @is_author || @is_dragon, do: "toggle_entry_group"}
+          phx-value-entry-id={entry.id}
+          class={"entry-item p-2 rounded border-l-4 " <>
+            if(entry.group_id,
+              do: "bg-amber-950/20 border-l-amber-500 border border-amber-800/30",
+              else: "bg-gray-900 border-l-transparent border border-gray-800") <>
+            if(@is_author || @is_dragon,
+              do: (case action do
+                :add    -> " hover:bg-amber-900/30 hover:border-l-amber-400 cursor-pointer"
+                :remove -> " hover:bg-red-900/30 hover:border-l-red-500 cursor-pointer"
+                :no_op  -> if(entry.group_id, do: " cursor-grab", else: " cursor-default")
+              end),
+              else: "") <>
+            if(entry.group_id && (@is_author || @is_dragon), do: " drag-handle", else: "")}
         >
           <div class="flex items-start justify-between gap-2">
-            <div
-              class={"flex-1 min-w-0 #{cond do
-                not (@is_author || @is_dragon) -> ""
-                entry.group_id -> "drag-handle cursor-grab"
-                true -> "cursor-pointer"
-              end}"}
-              phx-click={if @is_author || @is_dragon, do: "toggle_entry_group"}
-              phx-value-entry-id={entry.id}
-            >
+            <div class="flex-1 min-w-0">
               <%= case entry.kind do %>
               <% :post_ref -> %>
                 <%= if entry.scene_post do %>
@@ -192,17 +207,16 @@
                       _ -> ""
                     end
                   %>
-                  <div class="text-xs text-gray-500 mb-1">
-                    <%= cond do %>
-                      <% is_pure_narrator -> %>
-                        <span class="text-purple-400/70 italic">narrator</span>
-                      <% is_npc -> %>
-                        <span class="text-purple-400"><%= post.narrative_author_name %></span>
-                      <% true -> %>
-                        <%= post.author_nickname || (post.user && post.user.nickname) %>
-                    <% end %>
-                  </div>
-                  <div class={"text-xs line-clamp-3 #{color_classes}"}>
+                  <div class={"post-ic-content-icecylee text-xs line-clamp-3 #{color_classes}"}>
+                    <span class="post-ic-authorspan">
+                      <%= cond do %>
+                        <% is_pure_narrator -> %>
+                        <% is_npc -> %>
+                          <span class="text-purple-400"><%= post.narrative_author_name %></span>
+                        <% true -> %>
+                          <%= post.author_nickname || (post.user && post.user.nickname) %>
+                      <% end %>
+                    </span>
                     <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
                   </div>
                 <% end %>
@@ -227,22 +241,28 @@
         </div>
 
         <!-- Caret slot AFTER this entry -->
+        <%= if @caret_position != index + 1 do %>
         <div
-          class={"caret-slot py-0.5 cursor-pointer" <> if(@caret_position == index + 1, do: "caret-slot--active border-t-2 border-purple-500", else: "border-t border-gray-800 hover:border-gray-600")}
+          class={"caret-slot cursor-pointer" <> if(@caret_position == index + 1, do: "caret-slot--active border-t-2 border-purple-500", else: "border-t border-gray-800 hover:border-gray-600")}
           phx-click="set_caret"
           phx-value-position={index + 1}
           title="Set insertion point here"
         ><span class="caret-slot-label">+ insert here</span></div>
+        <% else %>
+          <hr class="insertion-caret-hr" />
+        <% end %>
 
         <!-- Add note affordance between entries (only when caret is here) -->
         <%= if @caret_position == index + 1 do %>
-          <div class="mb-2">
-            <form phx-submit="add_note">
+          <div id={"note-form-wrap-#{index + 1}"} phx-update="ignore" class="mb-2">
+            <form phx-submit="add_note" x-data="{ noteContent: '' }">
               <input type="hidden" name="position" value={index + 1} />
               <textarea
+                id={"composer-note-textarea-#{index + 1}"}
                 name="note[content]"
                 placeholder="Add inline note..."
                 class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
+                x-model="noteContent"
               ></textarea>
               <%= if length(@editor_typefaces) > 1 do %>
                 <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
@@ -253,7 +273,17 @@
                   <% end %>
                 </select>
               <% end %>
-              <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded mt-1">+ Add note</button>
+              <div class="flex gap-2 mt-1 items-center">
+                <div id={"composer-note-grimoire-#{index + 1}"} phx-hook="Grimoire" phx-update="ignore" data-textarea-id={"composer-note-textarea-#{index + 1}"}>
+                  <button type="button" class="grimoire-trigger" title="Ctrl+G">◆</button>
+                  <div class="grimoire-popover" style="display:none;">
+                    <div class="grimoire-glyphs"></div>
+                    <button type="button" class="grimoire-add-btn">+</button>
+                    <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                  </div>
+                </div>
+                <button type="submit" class="btn-primary-sm disabled:opacity-40 disabled:cursor-not-allowed" :disabled="noteContent.trim() === ''">+ Add note</button>
+              </div>
             </form>
           </div>
         <% end %>

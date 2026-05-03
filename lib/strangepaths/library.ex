@@ -123,7 +123,161 @@ defmodule Strangepaths.Library do
         _ -> from([f, u] in query, order_by: [desc: f.inserted_at])
       end
 
-    Repo.all(query)
+    query
+    |> Repo.all()
+    |> Repo.preload(:tags)
+  end
+
+  def search_folios_for_archives(query, _user_id) do
+    pattern = "%#{query}%"
+    threshold = 0.15
+    query_lower = String.downcase(query)
+
+    body_ids =
+      from(f in Folio,
+        where:
+          ilike(f.body, ^pattern) or
+            fragment("similarity(?, ?) > ?", f.body, ^query, ^threshold),
+        select: f.id
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    note_folio_ids =
+      from(e in Entry,
+        where:
+          e.kind == :note and
+            (ilike(e.content, ^pattern) or
+               fragment("similarity(?, ?) > ?", e.content, ^query, ^threshold)),
+        select: e.folio_id
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    marginalia_folio_ids =
+      from(m in Marginalia,
+        join: e in Entry,
+        on: e.id == m.entry_id,
+        where:
+          ilike(m.content, ^pattern) or
+            fragment("similarity(?, ?) > ?", m.content, ^query, ^threshold),
+        select: e.folio_id
+      )
+      |> Repo.all()
+      |> MapSet.new()
+
+    all_folio_ids =
+      MapSet.union(body_ids, MapSet.union(note_folio_ids, marginalia_folio_ids))
+      |> MapSet.to_list()
+
+    if all_folio_ids == [] do
+      []
+    else
+      folios = from(f in Folio, where: f.id in ^all_folio_ids) |> Repo.all()
+
+      folios
+      |> Enum.map(fn folio ->
+        snippets =
+          [
+            folio_body_snippet(folio, body_ids, query),
+            folio_note_snippet(folio, note_folio_ids, pattern, query),
+            folio_marginalia_snippet(folio, marginalia_folio_ids, pattern, query)
+          ]
+          |> Enum.reject(&is_nil/1)
+          |> Enum.take(3)
+
+        body_exact = String.contains?(String.downcase(folio.body || ""), query_lower)
+        content_exact = Enum.any?(snippets, fn s -> String.contains?(String.downcase(s.snippet), query_lower) end)
+
+        sort_score =
+          cond do
+            body_exact -> 0
+            content_exact -> 1
+            true -> 2
+          end
+
+        %{
+          folio_id: folio.id,
+          folio_slug: folio.slug,
+          folio_title: folio.title,
+          snippets: snippets,
+          sort_score: sort_score
+        }
+      end)
+      |> Enum.sort_by(& &1.sort_score)
+      |> Enum.map(&Map.delete(&1, :sort_score))
+    end
+  end
+
+  defp folio_body_snippet(folio, body_ids, query) do
+    if MapSet.member?(body_ids, folio.id) do
+      %{snippet: archive_extract_snippet(folio.body, query, 150), source: :body}
+    end
+  end
+
+  defp folio_note_snippet(folio, note_folio_ids, pattern, query) do
+    if MapSet.member?(note_folio_ids, folio.id) do
+      entry =
+        from(e in Entry,
+          where:
+            e.folio_id == ^folio.id and e.kind == :note and
+              (ilike(e.content, ^pattern) or
+                 fragment("similarity(?, ?) > ?", e.content, ^query, ^0.15)),
+          limit: 1
+        )
+        |> Repo.one()
+
+      if entry, do: %{snippet: archive_extract_snippet(entry.content, query, 150), source: :note}
+    end
+  end
+
+  defp folio_marginalia_snippet(folio, marginalia_folio_ids, pattern, query) do
+    if MapSet.member?(marginalia_folio_ids, folio.id) do
+      marg =
+        from(m in Marginalia,
+          join: e in Entry,
+          on: e.id == m.entry_id,
+          where:
+            e.folio_id == ^folio.id and
+              (ilike(m.content, ^pattern) or
+                 fragment("similarity(?, ?) > ?", m.content, ^query, ^0.15)),
+          limit: 1,
+          select: m
+        )
+        |> Repo.one()
+
+      if marg,
+        do: %{snippet: archive_extract_snippet(marg.content, query, 150), source: :marginalia}
+    end
+  end
+
+  defp archive_extract_snippet(content, query, max_length) do
+    content = content || ""
+    query_lower = String.downcase(query)
+    content_lower = String.downcase(content)
+
+    case :binary.match(content_lower, query_lower) do
+      {pos, len} ->
+        start_pos = max(0, pos - div(max_length - len, 2))
+        end_pos = min(String.length(content), start_pos + max_length)
+        start_pos = max(0, end_pos - max_length)
+        snippet = String.slice(content, start_pos, max_length)
+
+        cond do
+          start_pos > 0 && end_pos < String.length(content) -> "..." <> snippet <> "..."
+          start_pos > 0 -> "..." <> snippet
+          end_pos < String.length(content) -> snippet <> "..."
+          true -> snippet
+        end
+
+      :nomatch ->
+        String.slice(content, 0, max_length)
+    end
+  end
+
+  def list_all_folio_tags do
+    from(ft in FolioTag, select: ft.tag, distinct: true, order_by: ft.tag)
+    |> Repo.all()
   end
 
   def get_folio!(id), do: Repo.get!(Folio, id)

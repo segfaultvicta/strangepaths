@@ -2308,6 +2308,10 @@ a:hover{
   cursor: move;
 }
 
+.cursor-default{
+  cursor: default;
+}
+
 .touch-manipulation{
   touch-action: manipulation;
 }
@@ -2709,6 +2713,16 @@ a:hover{
   border-color: rgb(107 114 128 / var(--tw-border-opacity));
 }
 
+.border-green-500{
+  --tw-border-opacity: 1;
+  border-color: rgb(34 197 94 / var(--tw-border-opacity));
+}
+
+.border-orange-500{
+  --tw-border-opacity: 1;
+  border-color: rgb(249 115 22 / var(--tw-border-opacity));
+}
+
 .border-red-700{
   --tw-border-opacity: 1;
   border-color: rgb(185 28 28 / var(--tw-border-opacity));
@@ -2727,11 +2741,6 @@ a:hover{
 .border-emerald-500{
   --tw-border-opacity: 1;
   border-color: rgb(16 185 129 / var(--tw-border-opacity));
-}
-
-.border-green-500{
-  --tw-border-opacity: 1;
-  border-color: rgb(34 197 94 / var(--tw-border-opacity));
 }
 
 .border-yellow-500{
@@ -3336,6 +3345,14 @@ a:hover{
   padding-left: 0.25rem;
 }
 
+.pt-0\.5{
+  padding-top: 0.125rem;
+}
+
+.pt-0{
+  padding-top: 0px;
+}
+
 .pt-24{
   padding-top: 6rem;
 }
@@ -3679,10 +3696,6 @@ a:hover{
   color: rgb(238 242 255 / var(--tw-text-opacity));
 }
 
-.text-purple-400\/70{
-  color: rgb(192 132 252 / 0.7);
-}
-
 .text-amber-400{
   --tw-text-opacity: 1;
   color: rgb(251 191 36 / var(--tw-text-opacity));
@@ -3701,6 +3714,11 @@ a:hover{
 .text-emerald-400{
   --tw-text-opacity: 1;
   color: rgb(52 211 153 / var(--tw-text-opacity));
+}
+
+.text-orange-700{
+  --tw-text-opacity: 1;
+  color: rgb(194 65 12 / var(--tw-text-opacity));
 }
 
 .text-blue-200{
@@ -5894,7 +5912,7 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 /* ============================================================
-   BBS: Cross-Planar Communication Network — The Aethernet
+   BBS: Cross-Planar Communication Network — Linkpearl
    ============================================================ */
 
 :root {
@@ -6397,15 +6415,129 @@ input[type=range].slider-purple::-moz-range-progress {
 
 /* Root wrapper — all library pages */
 
+.btn-primary{
+  cursor: pointer;
+  border-radius: 0.25rem;
+  --tw-bg-opacity: 1;
+  background-color: rgb(126 34 206 / var(--tw-bg-opacity));
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-weight: 600;
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
+  transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.btn-primary:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+
+.btn-secondary{
+  cursor: pointer;
+  border-radius: 0.25rem;
+  border-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(126 34 206 / var(--tw-border-opacity));
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-weight: 600;
+  --tw-text-opacity: 1;
+  color: rgb(216 180 254 / var(--tw-text-opacity));
+  transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.btn-secondary:hover{
+  background-color: rgb(88 28 135 / 0.3);
+}
+
+.btn-primary-sm{
+  cursor: pointer;
+  border-radius: 0.25rem;
+  --tw-bg-opacity: 1;
+  background-color: rgb(126 34 206 / var(--tw-bg-opacity));
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
+  transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.btn-primary-sm:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(147 51 234 / var(--tw-bg-opacity));
+}
+
 .library-root {
   font-family: var(--library-font);
   background-color: var(--library-bg);
   color: var(--library-text);
   min-height: 100vh;
+  /* Grimoire container — position: relative anchors the absolutely-positioned popover */
+  /* Open the popover downward-left so it stays within the panel and can't be
+     occluded by an adjacent panel's stacking context */
+  /* Make grimoire trigger visible as an inline button (matches BBS override pattern) */
 }
 
 .library-root h2 {
   text-decoration: none;
+}
+
+.library-root [phx-hook=Grimoire] {
+  position: relative;
+}
+
+.library-root .grimoire-popover {
+  top: 100%;
+  bottom: auto;
+  left: 0;
+  right: auto;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.library-root .grimoire-trigger {
+  position: static;
+  opacity: 1;
+  font-size: 0.8rem;
+  padding: 2px 7px;
+  border: 1px solid #6d28d9;
+  border-radius: 3px;
+  color: #c4b5fd;
+  background: transparent;
+}
+
+.library-root .grimoire-trigger:hover {
+  background: #4c1d95;
+}
+
+/* Marginalia reply form resets inherited typeface so the form is readable */
+
+.library-marginalia-form-reset {
+  font-family: var(--library-font);
+  color: var(--library-text);
+  font-size: 1rem;
+  font-style: normal;
 }
 
 /* Folio header area */
@@ -6415,6 +6547,8 @@ input[type=range].slider-purple::-moz-range-progress {
   font-weight: normal;
   color: var(--library-accent);
   letter-spacing: 0.02em;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .library-folio-subtitle {
@@ -6553,6 +6687,17 @@ input[type=range].slider-purple::-moz-range-progress {
 .library-input:focus {
   outline: none;
   border-color: var(--library-accent-muted);
+}
+
+select.library-input {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 2rem;
+  cursor: pointer;
 }
 
 .library-tag-input {
@@ -6802,6 +6947,16 @@ input[type=range].slider-purple::-moz-range-progress {
   border-color: rgb(209 213 219 / var(--tw-border-opacity));
 }
 
+.hover\:border-l-amber-400:hover{
+  --tw-border-opacity: 1;
+  border-left-color: rgb(251 191 36 / var(--tw-border-opacity));
+}
+
+.hover\:border-l-red-500:hover{
+  --tw-border-opacity: 1;
+  border-left-color: rgb(239 68 68 / var(--tw-border-opacity));
+}
+
 .hover\:bg-green-500:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(34 197 94 / var(--tw-bg-opacity));
@@ -6974,6 +7129,14 @@ input[type=range].slider-purple::-moz-range-progress {
 .hover\:bg-gray-100:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-amber-900\/30:hover{
+  background-color: rgb(120 53 15 / 0.3);
+}
+
+.hover\:bg-red-900\/30:hover{
+  background-color: rgb(127 29 29 / 0.3);
 }
 
 .hover\:text-purple-300:hover{
@@ -7167,6 +7330,14 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .active\:opacity-100:active{
   opacity: 1;
+}
+
+.disabled\:cursor-not-allowed:disabled{
+  cursor: not-allowed;
+}
+
+.disabled\:opacity-40:disabled{
+  opacity: 0.4;
 }
 
 .group:hover .group-hover\:border-purple-400{
@@ -7363,6 +7534,11 @@ input[type=range].slider-purple::-moz-range-progress {
 .dark .dark\:text-blue-200{
   --tw-text-opacity: 1;
   color: rgb(191 219 254 / var(--tw-text-opacity));
+}
+
+.dark .dark\:text-orange-400{
+  --tw-text-opacity: 1;
+  color: rgb(251 146 60 / var(--tw-text-opacity));
 }
 
 .dark .dark\:text-gray-200{

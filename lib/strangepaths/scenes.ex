@@ -128,12 +128,23 @@ defmodule Strangepaths.Scenes do
   Includes active, locked, and archived scenes. Ordered by status (active first), then by name.
   """
   def list_scenes_for_composer(user_id) do
+    user_scene_ids =
+      from(p in Post,
+        where: p.user_id == ^user_id,
+        select: p.scene_id,
+        distinct: true
+      )
+
+    last_post_subquery =
+      from(p in Post,
+        group_by: p.scene_id,
+        select: %{scene_id: p.scene_id, last_post_at: max(p.inserted_at)}
+      )
+
     from(s in Scene,
-      join: p in Post,
-      on: p.scene_id == s.id and p.user_id == ^user_id,
-      where: not s.is_elsewhere,
-      distinct: true,
-      order_by: [asc: s.status, asc: s.name],
+      left_join: lp in subquery(last_post_subquery), on: lp.scene_id == s.id,
+      where: not s.is_elsewhere and s.id in subquery(user_scene_ids),
+      order_by: [desc_nulls_last: lp.last_post_at, asc: s.name],
       preload: [:owner]
     )
     |> Repo.all()

@@ -7,6 +7,8 @@ defmodule StrangepathsWeb.Scenes.Archives do
   alias Strangepaths.Scenes
   alias Strangepaths.Accounts
   alias Strangepaths.Site
+  alias Strangepaths.Library
+  alias Strangepaths.BBS
 
   @impl true
   def mount(_params, session, socket) do
@@ -48,6 +50,8 @@ defmodule StrangepathsWeb.Scenes.Archives do
      |> assign(:search_query, "")
      |> assign(:search_results, nil)
      |> assign(:searching, false)
+     |> assign(:library_results, [])
+     |> assign(:bbs_results, [])
      |> assign(:show_filters, false)
      |> assign(:filter_my_scenes, false)
      |> assign(:filter_hide_elsewhere, false)
@@ -128,6 +132,8 @@ defmodule StrangepathsWeb.Scenes.Archives do
        socket
        |> assign(:search_query, query)
        |> assign(:search_results, nil)
+       |> assign(:library_results, [])
+       |> assign(:bbs_results, [])
        |> assign(:searching, false)}
     else
       socket = assign(socket, :searching, true)
@@ -165,6 +171,8 @@ defmodule StrangepathsWeb.Scenes.Archives do
         )
 
       codex_results = Site.search_codex_pages(query, user_id)
+      library_results = Library.search_folios_for_archives(query, user_id)
+      bbs_results = BBS.search_threads_for_archives(query, user_id)
 
       # Combine scene and post results, removing duplicates
       scene_ids_from_names = MapSet.new(scene_results, fn result -> result.scene_id end)
@@ -172,30 +180,49 @@ defmodule StrangepathsWeb.Scenes.Archives do
       all_scene_ids = MapSet.union(scene_ids_from_names, scene_ids_from_posts)
 
       # Build unified results with context
+      query_lower = String.downcase(query)
+
       unified_results =
         all_scene_ids
         |> Enum.map(fn scene_id ->
           scene_result = Enum.find(scene_results, fn r -> r.scene_id == scene_id end)
           post_result = Enum.find(post_results, fn r -> r.scene_id == scene_id end)
+          scene_name = (scene_result && scene_result.scene_name) || (post_result && post_result.scene_name)
+          snippets = (post_result && post_result.snippets) || []
+
+          exact_post_hit = Enum.any?(snippets, fn s ->
+            String.contains?(String.downcase(s.snippet), query_lower)
+          end)
+          exact_name_hit = String.contains?(String.downcase(scene_name || ""), query_lower)
+
+          sort_score =
+            cond do
+              exact_post_hit -> 0
+              exact_name_hit -> 1
+              true -> 2
+            end
 
           %{
             scene_id: scene_id,
-            scene_name:
-              (scene_result && scene_result.scene_name) || (post_result && post_result.scene_name),
+            scene_name: scene_name,
             scene_slug:
               (scene_result && scene_result.scene_slug) || (post_result && post_result.scene_slug),
             matched_in_name: !!scene_result,
-            post_snippets: (post_result && post_result.snippets) || [],
+            post_snippets: snippets,
             is_elsewhere: (post_result && post_result.is_elsewhere) || false,
-            week_date: (post_result && post_result.week_date) || nil
+            week_date: (post_result && post_result.week_date) || nil,
+            sort_score: sort_score
           }
         end)
-        |> Enum.sort_by(fn r -> r.scene_name end)
+        |> Enum.sort_by(fn r -> {r.sort_score, r.scene_name} end)
+        |> Enum.map(&Map.delete(&1, :sort_score))
 
       {:noreply,
        socket
        |> assign(:search_query, query)
        |> assign(:search_results, %{scenes: unified_results, codex: codex_results})
+       |> assign(:library_results, library_results)
+       |> assign(:bbs_results, bbs_results)
        |> assign(:searching, false)}
     end
   end

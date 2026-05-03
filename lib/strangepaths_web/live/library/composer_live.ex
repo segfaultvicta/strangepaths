@@ -26,7 +26,8 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
            socket
            |> assign(:page_title, "Composing: #{folio.title}")
            |> assign(:folio, folio)
-           |> assign(:entries, entries)
+           |> assign(:group_actions, %{})
+           |> assign_entries(entries)
            |> assign(:caret_position, length(entries) + 1)
            |> assign(:range_anchor_post_id, nil)
            |> assign(:expanded_scene_id, nil)
@@ -83,7 +84,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
         {:noreply,
          socket
-         |> assign(:entries, entries)
+         |> assign_entries(entries)
          |> assign(:caret_position, position + 1)
          # Set range_anchor_post_id to the newly added post to enable shift-click range selection
          # from the next post. Clicking a different post without holding Shift will overwrite
@@ -122,7 +123,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
         {:noreply,
          socket
-         |> assign(:entries, entries)
+         |> assign_entries(entries)
          |> assign(:caret_position, position + length(range_ids))
          |> assign(:range_anchor_post_id, nil)}
 
@@ -148,11 +149,13 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         {:add, group_id} ->
           entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id))
           Library.update_entry_group(entry, group_id)
-          {:noreply, assign(socket, :entries, Library.list_entries(socket.assigns.folio.id))}
+          entries = Library.list_entries(socket.assigns.folio.id)
+          {:noreply, assign_entries(socket, entries)}
 
         {:remove, entry} ->
           Library.update_entry_group(entry, nil)
-          {:noreply, assign(socket, :entries, Library.list_entries(socket.assigns.folio.id))}
+          entries = Library.list_entries(socket.assigns.folio.id)
+          {:noreply, assign_entries(socket, entries)}
 
         :no_op ->
           {:noreply, socket}
@@ -160,6 +163,19 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
+  end
+
+  def compute_group_actions(entries) do
+    Map.new(entries, fn entry ->
+      action =
+        case find_group_action(entries, entry.id) do
+          {:add, _} -> :add
+          {:remove, _} -> :remove
+          :no_op -> :no_op
+        end
+
+      {entry.id, action}
+    end)
   end
 
   defp find_group_action(entries, entry_id) do
@@ -200,7 +216,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
       |> Enum.each(&Library.update_entry_group(&1, nil))
 
       entries = Library.list_entries(socket.assigns.folio.id)
-      {:noreply, assign(socket, :entries, entries)}
+      {:noreply, assign_entries(socket, entries)}
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
@@ -254,7 +270,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     case Library.create_note_entry(socket.assigns.folio, user, note_attrs, position) do
       {:ok, _} ->
         entries = Library.list_entries(socket.assigns.folio.id)
-        {:noreply, socket |> assign(:entries, entries) |> assign(:caret_position, position + 1)}
+        {:noreply, socket |> assign_entries(entries) |> assign(:caret_position, position + 1)}
 
       {:error, e} ->
         {:noreply, put_flash(socket, :error, "Could not add note: #{inspect(e)}")}
@@ -266,12 +282,18 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   def handle_event("delete_entry", %{"entry-id" => entry_id_str}, socket) do
     if socket.assigns.is_author || socket.assigns.is_dragon do
       entry_id = String.to_integer(entry_id_str)
-      entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id))
+      entry_index = Enum.find_index(socket.assigns.entries, &(&1.id == entry_id))
 
-      if entry do
+      if entry_index != nil do
+        entry = Enum.at(socket.assigns.entries, entry_index)
         Library.delete_entry(entry)
         entries = Library.list_entries(socket.assigns.folio.id)
-        {:noreply, assign(socket, :entries, entries)}
+
+        deleted_position = entry_index + 1
+        caret = socket.assigns.caret_position
+        new_caret = if caret > deleted_position, do: caret - 1, else: caret
+
+        {:noreply, socket |> assign_entries(entries) |> assign(:caret_position, new_caret)}
       else
         {:noreply, socket}
       end
@@ -285,7 +307,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
       ids = String.split(ids_str, ",") |> Enum.map(&String.to_integer/1)
       Library.reorder_entries(socket.assigns.folio.id, ids)
       entries = Library.list_entries(socket.assigns.folio.id)
-      {:noreply, assign(socket, :entries, entries)}
+      {:noreply, socket |> assign_entries(entries) |> assign(:caret_position, length(entries) + 1)}
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
@@ -316,6 +338,12 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
       String.contains?(String.downcase(scene.name), q) or
         Enum.any?(scene.tags, &String.contains?(String.downcase(&1), q))
     end)
+  end
+
+  defp assign_entries(socket, entries) do
+    socket
+    |> assign(:entries, entries)
+    |> assign(:group_actions, compute_group_actions(entries))
   end
 
   defp load_scene_posts(socket, scene_id) do

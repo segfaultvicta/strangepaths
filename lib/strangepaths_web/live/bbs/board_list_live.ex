@@ -10,7 +10,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   def mount(_params, session, socket) do
     socket =
       assign_defaults(session, socket)
-      |> assign(:page_title, "The Aethernet")
+      |> assign(:page_title, "Linkpearl")
       |> assign(:show_new_board_form, false)
       |> assign(:changeset, nil)
       |> assign(:manage_mode, false)
@@ -49,9 +49,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
         {:ok, board} ->
           {:noreply,
            socket
-           |> push_redirect(
-             to: Routes.bbs_thread_list_path(socket, :index, board.slug)
-           )
+           |> push_redirect(to: Routes.bbs_thread_list_path(socket, :index, board.slug))
            |> put_flash(:info, "Board created successfully.")}
 
         {:error, changeset} ->
@@ -81,6 +79,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   def handle_event("edit_board", %{"id" => id}, socket) do
     if socket.assigns.current_user && socket.assigns.current_user.role == :dragon do
       board = BBS.get_board!(id)
+
       {:noreply,
        socket
        |> assign(:editing_board_id, board.id)
@@ -102,6 +101,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   def handle_event("validate_edit_board", %{"board" => attrs}, socket) do
     if socket.assigns.edit_changeset do
       board = BBS.get_board!(socket.assigns.editing_board_id)
+
       changeset =
         BBS.change_board(board, attrs)
         |> Map.put(:action, :update)

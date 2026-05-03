@@ -29,7 +29,14 @@
           placeholder="filter by tag"
           class="library-input w-full"
           phx-debounce="300"
+          list="folio-tags-datalist"
+          autocomplete="off"
         />
+        <datalist id="folio-tags-datalist">
+          <%= for tag <- @all_tags do %>
+            <option value={tag} />
+          <% end %>
+        </datalist>
       </div>
 
       <div class="min-w-40">
@@ -86,8 +93,15 @@
             <p class="text-sm text-gray-400 mt-1"><%= folio.subtitle %></p>
           <% end %>
           <p class="library-folio-row-meta">
-            <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
+            <%= folio.user && folio.user.nickname %> · <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
           </p>
+          <%= if folio.tags != [] do %>
+            <div class="flex flex-wrap gap-1 mt-1">
+              <%= for ft <- folio.tags do %>
+                <span class="library-tag">#<%= ft.tag %></span>
+              <% end %>
+            </div>
+          <% end %>
         </div>
       <% end %>
     </div>

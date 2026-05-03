@@ -1,4 +1,4 @@
-<div class="library-root p-6 max-w-4xl mx-auto">
+<div class="library-root px-6 py-2 max-w-4xl mx-auto">
 
   <!-- Title block -->
   <div class="mb-6">
@@ -13,15 +13,13 @@
         </div>
       </.form>
     <% else %>
-      <div class="flex items-start gap-2">
-        <div>
-          <h1 class="library-folio-title"><%= @folio.title %></h1>
-          <%= if @folio.subtitle do %>
-            <p class="library-folio-subtitle"><%= @folio.subtitle %></p>
-          <% end %>
-        </div>
+      <div>
+        <h1 class="library-folio-title"><%= @folio.title %></h1>
+        <%= if @folio.subtitle do %>
+          <p class="library-folio-subtitle"><%= @folio.subtitle %></p>
+        <% end %>
         <%= if @is_author || @is_dragon do %>
-          <button phx-click="start_edit_title" class="text-xs text-gray-500 hover:text-gray-300 mt-1" title="Edit title">✎</button>
+          <button phx-click="start_edit_title" class="btn-secondary text-sm mt-3">✎ Edit Title &amp; Subtitle</button>
         <% end %>
       </div>
     <% end %>
@@ -121,11 +119,11 @@
       <% end %>
 
       <%= if @is_folio_editor do %>
-        <div class="flex gap-3 items-center">
-          <button phx-click="claim_body_lock" class="text-xs text-gray-500 hover:text-gray-300">
-            <%= if @folio.body, do: "Edit body", else: "+ Add body" %>
+        <div class="flex gap-3 items-center mt-2">
+          <button phx-click="claim_body_lock" class="btn-secondary text-sm">
+            <%= if @folio.body, do: "✎ Edit Body", else: "+ Add Body" %>
           </button>
-          <%= live_redirect "Edit entries →", to: "/library/#{@folio.slug}/compose", class: "text-xs text-gray-500 hover:text-gray-300" %>
+          <%= live_redirect "Edit Entries →", to: "/library/#{@folio.slug}/compose", class: "btn-secondary text-sm" %>
         </div>
       <% end %>
     <% end %>
@@ -157,22 +155,20 @@
                 end
               %>
               <div
-                class={"border-l-2 pl-4 #{color_classes} #{if is_pure_narrator, do: "border-purple-600", else: "border-gray-700"}"}
+                class={"post-ic-content-icecylee border-l-2 pl-4 #{color_classes} #{if is_pure_narrator, do: "border-purple-600 lyrics-alternate-font", else: "border-gray-700"}"}
                 {if scene_name, do: ["data-scene-name": scene_name, "data-scene-slug": scene_slug], else: []}
               >
-                <div class="text-xs text-gray-500 mb-1">
+                <span class="post-ic-authorspan">
                   <%= cond do %>
                     <% is_pure_narrator -> %>
                     <% has_attributed_name -> %>
-                      <strong class="text-purple-500"><%= post.narrative_author_name %></strong>
+                      <span class="text-purple-500"><%= post.narrative_author_name %></span>
                     <% post.user && post.user.role == :dragon -> %>
                     <% true -> %>
-                      <strong><%= post.author_nickname || (post.user && post.user.nickname) %></strong>
+                      <%= post.author_nickname || (post.user && post.user.nickname) %>
                   <% end %>
-                </div>
-                <div class={if is_pure_narrator, do: "lyrics-alternate-font"}>
-                  <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
-                </div>
+                </span>
+                <%= raw render_post_content(post.content, narrative: post.post_type == :narrative) %>
               </div>
             <% end %>
           <% :note -> %>
@@ -249,7 +245,7 @@
                           class="w-full h-20 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
                         ><%= m.content %></textarea>
                         <div class="flex gap-2 mt-1">
-                          <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded">Save</button>
+                          <button type="submit" class="btn-primary-sm">Save</button>
                           <button type="button" phx-click="cancel_edit_marginalia" class="text-xs text-gray-500">Cancel</button>
                         </div>
                       </form>
@@ -259,24 +255,35 @@
 
                     <!-- Reply form inline when this is the reply target -->
                     <%= if @marginalia_form_entry_id == entry.id && @marginalia_reply_to_id == m.id do %>
-                      <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-1">
-                        <%= if length(@editor_typefaces) > 1 do %>
-                          <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
-                            <%= for tf <- @editor_typefaces do %>
-                              <option value={tf.id}><%= tf.name %></option>
-                            <% end %>
-                          </select>
-                        <% end %>
-                        <textarea
-                          name="marginalia[content]"
-                          placeholder="Reply..."
-                          class="w-full h-16 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
-                        ></textarea>
-                        <div class="flex gap-2 mt-1">
-                          <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded">Post Reply</button>
-                          <button type="button" phx-click="close_marginalia_form" class="text-xs text-gray-500">Cancel</button>
-                        </div>
-                      </.form>
+                      <div class="library-marginalia-form-reset">
+                        <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-1">
+                          <%= if length(@editor_typefaces) > 1 do %>
+                            <select name="marginalia[typeface_id]" class="text-xs mb-1 bg-gray-900 border border-gray-700 rounded px-2 py-0.5">
+                              <%= for tf <- @editor_typefaces do %>
+                                <option value={tf.id}><%= tf.name %></option>
+                              <% end %>
+                            </select>
+                          <% end %>
+                          <textarea
+                            id="marginalia-content-textarea"
+                            name="marginalia[content]"
+                            placeholder="Reply..."
+                            class="w-full h-16 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
+                          ></textarea>
+                          <div class="flex gap-2 mt-1 items-center">
+                            <div id="marginalia-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="marginalia-content-textarea">
+                              <button type="button" class="grimoire-trigger" title="Ctrl+G">◆</button>
+                              <div class="grimoire-popover" style="display:none;">
+                                <div class="grimoire-glyphs"></div>
+                                <button type="button" class="grimoire-add-btn">+</button>
+                                <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                              </div>
+                            </div>
+                            <button type="submit" class="btn-primary-sm">Post Reply</button>
+                            <button type="button" phx-click="close_marginalia_form" class="text-xs text-gray-500">Cancel</button>
+                          </div>
+                        </.form>
+                      </div>
                     <% end %>
                   </div>
                 <% end %>
@@ -296,12 +303,21 @@
                       </select>
                     <% end %>
                     <textarea
+                      id="marginalia-content-textarea"
                       name="marginalia[content]"
                       placeholder="Add marginalia..."
                       class="w-full h-20 text-xs bg-gray-900 border border-gray-700 rounded px-2 py-1 resize-none"
                     ></textarea>
-                    <div class="flex gap-2 mt-1">
-                      <button type="submit" class="text-xs px-2 py-0.5 bg-gray-700 rounded">Post</button>
+                    <div class="flex gap-2 mt-1 items-center">
+                      <div id="marginalia-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="marginalia-content-textarea">
+                        <button type="button" class="grimoire-trigger" title="Ctrl+G">◆</button>
+                        <div class="grimoire-popover" style="display:none;">
+                          <div class="grimoire-glyphs"></div>
+                          <button type="button" class="grimoire-add-btn">+</button>
+                          <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                        </div>
+                      </div>
+                      <button type="submit" class="btn-primary-sm">Post</button>
                       <button type="button" phx-click="close_marginalia_form" class="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
                     </div>
                   </.form>

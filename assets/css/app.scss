@@ -1145,7 +1145,7 @@ input[type="range"].slider-purple {
 }
 
 /* ============================================================
-   BBS: Cross-Planar Communication Network — The Aethernet
+   BBS: Cross-Planar Communication Network — Linkpearl
    ============================================================ */
 
 :root {
@@ -1636,6 +1636,18 @@ input[type="range"].slider-purple {
 }
 
 /* Root wrapper — all library pages */
+.btn-primary {
+    @apply bg-purple-700 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded transition cursor-pointer;
+}
+
+.btn-secondary {
+    @apply border border-purple-700 text-purple-300 hover:bg-purple-900/30 font-semibold px-4 py-2 rounded transition cursor-pointer;
+}
+
+.btn-primary-sm {
+    @apply bg-purple-700 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded transition cursor-pointer;
+}
+
 .library-root {
     font-family: var(--library-font);
     background-color: var(--library-bg);
@@ -1645,6 +1657,46 @@ input[type="range"].slider-purple {
     h2 {
         text-decoration: none;
     }
+
+    /* Grimoire container — position: relative anchors the absolutely-positioned popover */
+    [phx-hook="Grimoire"] {
+        position: relative;
+    }
+
+    /* Open the popover downward-left so it stays within the panel and can't be
+       occluded by an adjacent panel's stacking context */
+    .grimoire-popover {
+        top: 100%;
+        bottom: auto;
+        left: 0;
+        right: auto;
+        margin-top: 4px;
+        margin-bottom: 0;
+    }
+
+    /* Make grimoire trigger visible as an inline button (matches BBS override pattern) */
+    .grimoire-trigger {
+        position: static;
+        opacity: 1;
+        font-size: 0.8rem;
+        padding: 2px 7px;
+        border: 1px solid #6d28d9;
+        border-radius: 3px;
+        color: #c4b5fd;
+        background: transparent;
+
+        &:hover {
+            background: #4c1d95;
+        }
+    }
+}
+
+/* Marginalia reply form resets inherited typeface so the form is readable */
+.library-marginalia-form-reset {
+    font-family: var(--library-font);
+    color: var(--library-text);
+    font-size: 1rem;
+    font-style: normal;
 }
 
 /* Folio header area */
@@ -1653,6 +1705,8 @@ input[type="range"].slider-purple {
     font-weight: normal;
     color: var(--library-accent);
     letter-spacing: 0.02em;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .library-folio-subtitle {
@@ -1786,6 +1840,15 @@ input[type="range"].slider-purple {
     }
 }
 
+select.library-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ca3af' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    padding-right: 2rem;
+    cursor: pointer;
+}
+
 .library-tag-input {
     background: var(--library-bg);
     border: 1px solid var(--library-border);
@@ -1851,11 +1914,13 @@ input[type="range"].slider-purple {
     }
 
     &:hover .caret-slot-label {
-        color: #4b5563; /* gray-600 */
+        color: #4b5563;
+        /* gray-600 */
     }
 
     &.caret-slot--active .caret-slot-label {
-        color: #a78bfa; /* purple-400 */
+        color: #a78bfa;
+        /* purple-400 */
     }
 }
 

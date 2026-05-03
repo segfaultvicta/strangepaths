@@ -560,4 +560,114 @@ defmodule Strangepaths.BBS do
   def get_read_mark(user_id, thread_id) do
     Repo.get_by(ThreadReadMark, user_id: user_id, thread_id: thread_id)
   end
+
+  def search_threads_for_archives(query, _user_id) do
+    pattern = "%#{query}%"
+    threshold = 0.15
+    query_lower = String.downcase(query)
+
+    title_thread_ids =
+      from(t in Thread,
+        where:
+          ilike(t.title, ^pattern) or
+            fragment("similarity(?, ?) > ?", t.title, ^query, ^threshold),
+        select: t.id
+      )
+      |> Repo.all()
+
+    post_thread_ids =
+      from(p in Post,
+        where:
+          ilike(p.content, ^pattern) or
+            fragment("similarity(?, ?) > ?", p.content, ^query, ^threshold),
+        select: p.thread_id
+      )
+      |> Repo.all()
+
+    all_thread_ids = (title_thread_ids ++ post_thread_ids) |> Enum.uniq()
+
+    if all_thread_ids == [] do
+      []
+    else
+      threads =
+        from(t in Thread,
+          join: b in Board,
+          on: b.id == t.board_id,
+          where: t.id in ^all_thread_ids,
+          select: %{thread_id: t.id, thread_title: t.title, board_slug: b.slug}
+        )
+        |> Repo.all()
+
+      threads
+      |> Enum.map(fn thread ->
+        posts_raw =
+          from(p in Post,
+            where:
+              p.thread_id == ^thread.thread_id and
+                (ilike(p.content, ^pattern) or
+                   fragment("similarity(?, ?) > ?", p.content, ^query, ^threshold)),
+            order_by: [asc: p.posted_at],
+            limit: 3,
+            select: %{
+              post_id: p.id,
+              content: p.content,
+              posted_at: p.posted_at,
+              author: p.display_name
+            }
+          )
+          |> Repo.all()
+
+        has_exact_post = Enum.any?(posts_raw, fn p ->
+          String.contains?(String.downcase(p.content || ""), query_lower)
+        end)
+
+        title_exact = String.contains?(String.downcase(thread.thread_title), query_lower)
+
+        sort_score =
+          cond do
+            has_exact_post -> 0
+            title_exact -> 1
+            true -> 2
+          end
+
+        snippets =
+          Enum.map(posts_raw, fn p ->
+            %{
+              post_id: p.post_id,
+              snippet: bbs_extract_snippet(p.content, query, 150),
+              author: p.author,
+              posted_at: p.posted_at
+            }
+          end)
+
+        Map.merge(thread, %{snippets: snippets, sort_score: sort_score})
+      end)
+      |> Enum.sort_by(& &1.sort_score)
+      |> Enum.map(&Map.delete(&1, :sort_score))
+    end
+  end
+
+  defp bbs_extract_snippet(content, query, max_length) do
+    content = content || ""
+    query_lower = String.downcase(query)
+    content_lower = String.downcase(content)
+
+    case :binary.match(content_lower, query_lower) do
+      {pos, len} ->
+        start_pos = max(0, pos - div(max_length - len, 2))
+        end_pos = min(String.length(content), start_pos + max_length)
+        start_pos = max(0, end_pos - max_length)
+        snippet = String.slice(content, start_pos, max_length)
+
+        cond do
+          start_pos > 0 && end_pos < String.length(content) -> "..." <> snippet <> "..."
+          start_pos > 0 -> "..." <> snippet
+          end_pos < String.length(content) -> snippet <> "..."
+          true -> snippet
+        end
+
+      :nomatch ->
+        String.slice(content, 0, max_length)
+    end
+  end
 end
