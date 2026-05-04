@@ -2304,12 +2304,12 @@ a:hover{
   cursor: not-allowed;
 }
 
-.cursor-move{
-  cursor: move;
-}
-
 .cursor-default{
   cursor: default;
+}
+
+.cursor-move{
+  cursor: move;
 }
 
 .touch-manipulation{
@@ -6577,6 +6577,10 @@ input[type=range].slider-purple::-moz-range-progress {
   border-radius: 2px;
 }
 
+.library-body img {
+  display: initial;
+}
+
 /* Entry stream */
 
 .library-entry {
@@ -7116,6 +7120,14 @@ select.library-input {
   background-color: rgb(55 65 81 / 0.5);
 }
 
+.hover\:bg-amber-900\/30:hover{
+  background-color: rgb(120 53 15 / 0.3);
+}
+
+.hover\:bg-red-900\/30:hover{
+  background-color: rgb(127 29 29 / 0.3);
+}
+
 .hover\:bg-purple-600:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(147 51 234 / var(--tw-bg-opacity));
@@ -7129,14 +7141,6 @@ select.library-input {
 .hover\:bg-gray-100:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity));
-}
-
-.hover\:bg-amber-900\/30:hover{
-  background-color: rgb(120 53 15 / 0.3);
-}
-
-.hover\:bg-red-900\/30:hover{
-  background-color: rgb(127 29 29 / 0.3);
 }
 
 .hover\:text-purple-300:hover{

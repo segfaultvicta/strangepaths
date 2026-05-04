@@ -1670,6 +1670,9 @@ input[type=range].slider-purple::-moz-range-progress {
   padding: 0.1em 0.3em;
   border-radius: 2px;
 }
+.library-body img {
+  display: initial;
+}
 
 /* Entry stream */
 .library-entry {
