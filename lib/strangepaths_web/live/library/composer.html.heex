@@ -196,8 +196,8 @@
                 <%= if entry.scene_post do %>
                   <%
                     post = entry.scene_post
-                    is_pure_narrator = post.post_type == :narrative && is_nil(post.narrative_author_name)
-                    is_npc = post.post_type == :narrative && not is_nil(post.narrative_author_name)
+                    is_pure_narrator = post.post_type == :narrative && post.narrative_author_name in [nil, ""]
+                    is_npc = post.narrative_author_name not in [nil, ""]
                     color_classes = case post.color_category do
                       "red" -> "text-burning-gnosis font-burning-gnosis"
                       "green" -> "text-flourishing-gnosis font-flourishing-gnosis"

@@ -922,14 +922,14 @@ defmodule Strangepaths.Scenes do
 
           snippet = extract_snippet(content, query, 150)
 
-          # Determine author display: user nickname, narrative author, or post type label
+          # Determine author display: NPC name takes priority over account nickname
           author =
             cond do
-              post.user_nickname ->
-                post.user_nickname
-
               post.narrative_author_name && post.narrative_author_name != "" ->
                 post.narrative_author_name
+
+              post.user_nickname ->
+                post.user_nickname
 
               post.post_type == :narrative ->
                 "narration"
