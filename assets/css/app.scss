@@ -1679,7 +1679,8 @@ input[type="range"].slider-purple {
         position: static;
         opacity: 1;
         font-size: 0.8rem;
-        padding: 2px 7px;
+        padding: .25rem;
+        line-height: 1rem;
         border: 1px solid #6d28d9;
         border-radius: 3px;
         color: #c4b5fd;
@@ -1735,6 +1736,21 @@ input[type="range"].slider-purple {
 
     img {
         display: initial;
+        padding: 0 .25rem;
+    }
+}
+
+.prose {
+    p {
+        margin-top: 0.75em;
+        margin-bottom: 1em;
+    }
+
+    img {
+        display: initial;
+        padding: 0 .25rem;
+        margin-top: 0;
+        margin-bottom: 0;
     }
 }
 

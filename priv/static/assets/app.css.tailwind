@@ -1620,7 +1620,8 @@ input[type=range].slider-purple::-moz-range-progress {
   position: static;
   opacity: 1;
   font-size: 0.8rem;
-  padding: 2px 7px;
+  padding: 0.25rem;
+  line-height: 1rem;
   border: 1px solid #6d28d9;
   border-radius: 3px;
   color: #c4b5fd;
@@ -1672,6 +1673,18 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 .library-body img {
   display: initial;
+  padding: 0 0.25rem;
+}
+
+.prose p {
+  margin-top: 0.75em;
+  margin-bottom: 1em;
+}
+.prose img {
+  display: initial;
+  padding: 0 0.25rem;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .prose-invert img {
