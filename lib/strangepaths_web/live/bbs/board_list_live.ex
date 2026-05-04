@@ -61,6 +61,29 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   end
 
   @impl true
+  def handle_event("delete_board", %{"id" => id}, socket) do
+    IO.puts("deleting board #{id}")
+
+    if socket.assigns.current_user && socket.assigns.current_user.role == :dragon do
+      board = BBS.get_board!(id)
+
+      case BBS.delete_board(board) do
+        {:ok, _board} ->
+          {:noreply,
+           socket
+           |> assign(:editing_board_id, nil)
+           |> assign(:boards, BBS.list_boards())
+           |> put_flash(:info, "Board deleted successfully.")}
+
+        {:error, _changeset} ->
+          {:noreply, put_flash(socket, :error, "Failed to delete board")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized")}
+    end
+  end
+
+  @impl true
   def handle_event("toggle_manage_mode", _params, socket) do
     if socket.assigns.current_user && socket.assigns.current_user.role == :dragon do
       managing = socket.assigns.manage_mode

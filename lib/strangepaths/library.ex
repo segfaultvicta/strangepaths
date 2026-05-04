@@ -128,22 +128,27 @@ defmodule Strangepaths.Library do
     |> Repo.preload(:tags)
   end
 
-  def search_folios_for_archives(query, _user_id) do
+  def search_folios_for_archives(query, _user_id, author_filter \\ "") do
     pattern = "%#{query}%"
     threshold = 0.15
     query_lower = String.downcase(query)
 
+    # Body has no author attribution — skip when filtering by author
     body_ids =
-      from(f in Folio,
-        where:
-          ilike(f.body, ^pattern) or
-            fragment("similarity(?, ?) > ?", f.body, ^query, ^threshold),
-        select: f.id
-      )
-      |> Repo.all()
-      |> MapSet.new()
+      if author_filter == "" do
+        from(f in Folio,
+          where:
+            ilike(f.body, ^pattern) or
+              fragment("similarity(?, ?) > ?", f.body, ^query, ^threshold),
+          select: f.id
+        )
+        |> Repo.all()
+        |> MapSet.new()
+      else
+        MapSet.new()
+      end
 
-    note_folio_ids =
+    note_base =
       from(e in Entry,
         where:
           e.kind == :note and
@@ -151,10 +156,18 @@ defmodule Strangepaths.Library do
                fragment("similarity(?, ?) > ?", e.content, ^query, ^threshold)),
         select: e.folio_id
       )
+
+    note_folio_ids =
+      (if author_filter != "" do
+         author_pattern = "%#{author_filter}%"
+         where(note_base, [e], ilike(e.name, ^author_pattern))
+       else
+         note_base
+       end)
       |> Repo.all()
       |> MapSet.new()
 
-    marginalia_folio_ids =
+    marginalia_base =
       from(m in Marginalia,
         join: e in Entry,
         on: e.id == m.entry_id,
@@ -163,6 +176,14 @@ defmodule Strangepaths.Library do
             fragment("similarity(?, ?) > ?", m.content, ^query, ^threshold),
         select: e.folio_id
       )
+
+    marginalia_folio_ids =
+      (if author_filter != "" do
+         author_pattern = "%#{author_filter}%"
+         where(marginalia_base, [m, _e], ilike(m.name, ^author_pattern))
+       else
+         marginalia_base
+       end)
       |> Repo.all()
       |> MapSet.new()
 

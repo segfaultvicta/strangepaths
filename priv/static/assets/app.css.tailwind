@@ -1000,6 +1000,10 @@ input[type=range].slider-purple::-moz-range-progress {
   display: none;
 }
 
+.archive-header-bbs {
+  font-family: "Courier New", Courier, monospace;
+}
+
 /* Grimoire glyph input helper */
 .grimoire-trigger {
   position: absolute;
@@ -1158,9 +1162,8 @@ input[type=range].slider-purple::-moz-range-progress {
 .bbs-npc-header {
   font-family: var(--bbs-font);
   color: #5050a0;
-  padding: 0.5rem;
-  font-size: 0.85rem;
-  line-height: 1.4;
+  font-size: 0.75rem;
+  line-height: 1.2;
   white-space: pre;
   /* preserve the box-drawing alignment */
 }
@@ -1702,7 +1705,6 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .library-entry-note {
   font-size: 1.125rem;
-  font-style: italic;
   color: var(--library-text-muted);
   padding-left: 1rem;
   border-left: 2px solid var(--library-border);

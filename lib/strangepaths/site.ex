@@ -533,14 +533,14 @@ defmodule Strangepaths.Site do
     # Build base query with hybrid search
     base_query =
       from(p in ContentPage,
+        # Exact substring matching (fast path using ILIKE)
+        # Fuzzy matching for typos (uses GIN trigram indexes)
+        # similarity() is bidirectional and better for typo matching than word_similarity()
         where:
-          # Exact substring matching (fast path using ILIKE)
           ilike(p.title_stripped, ^search_pattern) or
-          ilike(p.body_stripped, ^search_pattern) or
-          # Fuzzy matching for typos (uses GIN trigram indexes)
-          # similarity() is bidirectional and better for typo matching than word_similarity()
-          fragment("similarity(?, ?) > ?", p.title_stripped, ^query, ^similarity_threshold) or
-          fragment("similarity(?, ?) > ?", p.body_stripped, ^query, ^similarity_threshold),
+            ilike(p.body_stripped, ^search_pattern) or
+            fragment("similarity(?, ?) > ?", p.title_stripped, ^query, ^similarity_threshold) or
+            fragment("similarity(?, ?) > ?", p.body_stripped, ^query, ^similarity_threshold),
         select: %{
           page_id: p.id,
           title: p.title,
@@ -638,5 +638,50 @@ defmodule Strangepaths.Site do
 
   def increment_devour_count do
     Repo.update_all(WorldState, inc: [devour_count: 1])
+  end
+
+  def list_used_author_names() do
+    scenes_char =
+      from(p in "scene_posts",
+        where: not is_nil(p.author_nickname) and p.author_nickname != "",
+        select: p.author_nickname
+      )
+
+    scenes_narr =
+      from(p in "scene_posts",
+        where: not is_nil(p.narrative_author_name) and p.narrative_author_name != "",
+        select: p.narrative_author_name
+      )
+
+    bbs =
+      from(p in "bbs_posts",
+        where: not is_nil(p.character_name) and p.character_name != "",
+        select: p.character_name
+      )
+
+    entries =
+      from(e in "library_entries",
+        where: e.kind == "note" and not is_nil(e.name) and e.name != "",
+        select: e.name
+      )
+
+    marginalia =
+      from(m in "library_marginalia",
+        where: not is_nil(m.name) and m.name != "",
+        select: m.name
+      )
+
+    from(
+      n in subquery(
+        union_all(scenes_char, ^scenes_narr)
+        |> union_all(^bbs)
+        |> union_all(^entries)
+        |> union_all(^marginalia)
+      ),
+      select: n.author_nickname,
+      distinct: true,
+      order_by: n.author_nickname
+    )
+    |> Repo.all()
   end
 end

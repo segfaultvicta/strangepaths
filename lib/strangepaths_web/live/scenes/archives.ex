@@ -2,7 +2,9 @@ defmodule StrangepathsWeb.Scenes.Archives do
   use StrangepathsWeb, :live_view
 
   import StrangepathsWeb.MusicBroadcast
-  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 2, strip_glyphs: 1, process_inline_glyphs_plaintext: 2]
+
+  import StrangepathsWeb.SceneHelpers,
+    only: [render_post_content: 2, strip_glyphs: 1, process_inline_glyphs_plaintext: 2]
 
   alias Strangepaths.Scenes
   alias Strangepaths.Accounts
@@ -33,6 +35,8 @@ defmodule StrangepathsWeb.Scenes.Archives do
     user_nicknames = Map.new(all_users, fn u -> {u.id, u.nickname} end)
     all_tags = Scenes.list_all_tags()
 
+    author_names = Site.list_used_author_names()
+
     {:ok,
      socket
      |> assign(:archived_scenes, archived_scenes)
@@ -59,6 +63,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
      |> assign(:filter_author, "")
      |> assign(:all_users, all_users)
      |> assign(:user_nicknames, user_nicknames)
+     |> assign(:author_names, author_names)
      |> assign(:locking_scene, false)
      |> assign(:lock_user_ids, [])
      |> assign(:all_tags, all_tags)
@@ -170,12 +175,16 @@ defmodule StrangepathsWeb.Scenes.Archives do
           author_filter
         )
 
-      codex_results = Site.search_codex_pages(query, user_id)
-      library_results = Library.search_folios_for_archives(query, user_id)
-      bbs_results = BBS.search_threads_for_archives(query, user_id)
+      # Codex has no author attribution — suppress entirely when author filter is active
+      codex_results = if author_filter == "", do: Site.search_codex_pages(query, user_id), else: []
+      library_results = Library.search_folios_for_archives(query, user_id, author_filter)
+      bbs_results = BBS.search_threads_for_archives(query, user_id, author_filter)
 
-      # Combine scene and post results, removing duplicates
-      scene_ids_from_names = MapSet.new(scene_results, fn result -> result.scene_id end)
+      # Combine scene and post results, removing duplicates.
+      # When author_filter is active, exclude name/tag matches — those scenes aren't filtered
+      # by author, so including them would bypass the filter entirely.
+      effective_scene_results = if author_filter == "", do: scene_results, else: []
+      scene_ids_from_names = MapSet.new(effective_scene_results, fn result -> result.scene_id end)
       scene_ids_from_posts = MapSet.new(post_results, fn result -> result.scene_id end)
       all_scene_ids = MapSet.union(scene_ids_from_names, scene_ids_from_posts)
 
@@ -185,14 +194,19 @@ defmodule StrangepathsWeb.Scenes.Archives do
       unified_results =
         all_scene_ids
         |> Enum.map(fn scene_id ->
-          scene_result = Enum.find(scene_results, fn r -> r.scene_id == scene_id end)
+          scene_result = Enum.find(effective_scene_results, fn r -> r.scene_id == scene_id end)
           post_result = Enum.find(post_results, fn r -> r.scene_id == scene_id end)
-          scene_name = (scene_result && scene_result.scene_name) || (post_result && post_result.scene_name)
+
+          scene_name =
+            (scene_result && scene_result.scene_name) || (post_result && post_result.scene_name)
+
           snippets = (post_result && post_result.snippets) || []
 
-          exact_post_hit = Enum.any?(snippets, fn s ->
-            String.contains?(String.downcase(s.snippet), query_lower)
-          end)
+          exact_post_hit =
+            Enum.any?(snippets, fn s ->
+              String.contains?(String.downcase(s.snippet), query_lower)
+            end)
+
           exact_name_hit = String.contains?(String.downcase(scene_name || ""), query_lower)
 
           sort_score =
@@ -421,44 +435,44 @@ defmodule StrangepathsWeb.Scenes.Archives do
     if is_nil(socket.assigns.current_user) do
       {:noreply, put_flash(socket, :error, "You must be logged in to add tags")}
     else
-    scene_id = String.to_integer(scene_id_str)
-    scene = Scenes.get_scene(scene_id)
+      scene_id = String.to_integer(scene_id_str)
+      scene = Scenes.get_scene(scene_id)
 
-    if scene do
-      case Scenes.add_tag_to_scene(scene, tag) do
-        {:ok, updated_scene} ->
-          archived_scenes =
-            Enum.map(socket.assigns.archived_scenes, fn s ->
-              if s.id == scene_id, do: updated_scene, else: s
-            end)
+      if scene do
+        case Scenes.add_tag_to_scene(scene, tag) do
+          {:ok, updated_scene} ->
+            archived_scenes =
+              Enum.map(socket.assigns.archived_scenes, fn s ->
+                if s.id == scene_id, do: updated_scene, else: s
+              end)
 
-          all_tags = Scenes.list_all_tags()
+            all_tags = Scenes.list_all_tags()
 
-          socket =
-            socket
-            |> assign(:archived_scenes, archived_scenes)
-            |> assign(:chapter_view, build_chapter_view(archived_scenes))
-            |> assign(:all_tags, all_tags)
-            |> assign(:adding_tag_to, nil)
-
-          socket =
-            if socket.assigns.selected_scene && socket.assigns.selected_scene.id == scene_id do
-              assign(socket, :selected_scene, updated_scene)
-            else
+            socket =
               socket
-            end
+              |> assign(:archived_scenes, archived_scenes)
+              |> assign(:chapter_view, build_chapter_view(archived_scenes))
+              |> assign(:all_tags, all_tags)
+              |> assign(:adding_tag_to, nil)
 
-          {:noreply, socket}
+            socket =
+              if socket.assigns.selected_scene && socket.assigns.selected_scene.id == scene_id do
+                assign(socket, :selected_scene, updated_scene)
+              else
+                socket
+              end
 
-        {:error, reason} when is_binary(reason) ->
-          {:noreply, put_flash(socket, :error, reason)}
+            {:noreply, socket}
 
-        {:error, _changeset} ->
-          {:noreply, put_flash(socket, :error, "Failed to add tag")}
+          {:error, reason} when is_binary(reason) ->
+            {:noreply, put_flash(socket, :error, reason)}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to add tag")}
+        end
+      else
+        {:noreply, put_flash(socket, :error, "Scene not found")}
       end
-    else
-      {:noreply, put_flash(socket, :error, "Scene not found")}
-    end
     end
   end
 
@@ -513,10 +527,12 @@ defmodule StrangepathsWeb.Scenes.Archives do
 
   defp handle_archive_event("filter_by_tag", %{"tag" => tag}, socket) do
     current = socket.assigns.tag_filter
+
     new_filter =
       if MapSet.member?(current, tag),
         do: MapSet.delete(current, tag),
         else: MapSet.put(current, tag)
+
     {:noreply, assign(socket, :tag_filter, new_filter)}
   end
 
@@ -609,16 +625,20 @@ defmodule StrangepathsWeb.Scenes.Archives do
   end
 
   defp handle_archive_event("copy_plaintext", _params, socket) do
-    posts = cond do
-      socket.assigns.selected_scene ->
-        Scenes.list_posts_for_archive(socket.assigns.selected_scene.id)
-      socket.assigns.viewing_elsewhere && socket.assigns.selected_week ->
-        case List.keyfind(socket.assigns.elsewhere_weeks, socket.assigns.selected_week, 0) do
-          {_, posts} -> posts
-          nil -> []
-        end
-      true -> []
-    end
+    posts =
+      cond do
+        socket.assigns.selected_scene ->
+          Scenes.list_posts_for_archive(socket.assigns.selected_scene.id)
+
+        socket.assigns.viewing_elsewhere && socket.assigns.selected_week ->
+          case List.keyfind(socket.assigns.elsewhere_weeks, socket.assigns.selected_week, 0) do
+            {_, posts} -> posts
+            nil -> []
+          end
+
+        true ->
+          []
+      end
 
     text = generate_plaintext(posts)
     {:noreply, push_event(socket, "copy_to_clipboard", %{text: text})}
@@ -650,6 +670,7 @@ defmodule StrangepathsWeb.Scenes.Archives do
           assigned =
             Enum.filter(inserts, fn ins ->
               after_this = DateTime.compare(ins.archived_at, fcs.archived_at) == :gt
+
               before_next =
                 if next,
                   do: DateTime.compare(ins.archived_at, next.archived_at) == :lt,
@@ -697,41 +718,45 @@ defmodule StrangepathsWeb.Scenes.Archives do
     |> Enum.map(fn post ->
       content = post.content || ""
       # Render markdown to HTML, then strip tags to get plain text
-      plain = content
-              |> Earmark.as_html!(sub_sup: true)
-              |> String.replace(~r/<br\s*\/?>/, "\n")
-              |> String.replace(~r/<\/p>\s*<p>/, "\n\n")
-              |> String.replace(~r/<[^>]+>/, "")
-              |> String.trim()
-              |> process_inline_glyphs_plaintext(narrative: post.post_type == :narrative)
+      plain =
+        content
+        |> Earmark.as_html!(sub_sup: true)
+        |> String.replace(~r/<br\s*\/?>/, "\n")
+        |> String.replace(~r/<\/p>\s*<p>/, "\n\n")
+        |> String.replace(~r/<[^>]+>/, "")
+        |> String.trim()
+        |> process_inline_glyphs_plaintext(narrative: post.post_type == :narrative)
 
-      author = cond do
-        post.post_type == :system -> "[System]"
-        post.post_type == :narrative -> nil
-        post.narrative_author_name != nil -> "**#{post.narrative_author_name}**"
-        post.user && post.user.role == :dragon && post.narrative_author_name == nil -> nil
-        post.author_nickname -> "**#{post.author_nickname}**"
-        post.user -> "**#{post.user.nickname}**"
-        true -> nil
-      end
+      author =
+        cond do
+          post.post_type == :system -> "[System]"
+          post.post_type == :narrative -> nil
+          post.narrative_author_name != nil -> "**#{post.narrative_author_name}**"
+          post.user && post.user.role == :dragon && post.narrative_author_name == nil -> nil
+          post.author_nickname -> "**#{post.author_nickname}**"
+          post.user -> "**#{post.user.nickname}**"
+          true -> nil
+        end
 
       # Wrap entire post in gnosis label if the post has a color category
-      plain = case post.color_category do
-        "red" -> "[Burning]#{plain}[/Burning]"
-        "green" -> "[Flourishing]#{plain}[/Flourishing]"
-        "blue" -> "[Pellucid]#{plain}[/Pellucid]"
-        "white" -> "[Radiant]#{plain}[/Radiant]"
-        "black" -> "[Tenebrous]#{plain}[/Tenebrous]"
-        _ -> plain
-      end
+      plain =
+        case post.color_category do
+          "red" -> "[Burning]#{plain}[/Burning]"
+          "green" -> "[Flourishing]#{plain}[/Flourishing]"
+          "blue" -> "[Pellucid]#{plain}[/Pellucid]"
+          "white" -> "[Radiant]#{plain}[/Radiant]"
+          "black" -> "[Tenebrous]#{plain}[/Tenebrous]"
+          _ -> plain
+        end
 
       line = if author, do: "#{author} #{plain}", else: plain
 
-      ooc = if post.ooc_content do
-        "\n(OOC: #{post.ooc_content})"
-      else
-        ""
-      end
+      ooc =
+        if post.ooc_content do
+          "\n(OOC: #{post.ooc_content})"
+        else
+          ""
+        end
 
       "#{line}#{ooc}"
     end)

@@ -1,13 +1,15 @@
-<div class="bbs-root p-6 max-w-4xl mx-auto">
+<div class="bbs-root px-6 p-2 max-w-4xl mx-auto">
   <div class="flex flex-col lg:flex-row gap-4">
     <div class="bbs-npc-header">
-  ┌────────────────────────────────────────┐
-  │ 'LINKPEARL' PROTOCOL // v0.0.3-BETA    │
-  │ cross-world farcaster relay — unstable │
-  └────────────────────────────────────────┘
-    </div>
-    <div class="mb-8">
-      <img src="/images/JORULE_WAS_HERE/BIRD_landing.png" class="object-scale-down h-24" />
+__        __   _                            _____       _____ _          
+\ \      / /__| | ___ ___  _ __ ___   ___  |_   _|__   |_   _| |__   ___ 
+ \ \ /\ / / _ \ |/ __/ _ \| '_ ` _ \ / _ \   | |/ _ \    | | | '_ \ / _ \
+  \ V  V /  __/ | (_| (_) | | | | | |  __/   | | (_) |   | | | | | |  __/
+__ \_/\_/ \___|_|\___\___/|_| |_|_|_|\___|   |_|\___/  __|_| |_|_|_|\___|
+\ \      / / |__ (_) |_ ___  / ___|  ___  __ _  __   _|___ \  / _ \      
+ \ \ /\ / /| '_ \| | __/ _ \ \___ \ / _ \/ _` | \ \ / / __) || | | |     
+  \ V  V / | | | | | ||  __/  ___) |  __/ (_| |  \ V / / __/ | |_| |     
+   \_/\_/  |_| |_|_|\__\___| |____/ \___|\__,_|   \_/ |_____(_)___/      
     </div>
   </div>
 
@@ -92,6 +94,7 @@
           <%= if @editing_board_id == board.id && @edit_changeset do %>
             <!-- Inline edit form -->
             <form phx-submit="save_board" phx-change="validate_edit_board" class="space-y-3">
+              <input type="hidden" name="board[id]" value={board.id} />
               <div>
                 <label class="block mb-1 bbs-meta">Board Name</label>
                 <input
@@ -133,6 +136,7 @@
               <div class="flex gap-2">
                 <button type="submit" class="bbs-button">Save</button>
                 <button type="button" phx-click="cancel_edit_board" class="bbs-button bbs-button--secondary">Cancel</button>
+                <button type="button" phx-click="delete_board" phx-value-id={board.id} class="bbs-button bbs-button--danger">Delete</button>
               </div>
             </form>
           <% else %>

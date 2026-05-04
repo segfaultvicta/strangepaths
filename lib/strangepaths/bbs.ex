@@ -72,6 +72,13 @@ defmodule Strangepaths.BBS do
   end
 
   @doc """
+  Deletes a given board entirely.
+  """
+  def delete_board(board) do
+    Repo.delete(board)
+  end
+
+  @doc """
   Updates the position of each board given an ordered list of board IDs.
   """
   def reorder_boards(ordered_ids) do
@@ -561,27 +568,40 @@ defmodule Strangepaths.BBS do
     Repo.get_by(ThreadReadMark, user_id: user_id, thread_id: thread_id)
   end
 
-  def search_threads_for_archives(query, _user_id) do
+  def search_threads_for_archives(query, _user_id, author_filter \\ "") do
     pattern = "%#{query}%"
     threshold = 0.15
     query_lower = String.downcase(query)
 
+    # Thread titles have no author attribution — skip when filtering by author
     title_thread_ids =
-      from(t in Thread,
-        where:
-          ilike(t.title, ^pattern) or
-            fragment("similarity(?, ?) > ?", t.title, ^query, ^threshold),
-        select: t.id
-      )
-      |> Repo.all()
+      if author_filter == "" do
+        from(t in Thread,
+          where:
+            ilike(t.title, ^pattern) or
+              fragment("similarity(?, ?) > ?", t.title, ^query, ^threshold),
+          select: t.id
+        )
+        |> Repo.all()
+      else
+        []
+      end
 
-    post_thread_ids =
+    post_base =
       from(p in Post,
         where:
           ilike(p.content, ^pattern) or
             fragment("similarity(?, ?) > ?", p.content, ^query, ^threshold),
         select: p.thread_id
       )
+
+    post_thread_ids =
+      (if author_filter != "" do
+         author_pattern = "%#{author_filter}%"
+         where(post_base, [p], ilike(p.character_name, ^author_pattern))
+       else
+         post_base
+       end)
       |> Repo.all()
 
     all_thread_ids = (title_thread_ids ++ post_thread_ids) |> Enum.uniq()
@@ -617,9 +637,10 @@ defmodule Strangepaths.BBS do
           )
           |> Repo.all()
 
-        has_exact_post = Enum.any?(posts_raw, fn p ->
-          String.contains?(String.downcase(p.content || ""), query_lower)
-        end)
+        has_exact_post =
+          Enum.any?(posts_raw, fn p ->
+            String.contains?(String.downcase(p.content || ""), query_lower)
+          end)
 
         title_exact = String.contains?(String.downcase(thread.thread_title), query_lower)
 
