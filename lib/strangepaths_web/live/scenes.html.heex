@@ -280,14 +280,6 @@
               <!-- Composer Column (flex-1) -->
               <div class="flex-1">
                 <div class="relative">
-                  <div id="grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="post-content-input-chat" tabindex="-1">
-                    <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
-                    <div class="grimoire-popover" style="display:none;">
-                      <div class="grimoire-glyphs"></div>
-                      <button type="button" class="grimoire-add-btn">+</button>
-                      <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
-                    </div>
-                  </div>
                   <textarea
                     id="post-content-input-chat"
                     name="content"
@@ -334,6 +326,14 @@
                   >
                     Post
                   </button>
+                  <div id="post-content-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="post-content-input-chat" style="position: relative;">
+                    <button type="button" class="grimoire-trigger" tabindex="0" title="Ctrl+G">◆</button>
+                    <div class="grimoire-popover" style="display:none;">
+                      <div class="grimoire-glyphs"></div>
+                      <button type="button" class="grimoire-add-btn">+</button>
+                      <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -25,7 +25,11 @@ defmodule StrangepathsWeb.LibraryLive.Admin do
   end
 
   @impl true
-  def handle_event("toggle_typeface", %{"user-id" => user_id_str, "typeface-id" => typeface_id}, socket) do
+  def handle_event(
+        "toggle_typeface",
+        %{"user-id" => user_id_str, "typeface-id" => typeface_id},
+        socket
+      ) do
     user_id = String.to_integer(user_id_str)
 
     case Enum.find(socket.assigns.users, &(&1.id == user_id)) do

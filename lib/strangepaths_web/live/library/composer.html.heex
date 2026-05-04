@@ -18,18 +18,22 @@
 
     </div>
 
-    <div class="overflow-y-auto flex-1 p-2 pb-24">
+    <div class="overflow-y-auto flex-1 p-2 pb-24"
+         id="scene-browser-panel"
+         data-range-anchor-id={@range_anchor_post_id || ""}>
       <%= for scene <- @visible_scenes do %>
-        <div data-scene-id={scene.id} class={"mb-1 rounded " <> if("full cast session" in scene.tags, do: "bg-emerald-900/25 border border-emerald-700/50 shadow-[inset_0_0_12px_rgba(16,185,129,0.07)]", else: "")}>
+        <div data-scene-id={scene.id} class={"mb-1 rounded " <>
+          if(scene.id in @included_scene_ids, do: "border-l-2 border-l-indigo-500/70 ", else: "") <>
+          if("full cast session" in scene.tags, do: "bg-emerald-900/25 border border-emerald-700/50 shadow-[inset_0_0_12px_rgba(16,185,129,0.07)]", else: "")}>
           <button
             phx-click="expand_scene"
             phx-value-scene-id={scene.id}
-            class="w-full text-left px-3 py-2 hover:bg-gray-800 rounded text-sm flex items-center justify-between"
+            class="w-full text-left px-3 hover:bg-gray-800 rounded text-xl flex items-start justify-between"
           >
             <span class="font-medium"><%= scene.name %></span>
-            <span class="flex gap-1 flex-wrap">
+            <span class="flex gap-1 flex-wrap pt-1">
               <%= for tag <- scene.tags do %>
-                <span class="text-xs bg-gray-800 px-1 rounded"><%= tag %></span>
+                <span class="text-sm px-1"><%= tag %></span>
               <% end %>
               <span class="text-gray-500"><%= if @expanded_scene_id == scene.id, do: "▲", else: "▼" %></span>
             </span>
@@ -41,6 +45,7 @@
                 <%
                   is_pure_narrator = post.post_type == :narrative && post.narrative_author_name in [nil, ""]
                   has_attributed_name = post.narrative_author_name not in [nil, ""]
+                  already_included = post.id in @included_post_ids
                   color_classes = case post.color_category do
                     "red" -> "text-burning-gnosis font-burning-gnosis"
                     "green" -> "text-flourishing-gnosis font-flourishing-gnosis"
@@ -49,15 +54,20 @@
                     "black" -> "text-tenebrous-gnosis font-tenebrous-gnosis"
                     _ -> ""
                   end
+                  left_border = cond do
+                    already_included -> "border-l-2 border-l-indigo-400/70 pl-1"
+                    is_pure_narrator -> "border-l-2 border-l-purple-800/60 pl-1"
+                    true -> ""
+                  end
                 %>
-                <div id={"browser-post-#{post.id}"} class={"flex gap-1 items-start py-1 border-b border-gray-800/50 text-sm #{color_classes} " <> if(is_pure_narrator, do: "border-l-2 border-l-purple-800/60 pl-1", else: "")}>
+                <div id={"browser-post-#{post.id}"} class={"flex gap-1 items-start py-1 border-b border-gray-800/50 text-sm #{color_classes} #{left_border}"}>
                   <div
                     class="flex-1 min-w-0 cursor-pointer hover:bg-gray-700/50 rounded px-1"
                     phx-click="add_post"
                     phx-value-post-id={post.id}
                     title="Add post at caret position"
                   >
-                    <div class="post-ic-content-icecylee text-xs line-clamp-2">
+                    <div class="post-ic-content-icecylee text-lg line-clamp-2">
                       <span class="post-ic-authorspan">
                         <%= cond do %>
                           <% is_pure_narrator -> %>
@@ -73,21 +83,12 @@
                   </div>
                   <div class="flex flex-col gap-0.5 items-end flex-shrink-0 pt-0.5">
                     <button
+                      data-from-btn
                       phx-click="set_range_anchor"
                       phx-value-post-id={post.id}
-                      title="Set as range start (From)"
-                      class={"text-xs px-1 rounded leading-tight " <> if(@range_anchor_post_id == post.id, do: "text-purple-300 bg-purple-900/50", else: "text-gray-600 hover:text-gray-300")}
-                    >↑</button>
-                    <%= if @range_anchor_post_id && @range_anchor_post_id != post.id do %>
-                      <button
-                        phx-click="add_range"
-                        phx-value-from-post-id={@range_anchor_post_id}
-                        phx-value-to-post-id={post.id}
-                        phx-value-scene-id={scene.id}
-                        title="Add range to here"
-                        class="text-xs px-1 text-purple-400 hover:text-purple-200 leading-tight"
-                      >↓</button>
-                    <% end %>
+                      title="Set range anchor"
+                      class={"text-lg px-1 rounded leading-tight " <> if(@range_anchor_post_id == post.id, do: "text-purple-300 bg-purple-900/50", else: "text-gray-600 hover:text-gray-300")}
+                    >⇕</button>
                   </div>
                 </div>
               <% end %>
@@ -109,13 +110,11 @@
         <p class="text-xs text-gray-500">
           Caret at position <%= @caret_position %> · <%= length(@entries) %> entries
         </p>
-        <%= if @is_author || @is_dragon do %>
-          <button
+        <button
             phx-click="ungroup_all"
             class={"text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-amber-400 " <> if(Enum.any?(@entries, & &1.group_id), do: "visible", else: "invisible")}
             title="Remove all grouping"
           >⛓ Ungroup all</button>
-        <% end %>
       </div>
     </div>
 
@@ -174,20 +173,18 @@
           id={"entry-#{entry.id}"}
           data-entry-id={entry.id}
           data-group-id={entry.group_id || ""}
-          phx-click={if @is_author || @is_dragon, do: "toggle_entry_group"}
+          phx-click="toggle_entry_group"
           phx-value-entry-id={entry.id}
-          class={"entry-item p-2 rounded border-l-4 " <>
+          class={"entry-item rounded border-l-4 " <>
             if(entry.group_id,
               do: "bg-amber-950/20 border-l-amber-500 border border-amber-800/30",
               else: "bg-gray-900 border-l-transparent border border-gray-800") <>
-            if(@is_author || @is_dragon,
-              do: (case action do
-                :add    -> " hover:bg-amber-900/30 hover:border-l-amber-400 cursor-pointer"
-                :remove -> " hover:bg-red-900/30 hover:border-l-red-500 cursor-pointer"
-                :no_op  -> if(entry.group_id, do: " cursor-grab", else: " cursor-default")
-              end),
-              else: "") <>
-            if(entry.group_id && (@is_author || @is_dragon), do: " drag-handle", else: "")}
+            case action do
+              :add    -> " hover:bg-amber-900/30 hover:border-l-amber-400 cursor-pointer"
+              :remove -> " hover:bg-red-900/30 hover:border-l-red-500 cursor-pointer"
+              :no_op  -> if(entry.group_id, do: " cursor-grab", else: " cursor-default")
+            end <>
+            if(entry.group_id, do: " drag-handle", else: "")}
         >
           <div class="flex items-start justify-between gap-2">
             <div class="flex-1 min-w-0">
@@ -207,7 +204,7 @@
                       _ -> ""
                     end
                   %>
-                  <div class={"post-ic-content-icecylee text-xs line-clamp-3 #{color_classes}"}>
+                  <div class={"post-ic-content-icecylee text-lg line-clamp-3 #{color_classes}"}>
                     <span class="post-ic-authorspan">
                       <%= cond do %>
                         <% is_pure_narrator -> %>
@@ -221,22 +218,67 @@
                   </div>
                 <% end %>
               <% :note -> %>
-                <div class="text-xs italic" style={"font-family: #{entry.font}; color: #{entry.color};"}>
-                  <%= raw render_library_content(entry.content) %>
-                </div>
+                <%= if @editing_note_entry_id == entry.id do %>
+                  <div id={"edit-note-form-#{entry.id}"} phx-update="ignore">
+                    <form phx-submit="save_note_edit">
+                      <input type="hidden" name="entry-id" value={entry.id} />
+                      <textarea
+                        id={"edit-note-textarea-#{entry.id}"}
+                        name="note[content]"
+                        class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm resize-y h-24"
+                        style={"font-family: #{entry.font}; color: #{entry.color};"}
+                      ><%= entry.content %></textarea>
+                      <div class="flex gap-2 mt-1 items-center">
+                        <div id={"edit-note-grimoire-#{entry.id}"} phx-hook="Grimoire" phx-update="ignore" data-textarea-id={"edit-note-textarea-#{entry.id}"}>
+                          <button type="button" class="grimoire-trigger" title="Ctrl+G">◆</button>
+                          <div class="grimoire-popover" style="display:none;">
+                            <div class="grimoire-glyphs"></div>
+                            <button type="button" class="grimoire-add-btn">+</button>
+                            <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
+                          </div>
+                        </div>
+                        <button type="submit" class="btn-primary-sm">Save</button>
+                        <button type="button" phx-click="cancel_edit_note" class="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                <% else %>
+                  <div class="text-lg" style={"font-family: #{entry.font}; color: #{entry.color};"}>
+                    <%= raw render_library_content(entry.content) %>
+                  </div>
+                <% end %>
               <% end %>
             </div>
 
-            <%= if @is_author || @is_dragon do %>
-              <div class="flex gap-1 flex-shrink-0 items-center">
-                <button
-                  phx-click="delete_entry"
-                  phx-value-entry-id={entry.id}
-                  class="text-xs text-gray-600 hover:text-red-400"
-                  title="Remove entry"
-                >✕</button>
-              </div>
-            <% end %>
+            <div class="flex gap-1 flex-shrink-0 items-center">
+                <%= if entry.kind == :note && @current_user && @editing_note_entry_id != entry.id do %>
+                  <button
+                    phx-click="start_edit_note"
+                    phx-value-entry-id={entry.id}
+                    class="text-xs text-gray-600 hover:text-indigo-400"
+                    title="Edit note"
+                  >✎</button>
+                <% end %>
+                <%= if @pending_delete_entry_id == entry.id do %>
+                  <span class="text-xs text-red-400">Has marginalia — delete?</span>
+                  <button
+                    phx-click="confirm_delete_entry"
+                    phx-value-entry-id={entry.id}
+                    class="text-xs text-red-400 hover:text-red-300 font-bold"
+                  >Yes</button>
+                  <button
+                    phx-click="cancel_delete_entry"
+                    class="text-xs text-gray-500 hover:text-gray-300"
+                  >No</button>
+                <% else %>
+                  <button
+                    phx-click="delete_entry"
+                    phx-value-entry-id={entry.id}
+                    class="text-xs text-gray-600 hover:text-red-400"
+                    title="Remove entry"
+                  >✕</button>
+                <% end %>
+            </div>
           </div>
         </div>
 

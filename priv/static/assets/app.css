@@ -581,7 +581,7 @@ select{
   outline: 1px auto -webkit-focus-ring-color;
 }
 
-h1{
+h1:not(.library-folio-title):not(.library-page-heading){
   margin-top: 1.25rem;
   margin-bottom: 1.25rem;
   font-size: 2.25rem;
@@ -590,7 +590,7 @@ h1{
   color: rgb(55 48 163 / var(--tw-text-opacity));
 }
 
-.dark h1{
+.dark h1:not(.library-folio-title):not(.library-page-heading){
   --tw-text-opacity: 1;
   color: rgb(238 242 255 / var(--tw-text-opacity));
 }
@@ -649,7 +649,7 @@ h5{
   color: rgb(238 242 255 / var(--tw-text-opacity));
 }
 
-a{
+a:not([class*=btn]){
   font-size: 1.125rem;
   line-height: 1.75rem;
   font-weight: 700;
@@ -657,12 +657,12 @@ a{
   color: rgb(124 58 237 / var(--tw-text-opacity));
 }
 
-a:hover{
+a:not([class*=btn]):hover{
   --tw-text-opacity: 1;
   color: rgb(139 92 246 / var(--tw-text-opacity));
 }
 
-.dark a{
+.dark a:not([class*=btn]){
   --tw-text-opacity: 1;
   color: rgb(209 213 219 / var(--tw-text-opacity));
 }
@@ -2396,6 +2396,10 @@ a:hover{
   align-items: center;
 }
 
+.items-baseline{
+  align-items: baseline;
+}
+
 .items-stretch{
   align-items: stretch;
 }
@@ -2456,13 +2460,13 @@ a:hover{
   gap: 0px;
 }
 
-.gap-y-1{
-  row-gap: 0.25rem;
-}
-
 .gap-x-4{
   -moz-column-gap: 1rem;
        column-gap: 1rem;
+}
+
+.gap-y-1{
+  row-gap: 0.25rem;
 }
 
 .space-y-2 > :not([hidden]) ~ :not([hidden]){
@@ -2606,12 +2610,12 @@ a:hover{
   border-right-width: 1px;
 }
 
-.border-l{
-  border-left-width: 1px;
-}
-
 .border-l-2{
   border-left-width: 2px;
+}
+
+.border-l{
+  border-left-width: 1px;
 }
 
 .border-t-2{
@@ -2756,6 +2760,14 @@ a:hover{
 .border-white{
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity));
+}
+
+.border-l-indigo-500\/70{
+  border-left-color: rgb(99 102 241 / 0.7);
+}
+
+.border-l-indigo-400\/70{
+  border-left-color: rgb(129 140 248 / 0.7);
 }
 
 .border-l-purple-800\/60{
@@ -3342,6 +3354,10 @@ a:hover{
   padding-right: 1rem;
 }
 
+.pt-1{
+  padding-top: 0.25rem;
+}
+
 .pl-2{
   padding-left: 0.5rem;
 }
@@ -3360,10 +3376,6 @@ a:hover{
 
 .pt-24{
   padding-top: 6rem;
-}
-
-.pt-1{
-  padding-top: 0.25rem;
 }
 
 .pt-\[100px\]{
@@ -3721,6 +3733,11 @@ a:hover{
   color: rgb(52 211 153 / var(--tw-text-opacity));
 }
 
+.text-orange-600{
+  --tw-text-opacity: 1;
+  color: rgb(234 88 12 / var(--tw-text-opacity));
+}
+
 .text-orange-700{
   --tw-text-opacity: 1;
   color: rgb(194 65 12 / var(--tw-text-opacity));
@@ -3739,11 +3756,6 @@ a:hover{
 .text-red-700{
   --tw-text-opacity: 1;
   color: rgb(185 28 28 / var(--tw-text-opacity));
-}
-
-.text-orange-600{
-  --tw-text-opacity: 1;
-  color: rgb(234 88 12 / var(--tw-text-opacity));
 }
 
 .underline{
@@ -5799,22 +5811,19 @@ input[type=range].slider-purple::-moz-range-progress {
 /* Grimoire glyph input helper */
 
 .grimoire-trigger {
-  position: absolute;
-  bottom: 4px;
-  right: 6px;
-  background: none;
-  border: none;
-  color: #6b21a8;
-  opacity: 0.25;
-  font-size: 10px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 2px;
-  transition: opacity 0.2s;
+  position: static;
+  opacity: 1;
+  font-size: 0.8rem;
+  padding: 0.25rem;
+  line-height: 1rem;
+  border: 1px solid #6d28d9;
+  border-radius: 3px;
+  color: #c4b5fd;
+  background: transparent;
 }
 
 .grimoire-trigger:hover {
-  opacity: 0.7;
+  background: #4c1d95;
 }
 
 .dark .grimoire-trigger {
@@ -6409,21 +6418,21 @@ input[type=range].slider-purple::-moz-range-progress {
 /* CSS variable for library typography */
 
 :root {
-  --library-font: Georgia, "Times New Roman", serif;
-  --library-accent: #a5b4fc;
-  /* indigo-300 */
-  --library-accent-muted: #6366f1;
-  /* indigo-500 */
+  --library-font: "Cormorant Garamond", serif;
+  --library-accent: oklch(82.7% 0.119 306.383);
+  /* purple-300 */
+  --library-accent-muted: oklch(62.7% 0.265 303.9);
+  /* purple-500 */
   --library-bg: #111827;
   /* gray-900 */
   --library-surface: #111827;
   /* gray-900 */
-  --library-border: #312e81;
-  /* indigo-900 */
+  --library-border: oklch(38.1% 0.176 304.987);
+  /* purple-900 */
   --library-text: #c7d2fe;
   /* indigo-200, matches site dark:text-indigo-200 */
-  --library-text-muted: #818cf8;
-  /* indigo-400 */
+  --library-text-muted: oklch(71.4% 0.203 305.504);
+  /* purple-400 */
 }
 
 /* Root wrapper — all library pages */
@@ -6440,6 +6449,8 @@ input[type=range].slider-purple::-moz-range-progress {
   font-weight: 600;
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
+  -webkit-text-decoration-line: none;
+          text-decoration-line: none;
   transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
@@ -6465,6 +6476,8 @@ input[type=range].slider-purple::-moz-range-progress {
   font-weight: 600;
   --tw-text-opacity: 1;
   color: rgb(216 180 254 / var(--tw-text-opacity));
+  -webkit-text-decoration-line: none;
+          text-decoration-line: none;
   transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
@@ -6489,6 +6502,8 @@ input[type=range].slider-purple::-moz-range-progress {
   line-height: 1rem;
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
+  -webkit-text-decoration-line: none;
+          text-decoration-line: none;
   transition-property: color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
@@ -6514,6 +6529,7 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .library-root h2 {
   text-decoration: none;
+  color: var(--library-accent);
 }
 
 .library-root [phx-hook=Grimoire] {
@@ -6545,6 +6561,13 @@ input[type=range].slider-purple::-moz-range-progress {
   background: #4c1d95;
 }
 
+.library-bird-bark {
+  font-size: 1.4rem;
+  color: var(--library-text-muted);
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+}
+
 /* Marginalia reply form resets inherited typeface so the form is readable */
 
 .library-marginalia-form-reset {
@@ -6555,6 +6578,14 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 /* Folio header area */
+
+.library-page-heading {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #d8b4fe;
+  /* purple-300 */
+  margin: 0;
+}
 
 .library-folio-title {
   font-size: 1.9rem;
@@ -6670,11 +6701,21 @@ input[type=range].slider-purple::-moz-range-progress {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   background: var(--library-surface);
   border: 1px solid var(--library-border);
+  color: var(--library-accent-muted);
+}
+
+.library-tag-for-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 1.1rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--library-surface);
   color: var(--library-accent-muted);
 }
 
@@ -6701,7 +6742,7 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .library-label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--library-text-muted);
@@ -6714,7 +6755,7 @@ input[type=range].slider-purple::-moz-range-progress {
   border-radius: 2px;
   color: var(--library-text);
   font-family: var(--library-font);
-  font-size: 0.875rem;
+  font-size: 1rem;
   padding: 0.35rem 0.6rem;
 }
 
@@ -6778,9 +6819,30 @@ select.library-input {
 }
 
 .library-folio-row-meta {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--library-text-muted);
   margin-top: 0.2rem;
+}
+
+.library-new-marginalia-badge {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  background: rgba(180, 140, 60, 0.18);
+  color: #c8a84b;
+  border: 1px solid rgba(180, 140, 60, 0.35);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Composer scene browser: range hover preview */
+
+.browser-range-preview {
+  background-color: rgba(99, 102, 241, 0.12);
+  border-left-color: rgba(99, 102, 241, 0.5) !important;
+  outline: 1px solid rgba(99, 102, 241, 0.2);
+  outline-offset: -1px;
 }
 
 /* Composer caret slots */
@@ -7273,6 +7335,11 @@ select.library-input {
   color: rgb(165 180 252 / var(--tw-text-opacity));
 }
 
+.hover\:text-indigo-400:hover{
+  --tw-text-opacity: 1;
+  color: rgb(129 140 248 / var(--tw-text-opacity));
+}
+
 .hover\:text-indigo-500:hover{
   --tw-text-opacity: 1;
   color: rgb(99 102 241 / var(--tw-text-opacity));
@@ -7565,14 +7632,19 @@ select.library-input {
   color: rgb(233 213 255 / var(--tw-text-opacity));
 }
 
-.dark .dark\:text-blue-200{
+.dark .dark\:text-blue-400{
   --tw-text-opacity: 1;
-  color: rgb(191 219 254 / var(--tw-text-opacity));
+  color: rgb(96 165 250 / var(--tw-text-opacity));
 }
 
 .dark .dark\:text-orange-400{
   --tw-text-opacity: 1;
   color: rgb(251 146 60 / var(--tw-text-opacity));
+}
+
+.dark .dark\:text-blue-200{
+  --tw-text-opacity: 1;
+  color: rgb(191 219 254 / var(--tw-text-opacity));
 }
 
 .dark .dark\:text-gray-200{
@@ -7593,11 +7665,6 @@ select.library-input {
 .dark .dark\:text-indigo-200{
   --tw-text-opacity: 1;
   color: rgb(199 210 254 / var(--tw-text-opacity));
-}
-
-.dark .dark\:text-blue-400{
-  --tw-text-opacity: 1;
-  color: rgb(96 165 250 / var(--tw-text-opacity));
 }
 
 .dark .dark\:odd\:bg-gray-800:nth-child(odd){

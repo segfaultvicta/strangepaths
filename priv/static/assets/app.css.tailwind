@@ -90,7 +90,7 @@ body {
 }
 
 @layer base {
-  h1 {
+  h1:not(.library-folio-title):not(.library-page-heading) {
     @apply text-4xl text-indigo-800 dark:text-indigo-50 my-5;
   }
   h2 {
@@ -105,7 +105,7 @@ body {
   h5 {
     @apply text-sm text-indigo-800 dark:text-indigo-50;
   }
-  a {
+  a:not([class*=btn]) {
     @apply font-bold text-lg text-violet-600 dark:text-gray-300 hover:text-violet-500;
   }
 }
@@ -1006,21 +1006,18 @@ input[type=range].slider-purple::-moz-range-progress {
 
 /* Grimoire glyph input helper */
 .grimoire-trigger {
-  position: absolute;
-  bottom: 4px;
-  right: 6px;
-  background: none;
-  border: none;
-  color: #6b21a8;
-  opacity: 0.25;
-  font-size: 10px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 2px;
-  transition: opacity 0.2s;
+  position: static;
+  opacity: 1;
+  font-size: 0.8rem;
+  padding: 0.25rem;
+  line-height: 1rem;
+  border: 1px solid #6d28d9;
+  border-radius: 3px;
+  color: #c4b5fd;
+  background: transparent;
 }
 .grimoire-trigger:hover {
-  opacity: 0.7;
+  background: #4c1d95;
 }
 
 .dark .grimoire-trigger {
@@ -1565,34 +1562,34 @@ input[type=range].slider-purple::-moz-range-progress {
    ============================================================ */
 /* CSS variable for library typography */
 :root {
-  --library-font: Georgia, "Times New Roman", serif;
-  --library-accent: #a5b4fc;
-  /* indigo-300 */
-  --library-accent-muted: #6366f1;
-  /* indigo-500 */
+  --library-font: "Cormorant Garamond", serif;
+  --library-accent: oklch(82.7% 0.119 306.383);
+  /* purple-300 */
+  --library-accent-muted: oklch(62.7% 0.265 303.9);
+  /* purple-500 */
   --library-bg: #111827;
   /* gray-900 */
   --library-surface: #111827;
   /* gray-900 */
-  --library-border: #312e81;
-  /* indigo-900 */
+  --library-border: oklch(38.1% 0.176 304.987);
+  /* purple-900 */
   --library-text: #c7d2fe;
   /* indigo-200, matches site dark:text-indigo-200 */
-  --library-text-muted: #818cf8;
-  /* indigo-400 */
+  --library-text-muted: oklch(71.4% 0.203 305.504);
+  /* purple-400 */
 }
 
 /* Root wrapper — all library pages */
 .btn-primary {
-  @apply bg-purple-700 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded transition cursor-pointer;
+  @apply bg-purple-700 hover:bg-purple-600 text-white font-semibold px-4 py-2 rounded transition cursor-pointer no-underline;
 }
 
 .btn-secondary {
-  @apply border border-purple-700 text-purple-300 hover:bg-purple-900/30 font-semibold px-4 py-2 rounded transition cursor-pointer;
+  @apply border border-purple-700 text-purple-300 hover:bg-purple-900/30 font-semibold px-4 py-2 rounded transition cursor-pointer no-underline;
 }
 
 .btn-primary-sm {
-  @apply bg-purple-700 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded transition cursor-pointer;
+  @apply bg-purple-700 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded transition cursor-pointer no-underline;
 }
 
 .library-root {
@@ -1607,6 +1604,7 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 .library-root h2 {
   text-decoration: none;
+  color: var(--library-accent);
 }
 .library-root [phx-hook=Grimoire] {
   position: relative;
@@ -1634,6 +1632,13 @@ input[type=range].slider-purple::-moz-range-progress {
   background: #4c1d95;
 }
 
+.library-bird-bark {
+  font-size: 1.4rem;
+  color: var(--library-text-muted);
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+}
+
 /* Marginalia reply form resets inherited typeface so the form is readable */
 .library-marginalia-form-reset {
   font-family: var(--library-font);
@@ -1643,6 +1648,14 @@ input[type=range].slider-purple::-moz-range-progress {
 }
 
 /* Folio header area */
+.library-page-heading {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #d8b4fe;
+  /* purple-300 */
+  margin: 0;
+}
+
 .library-folio-title {
   font-size: 1.9rem;
   font-weight: normal;
@@ -1745,11 +1758,21 @@ input[type=range].slider-purple::-moz-range-progress {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
   background: var(--library-surface);
   border: 1px solid var(--library-border);
+  color: var(--library-accent-muted);
+}
+
+.library-tag-for-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 1.1rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--library-surface);
   color: var(--library-accent-muted);
 }
 
@@ -1774,7 +1797,7 @@ input[type=range].slider-purple::-moz-range-progress {
 
 .library-label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--library-text-muted);
@@ -1787,7 +1810,7 @@ input[type=range].slider-purple::-moz-range-progress {
   border-radius: 2px;
   color: var(--library-text);
   font-family: var(--library-font);
-  font-size: 0.875rem;
+  font-size: 1rem;
   padding: 0.35rem 0.6rem;
 }
 .library-input:focus {
@@ -1844,9 +1867,29 @@ select.library-input {
 }
 
 .library-folio-row-meta {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--library-text-muted);
   margin-top: 0.2rem;
+}
+
+.library-new-marginalia-badge {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  background: rgba(180, 140, 60, 0.18);
+  color: #c8a84b;
+  border: 1px solid rgba(180, 140, 60, 0.35);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Composer scene browser: range hover preview */
+.browser-range-preview {
+  background-color: rgba(99, 102, 241, 0.12);
+  border-left-color: rgba(99, 102, 241, 0.5) !important;
+  outline: 1px solid rgba(99, 102, 241, 0.2);
+  outline-offset: -1px;
 }
 
 /* Composer caret slots */

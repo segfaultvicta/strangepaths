@@ -8,9 +8,11 @@ defmodule Strangepaths.Library.Folio do
     field(:subtitle, :string)
     field(:body, :string)
     field(:body_locked_at, :utc_datetime)
+    field(:entries_locked_at, :utc_datetime)
 
     belongs_to(:user, Strangepaths.Accounts.User)
     belongs_to(:body_locked_by, Strangepaths.Accounts.User, foreign_key: :body_locked_by_id)
+    belongs_to(:entries_locked_by, Strangepaths.Accounts.User, foreign_key: :entries_locked_by_id)
     has_many(:entries, Strangepaths.Library.Entry)
     has_many(:tags, Strangepaths.Library.FolioTag)
 

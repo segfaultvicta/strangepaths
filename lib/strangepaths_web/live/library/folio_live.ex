@@ -35,6 +35,10 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
         if connected?(socket) do
           StrangepathsWeb.Endpoint.subscribe("library_folio:#{folio.id}")
+
+          if user do
+            Library.record_folio_visit(user.id, folio.id)
+          end
         end
 
         {:ok,
@@ -52,7 +56,10 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:editing_body, false)
          |> assign(:body_content, folio.body || "")
          |> assign(:preview_html, render_library_content(folio.body || ""))
-         |> assign(:editor_typefaces, if(user, do: Library.folio_editor_typefaces(user.id), else: []))
+         |> assign(
+           :editor_typefaces,
+           if(user, do: Library.folio_editor_typefaces(user.id), else: [])
+         )
          |> assign(:marginalia_flat_map, marginalia_flat_map)
          |> assign(:expanded_entries, MapSet.new())
          |> assign(:marginalia_form_entry_id, nil)
@@ -139,6 +146,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
   def handle_event("cancel_edit_body", _params, socket) do
     Library.release_body_lock(socket.assigns.folio.id)
     if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)
+
     {:noreply,
      socket
      |> assign(:editing_body, false)
@@ -168,6 +176,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
         {:error, :lock_lost} ->
           if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)
+
           {:noreply,
            socket
            |> assign(:editing_body, false)
@@ -182,13 +191,17 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
   def handle_event("toggle_marginalia_thread", %{"entry-id" => entry_id_str}, socket) do
     entry_id = String.to_integer(entry_id_str)
 
-    updated = if MapSet.member?(socket.assigns.expanded_entries, entry_id) do
-      MapSet.delete(socket.assigns.expanded_entries, entry_id)
-    else
-      MapSet.put(socket.assigns.expanded_entries, entry_id)
-    end
+    updated =
+      if MapSet.member?(socket.assigns.expanded_entries, entry_id) do
+        MapSet.delete(socket.assigns.expanded_entries, entry_id)
+      else
+        MapSet.put(socket.assigns.expanded_entries, entry_id)
+      end
 
-    {:noreply, assign(socket, :expanded_entries, updated)}
+    {:noreply,
+     socket
+     |> assign(:expanded_entries, updated)
+     |> assign(:marginalia_form_entry_id, entry_id)}
   end
 
   def handle_event("open_marginalia_form", %{"entry-id" => entry_id_str} = params, socket) do
@@ -217,10 +230,14 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     user = socket.assigns.current_user
     marginalia_id = String.to_integer(id_str)
 
-    owned = user && Enum.any?(
-      Map.values(socket.assigns.marginalia_flat_map),
-      fn flat -> Enum.any?(flat, fn {m, _depth} -> m.id == marginalia_id && m.user_id == user.id end) end
-    )
+    owned =
+      user &&
+        Enum.any?(
+          Map.values(socket.assigns.marginalia_flat_map),
+          fn flat ->
+            Enum.any?(flat, fn {m, _depth} -> m.id == marginalia_id && m.user_id == user.id end)
+          end
+        )
 
     if owned do
       {:noreply,
@@ -237,7 +254,11 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     {:noreply, assign(socket, :editing_marginalia_id, nil)}
   end
 
-  def handle_event("save_marginalia_edit", %{"marginalia" => %{"content" => content}, "marginalia-id" => id_str}, socket) do
+  def handle_event(
+        "save_marginalia_edit",
+        %{"marginalia" => %{"content" => content}, "marginalia-id" => id_str},
+        socket
+      ) do
     user = socket.assigns.current_user
     marginalia_id = String.to_integer(id_str)
 
@@ -290,6 +311,7 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
       # Compare typeface_id string to string directly (typeface IDs are strings like "jorule", not integers)
       tf_id = attrs["typeface_id"]
+
       tf =
         cond do
           is_binary(tf_id) and tf_id != "" -> Enum.find(typefaces, &(&1.id == tf_id))
@@ -367,10 +389,18 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "new_marginalia", payload: %{marginalia: m, entry_id: entry_id}}, socket) do
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          event: "new_marginalia",
+          payload: %{marginalia: m, entry_id: entry_id}
+        },
+        socket
+      ) do
     # Recompute the flat tree for this entry's marginalia
-    all_for_entry = Map.get(socket.assigns.marginalia_flat_map, entry_id, [])
-                    |> Enum.map(fn {item, _depth} -> item end)
+    all_for_entry =
+      Map.get(socket.assigns.marginalia_flat_map, entry_id, [])
+      |> Enum.map(fn {item, _depth} -> item end)
+
     # Deduplicate in case the same broadcast payload is delivered twice
     deduplicated = Enum.uniq_by(all_for_entry ++ [m], & &1.id)
     updated_flat = flatten_marginalia_tree(deduplicated)
@@ -380,16 +410,36 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
   end
 
   @impl true
+  def handle_info(
+        %Phoenix.Socket.Broadcast{event: "body_updated", payload: %{body: content}},
+        socket
+      ) do
+    if socket.assigns[:editing_body] do
+      {:noreply, socket}
+    else
+      updated_folio = %{socket.assigns.folio | body: content}
+
+      {:noreply,
+       socket
+       |> assign(:folio, updated_folio)
+       |> assign(:body_content, content)
+       |> assign(:preview_html, render_library_content(content))}
+    end
+  end
+
+  @impl true
   def terminate(_reason, socket) do
     if socket.assigns[:editing_body] do
       Library.release_body_lock(socket.assigns.folio.id)
     end
+
     :ok
   end
 
   # Helper function to flatten marginalia tree with depth information
   defp flatten_marginalia_tree(all, parent_id \\ nil, depth \\ 0) do
     children = Enum.filter(all, &(&1.parent_id == parent_id))
+
     Enum.flat_map(children, fn m ->
       [{m, depth}] ++ flatten_marginalia_tree(all, m.id, depth + 1)
     end)

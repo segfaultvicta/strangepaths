@@ -2,7 +2,33 @@ defmodule Strangepaths.Library do
   import Ecto.Query
   import Ecto.Changeset
   alias Strangepaths.Repo
-  alias Strangepaths.Library.{Folio, FolioTag, Entry, Marginalia, UserTypeface}
+  alias Strangepaths.Library.{Folio, FolioTag, Entry, Marginalia, UserTypeface, FolioReadMark}
+
+  @bird_barks [
+    "Welcome to the Liminal Library!",
+    "Feel free to scan the shelves!",
+    "We remember so you don't have to.",
+    "Yeah, we all saw that.",
+    "Check the logs!",
+    "What do you MEAN you forgot to log it?!",
+    "hmm-HM-HM-hmmm~ ♪",
+    "Are you sure that really happened?",
+    "It's organized CHAOS!",
+    "Hahaha... hahahahah... haha... hahaha... ha... Yes.",
+    "All Your Lucre Is Belong To Me!",
+    "The other world was better.",
+    ".. -- / .- / -.-. --- -.. . / -... .-. . .- -.- . .-.",
+    "Chaw!",
+    "Not a fish, not a man, but a BIRD!",
+    "No open flames in the Library.",
+    "ACKSHUALLY, it's an ARCHIVE, not a Library.",
+    "You don't sleep much, do you?",
+    "No, you can't set this as your Home Point.",
+    "It is a Ritual, and must be Observed.",
+    "Anything Could Happen.",
+    "Those with a Pure Heart can Travel to a Whole New World...?",
+    "The trick to doing something impossible is, obviously, to just do something much easier in an adjacent fashion."
+  ]
 
   # === USER TYPEFACES ===
 
@@ -158,12 +184,12 @@ defmodule Strangepaths.Library do
       )
 
     note_folio_ids =
-      (if author_filter != "" do
-         author_pattern = "%#{author_filter}%"
-         where(note_base, [e], ilike(e.name, ^author_pattern))
-       else
-         note_base
-       end)
+      if author_filter != "" do
+        author_pattern = "%#{author_filter}%"
+        where(note_base, [e], ilike(e.name, ^author_pattern))
+      else
+        note_base
+      end
       |> Repo.all()
       |> MapSet.new()
 
@@ -178,12 +204,12 @@ defmodule Strangepaths.Library do
       )
 
     marginalia_folio_ids =
-      (if author_filter != "" do
-         author_pattern = "%#{author_filter}%"
-         where(marginalia_base, [m, _e], ilike(m.name, ^author_pattern))
-       else
-         marginalia_base
-       end)
+      if author_filter != "" do
+        author_pattern = "%#{author_filter}%"
+        where(marginalia_base, [m, _e], ilike(m.name, ^author_pattern))
+      else
+        marginalia_base
+      end
       |> Repo.all()
       |> MapSet.new()
 
@@ -208,7 +234,11 @@ defmodule Strangepaths.Library do
           |> Enum.take(3)
 
         body_exact = String.contains?(String.downcase(folio.body || ""), query_lower)
-        content_exact = Enum.any?(snippets, fn s -> String.contains?(String.downcase(s.snippet), query_lower) end)
+
+        content_exact =
+          Enum.any?(snippets, fn s ->
+            String.contains?(String.downcase(s.snippet), query_lower)
+          end)
 
         sort_score =
           cond do
@@ -378,7 +408,43 @@ defmodule Strangepaths.Library do
         ]
       )
 
-    if count == 1, do: :ok, else: {:error, :lock_lost}
+    if count == 1 do
+      StrangepathsWeb.Endpoint.broadcast(
+        "library_folio:#{folio.id}",
+        "body_updated",
+        %{body: content, updated_by_id: user_id}
+      )
+
+      :ok
+    else
+      {:error, :lock_lost}
+    end
+  end
+
+  def entries_lock_timeout_seconds, do: 300
+
+  def claim_entries_lock(folio_id, user_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    stale_before = DateTime.add(now, -entries_lock_timeout_seconds(), :second)
+
+    {count, _} =
+      from(f in Folio,
+        where:
+          f.id == ^folio_id and
+            (is_nil(f.entries_locked_by_id) or
+               f.entries_locked_at < ^stale_before or
+               f.entries_locked_by_id == ^user_id)
+      )
+      |> Repo.update_all(set: [entries_locked_by_id: user_id, entries_locked_at: now])
+
+    if count == 1, do: :ok, else: {:error, :locked}
+  end
+
+  def release_entries_lock(folio_id) do
+    from(f in Folio, where: f.id == ^folio_id)
+    |> Repo.update_all(set: [entries_locked_by_id: nil, entries_locked_at: nil])
+
+    :ok
   end
 
   # Returns a locked folio (with lock metadata) — used by the LiveView to check lock holder.
@@ -534,14 +600,15 @@ defmodule Strangepaths.Library do
 
   def delete_entry(entry), do: Repo.delete(entry)
 
-  # AC5.2: Note editing is deferred (not implemented in the UI).
-  # The update_note_entry/2 function has been removed per code review cleanup.
-  # If note editing is implemented in a future phase, add back:
-  #   def update_note_entry(entry, attrs) do
-  #     entry
-  #     |> Entry.note_changeset(attrs)
-  #     |> Repo.update()
-  #   end
+  def entry_has_marginalia?(entry_id) do
+    Repo.exists?(from(m in Marginalia, where: m.entry_id == ^entry_id))
+  end
+
+  def update_note_entry(entry, attrs) do
+    entry
+    |> Entry.note_changeset(attrs)
+    |> Repo.update()
+  end
 
   def reorder_entries(folio_id, ordered_ids) do
     result =
@@ -653,6 +720,58 @@ defmodule Strangepaths.Library do
     end
   end
 
+  # === FOLIO READ MARKS ===
+
+  def record_folio_visit(user_id, folio_id) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    %FolioReadMark{}
+    |> FolioReadMark.changeset(%{user_id: user_id, folio_id: folio_id, last_visited_at: now})
+    |> Repo.insert(
+      on_conflict: [set: [last_visited_at: now, updated_at: now]],
+      conflict_target: [:user_id, :folio_id]
+    )
+  end
+
+  # Returns a map of %{folio_id => new_marginalia_count} for the given folio IDs and user.
+  # A marginalia item is "new" if it was inserted after the user's last recorded visit.
+  # Folios the user has never visited show the count of all their marginalia.
+  # Folios with no new marginalia are omitted (use Map.get(counts, id, 0) in callers).
+  def new_marginalia_counts([], _user_id), do: %{}
+
+  def new_marginalia_counts(folio_ids, user_id) do
+    from(e in Entry,
+      join: m in Marginalia, on: m.entry_id == e.id,
+      left_join: rm in FolioReadMark,
+        on: rm.folio_id == e.folio_id and rm.user_id == ^user_id,
+      where: e.folio_id in ^folio_ids,
+      where: is_nil(rm.last_visited_at) or m.inserted_at > rm.last_visited_at,
+      group_by: e.folio_id,
+      select: {e.folio_id, count(m.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  def bird_bark() do
+    # randomly select one bark from the list
+    Enum.random(@bird_barks)
+  end
+
+  @spec update_marginalia(
+          {map(),
+           %{
+             optional(atom()) =>
+               atom()
+               | {:array | :assoc | :embed | :in | :map | :parameterized | :supertype | :try,
+                  any()}
+           }}
+          | %{
+              :__struct__ => atom() | %{:__changeset__ => any(), optional(any()) => any()},
+              optional(atom()) => any()
+            },
+          :invalid | %{optional(:__struct__) => none(), optional(atom() | binary()) => any()}
+        ) :: any()
   def update_marginalia(marginalia, attrs) do
     marginalia
     |> Marginalia.update_changeset(attrs)

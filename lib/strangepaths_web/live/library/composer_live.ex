@@ -1,10 +1,12 @@
 defmodule StrangepathsWeb.LibraryLive.Composer do
   use StrangepathsWeb, :live_view
 
-  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 1, render_post_content: 2]
+  import StrangepathsWeb.SceneHelpers, only: [render_post_content: 2]
   import StrangepathsWeb.LibraryHelpers, only: [render_library_content: 1]
 
   alias Strangepaths.{Library, Scenes}
+
+  @entries_lock_timeout_ms Library.entries_lock_timeout_seconds() * 1_000
 
   @impl true
   def mount(%{"slug" => slug}, session, socket) do
@@ -20,26 +22,48 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
       folio ->
         if user && Library.folio_editor?(user.id) do
-          entries = Library.list_entries(folio.id)
+          lock_result =
+            if connected?(socket),
+              do: Library.claim_entries_lock(folio.id, user.id),
+              else: :ok
 
-          {:ok,
-           socket
-           |> assign(:page_title, "Composing: #{folio.title}")
-           |> assign(:folio, folio)
-           |> assign(:group_actions, %{})
-           |> assign_entries(entries)
-           |> assign(:caret_position, length(entries) + 1)
-           |> assign(:range_anchor_post_id, nil)
-           |> assign(:expanded_scene_id, nil)
-           |> assign(:scene_posts_cache, %{})
-           |> assign(:filter_query, "")
-           |> assign(:is_author, folio.user_id == user.id)
-           |> assign(:is_dragon, user.role == :dragon)
-           |> assign(
-             :editor_typefaces,
-             if(user, do: Library.folio_editor_typefaces(user.id), else: [])
-           )
-           |> load_scenes(user)}
+          case lock_result do
+            {:error, :locked} ->
+              {:ok,
+               socket
+               |> put_flash(:error, "Another editor is currently editing this folio's entries.")
+               |> push_redirect(to: "/library/#{folio.slug}")}
+
+            :ok ->
+              entries = Library.list_entries(folio.id)
+
+              timer_ref =
+                if connected?(socket),
+                  do: Process.send_after(self(), :entries_lock_timeout, @entries_lock_timeout_ms),
+                  else: nil
+
+              {:ok,
+               socket
+               |> assign(:page_title, "Composing: #{folio.title}")
+               |> assign(:folio, folio)
+               |> assign(:group_actions, %{})
+               |> assign_entries(entries)
+               |> assign(:caret_position, length(entries) + 1)
+               |> assign(:pending_delete_entry_id, nil)
+               |> assign(:editing_note_entry_id, nil)
+               |> assign(:range_anchor_post_id, nil)
+               |> assign(:expanded_scene_id, nil)
+               |> assign(:scene_posts_cache, %{})
+               |> assign(:filter_query, "")
+               |> assign(:is_author, folio.user_id == user.id)
+               |> assign(:is_dragon, user.role == :dragon)
+               |> assign(:entries_lock_timer_ref, timer_ref)
+               |> assign(
+                 :editor_typefaces,
+                 if(user, do: Library.folio_editor_typefaces(user.id), else: [])
+               )
+               |> load_scenes(user)}
+          end
         else
           {:ok,
            socket
@@ -86,10 +110,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
          socket
          |> assign_entries(entries)
          |> assign(:caret_position, position + 1)
-         # Set range_anchor_post_id to the newly added post to enable shift-click range selection
-         # from the next post. Clicking a different post without holding Shift will overwrite
-         # the anchor, allowing the user to start a new range.
-         |> assign(:range_anchor_post_id, post_id)}
+         |> renew_lock()}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not add post.")}
@@ -125,7 +146,8 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
          socket
          |> assign_entries(entries)
          |> assign(:caret_position, position + length(range_ids))
-         |> assign(:range_anchor_post_id, nil)}
+         |> assign(:range_anchor_post_id, nil)
+         |> renew_lock()}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to add range.")}
@@ -133,7 +155,9 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   def handle_event("set_range_anchor", %{"post-id" => post_id_str}, socket) do
-    {:noreply, assign(socket, :range_anchor_post_id, String.to_integer(post_id_str))}
+    post_id = String.to_integer(post_id_str)
+    new_anchor = if socket.assigns.range_anchor_post_id == post_id, do: nil, else: post_id
+    {:noreply, assign(socket, :range_anchor_post_id, new_anchor)}
   end
 
   def handle_event("set_caret", %{"position" => pos_str}, socket) do
@@ -142,84 +166,32 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   def handle_event("toggle_entry_group", %{"entry-id" => id_str}, socket) do
-    if socket.assigns.is_author || socket.assigns.is_dragon do
-      entry_id = String.to_integer(id_str)
+    entry_id = String.to_integer(id_str)
 
-      case find_group_action(socket.assigns.entries, entry_id) do
-        {:add, group_id} ->
-          entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id))
-          Library.update_entry_group(entry, group_id)
-          entries = Library.list_entries(socket.assigns.folio.id)
-          {:noreply, assign_entries(socket, entries)}
+    case find_group_action(socket.assigns.entries, entry_id) do
+      {:add, group_id} ->
+        entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id))
+        Library.update_entry_group(entry, group_id)
+        entries = Library.list_entries(socket.assigns.folio.id)
+        {:noreply, socket |> assign_entries(entries) |> renew_lock()}
 
-        {:remove, entry} ->
-          Library.update_entry_group(entry, nil)
-          entries = Library.list_entries(socket.assigns.folio.id)
-          {:noreply, assign_entries(socket, entries)}
+      {:remove, entry} ->
+        Library.update_entry_group(entry, nil)
+        entries = Library.list_entries(socket.assigns.folio.id)
+        {:noreply, socket |> assign_entries(entries) |> renew_lock()}
 
-        :no_op ->
-          {:noreply, socket}
-      end
-    else
-      {:noreply, put_flash(socket, :error, "Unauthorized.")}
-    end
-  end
-
-  def compute_group_actions(entries) do
-    Map.new(entries, fn entry ->
-      action =
-        case find_group_action(entries, entry.id) do
-          {:add, _} -> :add
-          {:remove, _} -> :remove
-          :no_op -> :no_op
-        end
-
-      {entry.id, action}
-    end)
-  end
-
-  defp find_group_action(entries, entry_id) do
-    idx = Enum.find_index(entries, &(&1.id == entry_id))
-    entry = Enum.at(entries, idx)
-
-    grouped_indices =
-      entries
-      |> Enum.with_index()
-      |> Enum.filter(fn {e, _} -> e.group_id end)
-      |> Enum.map(fn {_, i} -> i end)
-
-    cond do
-      Enum.empty?(grouped_indices) ->
-        {:add, Ecto.UUID.generate()}
-
-      entry.group_id ->
-        first = List.first(grouped_indices)
-        last = List.last(grouped_indices)
-        if idx == first || idx == last, do: {:remove, entry}, else: :no_op
-
-      true ->
-        first = List.first(grouped_indices)
-        last = List.last(grouped_indices)
-
-        if idx == first - 1 || idx == last + 1 do
-          {:add, Enum.find_value(entries, & &1.group_id)}
-        else
-          :no_op
-        end
+      :no_op ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("ungroup_all", _params, socket) do
-    if socket.assigns.is_author || socket.assigns.is_dragon do
-      socket.assigns.entries
-      |> Enum.filter(& &1.group_id)
-      |> Enum.each(&Library.update_entry_group(&1, nil))
+    socket.assigns.entries
+    |> Enum.filter(& &1.group_id)
+    |> Enum.each(&Library.update_entry_group(&1, nil))
 
-      entries = Library.list_entries(socket.assigns.folio.id)
-      {:noreply, assign_entries(socket, entries)}
-    else
-      {:noreply, put_flash(socket, :error, "Unauthorized.")}
-    end
+    entries = Library.list_entries(socket.assigns.folio.id)
+    {:noreply, socket |> assign_entries(entries) |> renew_lock()}
   end
 
   def handle_event(
@@ -270,7 +242,12 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     case Library.create_note_entry(socket.assigns.folio, user, note_attrs, position) do
       {:ok, _} ->
         entries = Library.list_entries(socket.assigns.folio.id)
-        {:noreply, socket |> assign_entries(entries) |> assign(:caret_position, position + 1)}
+
+        {:noreply,
+         socket
+         |> assign_entries(entries)
+         |> assign(:caret_position, position + 1)
+         |> renew_lock()}
 
       {:error, e} ->
         {:noreply, put_flash(socket, :error, "Could not add note: #{inspect(e)}")}
@@ -280,40 +257,182 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   # --- Entry management (author/dragon only) ---
 
   def handle_event("delete_entry", %{"entry-id" => entry_id_str}, socket) do
-    if socket.assigns.is_author || socket.assigns.is_dragon do
-      entry_id = String.to_integer(entry_id_str)
-      entry_index = Enum.find_index(socket.assigns.entries, &(&1.id == entry_id))
+    entry_id = String.to_integer(entry_id_str)
+    entry_index = Enum.find_index(socket.assigns.entries, &(&1.id == entry_id))
 
-      if entry_index != nil do
-        entry = Enum.at(socket.assigns.entries, entry_index)
-        Library.delete_entry(entry)
-        entries = Library.list_entries(socket.assigns.folio.id)
+    if entry_index != nil do
+      entry = Enum.at(socket.assigns.entries, entry_index)
 
-        deleted_position = entry_index + 1
-        caret = socket.assigns.caret_position
-        new_caret = if caret > deleted_position, do: caret - 1, else: caret
-
-        {:noreply, socket |> assign_entries(entries) |> assign(:caret_position, new_caret)}
+      if Library.entry_has_marginalia?(entry.id) do
+        {:noreply, assign(socket, :pending_delete_entry_id, entry.id)}
       else
-        {:noreply, socket}
+        do_delete_entry(socket, entry, entry_index)
       end
     else
-      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("confirm_delete_entry", %{"entry-id" => entry_id_str}, socket) do
+    entry_id = String.to_integer(entry_id_str)
+    entry_index = Enum.find_index(socket.assigns.entries, &(&1.id == entry_id))
+
+    if entry_index != nil do
+      entry = Enum.at(socket.assigns.entries, entry_index)
+      do_delete_entry(socket, entry, entry_index)
+    else
+      {:noreply, assign(socket, :pending_delete_entry_id, nil)}
+    end
+  end
+
+  def handle_event("cancel_delete_entry", _params, socket) do
+    {:noreply, assign(socket, :pending_delete_entry_id, nil)}
+  end
+
+  defp do_delete_entry(socket, entry, entry_index) do
+    Library.delete_entry(entry)
+    entries = Library.list_entries(socket.assigns.folio.id)
+
+    deleted_position = entry_index + 1
+    caret = socket.assigns.caret_position
+    new_caret = if caret > deleted_position, do: caret - 1, else: caret
+
+    {:noreply,
+     socket
+     |> assign(:pending_delete_entry_id, nil)
+     |> assign_entries(entries)
+     |> assign(:caret_position, new_caret)
+     |> renew_lock()}
+  end
+
+  def handle_event("start_edit_note", %{"entry-id" => entry_id_str}, socket) do
+    entry_id = String.to_integer(entry_id_str)
+    user = socket.assigns.current_user
+
+    entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id && &1.kind == :note))
+
+    if entry && user do
+      {:noreply, assign(socket, :editing_note_entry_id, entry_id)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("cancel_edit_note", _params, socket) do
+    {:noreply, assign(socket, :editing_note_entry_id, nil)}
+  end
+
+  def handle_event("save_note_edit", %{"entry-id" => entry_id_str, "note" => %{"content" => content}}, socket) do
+    entry_id = String.to_integer(entry_id_str)
+    user = socket.assigns.current_user
+
+    entry = Enum.find(socket.assigns.entries, &(&1.id == entry_id && &1.kind == :note))
+
+    cond do
+      is_nil(user) || is_nil(entry) ->
+        {:noreply, put_flash(socket, :error, "Unauthorized.")}
+
+      true ->
+        case Library.update_note_entry(entry, %{"content" => content}) do
+          {:ok, _} ->
+            entries = Library.list_entries(socket.assigns.folio.id)
+
+            {:noreply,
+             socket
+             |> assign(:editing_note_entry_id, nil)
+             |> assign_entries(entries)
+             |> renew_lock()}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Could not save note.")}
+        end
     end
   end
 
   def handle_event("reorder_entries", %{"ids" => ids_str}, socket) do
-    if socket.assigns.is_author || socket.assigns.is_dragon do
-      ids = String.split(ids_str, ",") |> Enum.map(&String.to_integer/1)
-      Library.reorder_entries(socket.assigns.folio.id, ids)
-      entries = Library.list_entries(socket.assigns.folio.id)
-      {:noreply, socket |> assign_entries(entries) |> assign(:caret_position, length(entries) + 1)}
-    else
-      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    ids = String.split(ids_str, ",") |> Enum.map(&String.to_integer/1)
+    Library.reorder_entries(socket.assigns.folio.id, ids)
+    entries = Library.list_entries(socket.assigns.folio.id)
+
+    {:noreply,
+     socket
+     |> assign_entries(entries)
+     |> assign(:caret_position, length(entries) + 1)
+     |> renew_lock()}
+  end
+
+  def compute_group_actions(entries) do
+    Map.new(entries, fn entry ->
+      action =
+        case find_group_action(entries, entry.id) do
+          {:add, _} -> :add
+          {:remove, _} -> :remove
+          :no_op -> :no_op
+        end
+
+      {entry.id, action}
+    end)
+  end
+
+  defp find_group_action(entries, entry_id) do
+    idx = Enum.find_index(entries, &(&1.id == entry_id))
+    entry = Enum.at(entries, idx)
+
+    grouped_indices =
+      entries
+      |> Enum.with_index()
+      |> Enum.filter(fn {e, _} -> e.group_id end)
+      |> Enum.map(fn {_, i} -> i end)
+
+    cond do
+      Enum.empty?(grouped_indices) ->
+        {:add, Ecto.UUID.generate()}
+
+      entry.group_id ->
+        first = List.first(grouped_indices)
+        last = List.last(grouped_indices)
+        if idx == first || idx == last, do: {:remove, entry}, else: :no_op
+
+      true ->
+        first = List.first(grouped_indices)
+        last = List.last(grouped_indices)
+
+        if idx == first - 1 || idx == last + 1 do
+          {:add, Enum.find_value(entries, & &1.group_id)}
+        else
+          :no_op
+        end
     end
   end
 
+  @impl true
+  def handle_info(:entries_lock_timeout, socket) do
+    Library.release_entries_lock(socket.assigns.folio.id)
+
+    {:noreply,
+     socket
+     |> assign(:entries_lock_timer_ref, nil)
+     |> put_flash(:warning, "Editing session timed out. Please re-open the composer to continue.")
+     |> push_redirect(to: "/library/#{socket.assigns.folio.slug}")}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    if socket.assigns[:folio] do
+      Library.release_entries_lock(socket.assigns.folio.id)
+    end
+
+    :ok
+  end
+
   # --- Private helpers ---
+
+  defp renew_lock(socket) do
+    if ref = socket.assigns[:entries_lock_timer_ref], do: Process.cancel_timer(ref)
+    Library.claim_entries_lock(socket.assigns.folio.id, socket.assigns.current_user.id)
+    ref = Process.send_after(self(), :entries_lock_timeout, @entries_lock_timeout_ms)
+    assign(socket, :entries_lock_timer_ref, ref)
+  end
 
   defp load_scenes(socket, user) do
     all_scenes = Scenes.list_scenes_for_composer(user.id)
@@ -324,7 +443,11 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   defp recompute_visible_scenes(socket) do
-    assign(socket, :visible_scenes, filter_scenes(socket.assigns.all_scenes, socket.assigns.filter_query))
+    assign(
+      socket,
+      :visible_scenes,
+      filter_scenes(socket.assigns.all_scenes, socket.assigns.filter_query)
+    )
   end
 
   defp filter_scenes(scenes, "") do
@@ -341,9 +464,19 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   defp assign_entries(socket, entries) do
+    post_ref_entries = Enum.filter(entries, &(&1.kind == :post_ref && &1.scene_post != nil))
+
+    included_post_ids =
+      post_ref_entries |> Enum.map(& &1.scene_post_id) |> MapSet.new()
+
+    included_scene_ids =
+      post_ref_entries |> Enum.map(& &1.scene_post.scene_id) |> MapSet.new()
+
     socket
     |> assign(:entries, entries)
     |> assign(:group_actions, compute_group_actions(entries))
+    |> assign(:included_post_ids, included_post_ids)
+    |> assign(:included_scene_ids, included_scene_ids)
   end
 
   defp load_scene_posts(socket, scene_id) do

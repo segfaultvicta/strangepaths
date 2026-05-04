@@ -2271,7 +2271,7 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
-  defp process_card_references(html, card_lookup, glorified_lookup \\ %{}) do
+  defp process_card_references(html, card_lookup, glorified_lookup) do
     Regex.replace(~r/\[([^\[\]]+)\]/, html, fn full_match, inner ->
       {name, glorified?} =
         if String.ends_with?(inner, "!") do

@@ -833,6 +833,8 @@ Hooks.LibraryComposer = {
     mounted() {
         this.initSortable();
         this.initShiftClick();
+        this.initRangeHover();
+        this.initRangeClick();
     },
 
     updated() {
@@ -852,6 +854,15 @@ Hooks.LibraryComposer = {
         }
         if (this.onDocClick) {
             document.removeEventListener("click", this.onDocClick);
+        }
+        if (this._onMouseover) {
+            document.removeEventListener("mouseover", this._onMouseover);
+        }
+        if (this._onMouseout) {
+            document.removeEventListener("mouseout", this._onMouseout);
+        }
+        if (this._onRangeClick) {
+            document.removeEventListener("click", this._onRangeClick, true);
         }
     },
 
@@ -945,6 +956,87 @@ Hooks.LibraryComposer = {
         };
 
         document.addEventListener("click", this.onDocClick);
+    },
+
+    initRangeHover() {
+        this._clearRangePreview = () => {
+            document.querySelectorAll(".browser-range-preview")
+                .forEach(el => el.classList.remove("browser-range-preview"));
+        };
+
+        this._onMouseover = (e) => {
+            const panel = document.getElementById("scene-browser-panel");
+            const anchorId = panel?.dataset.rangeAnchorId;
+            if (!anchorId) return;
+
+            const postEl = e.target.closest("[id^='browser-post-']");
+            if (!postEl) return;
+
+            const sceneEl = postEl.closest("[data-scene-id]");
+            if (!sceneEl) return;
+
+            const anchorEl = document.getElementById(`browser-post-${anchorId}`);
+            if (!anchorEl) return;
+
+            const allPosts = Array.from(sceneEl.querySelectorAll("[id^='browser-post-']"));
+            if (!allPosts.includes(anchorEl)) return;
+
+            const anchorIdx = allPosts.indexOf(anchorEl);
+            const hoveredIdx = allPosts.indexOf(postEl);
+            const start = Math.min(anchorIdx, hoveredIdx);
+            const end = Math.max(anchorIdx, hoveredIdx);
+
+            allPosts.forEach((el, i) => {
+                el.classList.toggle("browser-range-preview", i >= start && i <= end);
+            });
+        };
+
+        this._onMouseout = (e) => {
+            // Only clear when leaving a post row entirely (not moving between children)
+            if (!e.relatedTarget?.closest("[id^='browser-post-']")) {
+                this._clearRangePreview();
+            }
+        };
+
+        document.addEventListener("mouseover", this._onMouseover);
+        document.addEventListener("mouseout", this._onMouseout);
+    },
+
+    initRangeClick() {
+        this._onRangeClick = (e) => {
+            const panel = document.getElementById("scene-browser-panel");
+            const anchorId = panel?.dataset.rangeAnchorId;
+            if (!anchorId) return;
+
+            // Let shift-clicks fall through to the shift-select handler
+            if (e.shiftKey) return;
+
+            // Let clicks on the FROM button through (so it can toggle the anchor)
+            if (e.target.closest("[data-from-btn]")) return;
+
+            const postEl = e.target.closest("[id^='browser-post-']");
+            if (!postEl) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            this._clearRangePreview();
+
+            const postId = postEl.id.replace("browser-post-", "");
+            const sceneEl = postEl.closest("[data-scene-id]");
+            const sceneId = sceneEl?.dataset.sceneId;
+
+            if (postId && sceneId) {
+                this.pushEvent("add_range", {
+                    "from-post-id": anchorId,
+                    "to-post-id": postId,
+                    "scene-id": sceneId,
+                });
+            }
+        };
+
+        // Capture phase fires before LiveView's phx-click delegation
+        document.addEventListener("click", this._onRangeClick, true);
     },
 }
 

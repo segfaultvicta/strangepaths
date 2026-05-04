@@ -19,7 +19,8 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
      |> assign(:all_tags, Library.list_all_folio_tags())
      |> assign(:folios, Library.search_folios([]))
      |> assign(:folio_changeset, nil)
-     |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))}
+     |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))
+     |> load_new_marginalia_counts()}
   end
 
   @impl true
@@ -109,6 +110,22 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
       # it remains truthy (an atom is always truthy, so any atom value works fine).
       |> Enum.reject(fn {_k, v} -> v == nil or v == "" end)
 
-    assign(socket, :folios, Library.search_folios(opts))
+    socket
+    |> assign(:folios, Library.search_folios(opts))
+    |> load_new_marginalia_counts()
+  end
+
+  defp load_new_marginalia_counts(socket) do
+    user = socket.assigns.current_user
+
+    counts =
+      if user do
+        folio_ids = Enum.map(socket.assigns.folios, & &1.id)
+        Library.new_marginalia_counts(folio_ids, user.id)
+      else
+        %{}
+      end
+
+    assign(socket, :new_marginalia_counts, counts)
   end
 end

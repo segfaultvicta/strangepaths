@@ -1,9 +1,13 @@
 <div class="library-root p-6 max-w-4xl mx-auto">
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-3xl font-bold">The Liminal Library</h1>
+    <h1 class="library-page-heading">The Liminal Library</h1>
     <%= if @is_folio_editor do %>
       <%= live_patch("+ New Folio", to: "/library/new", class: "btn-secondary text-sm") %>
     <% end %>
+  </div>
+
+  <div class="library-bird-bark">
+    <%= Strangepaths.Library.bird_bark() %>
   </div>
 
   <form phx-change="search" phx-submit="search" class="library-search-bar mb-6">
@@ -83,25 +87,32 @@
   <% end %>
 
   <%= if Enum.empty?(@folios) do %>
-    <p class="text-gray-500 italic">No folios yet. The archive awaits its first entry.</p>
+    <p class="text-gray-500 italic">No folios found.</p>
   <% else %>
     <div class="space-y-3">
       <%= for folio <- @folios do %>
         <div class="library-folio-row">
-          <%= live_redirect folio.title, to: "/library/#{folio.slug}", class: "library-folio-row-title" %>
+          <div class="flex items-baseline gap-2">
+            <%= live_redirect folio.title, to: "/library/#{folio.slug}", class: "library-folio-row-title" %>
+            <% new_count = Map.get(@new_marginalia_counts, folio.id, 0) %>
+            <%= if new_count > 0 do %>
+              <span class="library-new-marginalia-badge"><%= new_count %> new</span>
+            <% end %>
+          </div>
           <%= if folio.subtitle do %>
             <p class="text-sm text-gray-400 mt-1"><%= folio.subtitle %></p>
           <% end %>
           <p class="library-folio-row-meta">
-            <%= folio.user && folio.user.nickname %> · <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
+            <%= folio.user && folio.user.nickname %> · updated <%= folio.updated_at && format_relative_time(folio.updated_at) %> · accessioned <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
+          
+            <%= if folio.tags != [] do %>
+              <span>
+                <%= for ft <- folio.tags do %>
+                  <span class="library-tag-for-list">#<%= ft.tag %></span>
+                <% end %>
+              </span>
+            <% end %>
           </p>
-          <%= if folio.tags != [] do %>
-            <div class="flex flex-wrap gap-1 mt-1">
-              <%= for ft <- folio.tags do %>
-                <span class="library-tag">#<%= ft.tag %></span>
-              <% end %>
-            </div>
-          <% end %>
         </div>
       <% end %>
     </div>

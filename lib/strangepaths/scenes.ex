@@ -143,8 +143,21 @@ defmodule Strangepaths.Scenes do
 
     from(s in Scene,
       left_join: lp in subquery(last_post_subquery), on: lp.scene_id == s.id,
-      where: not s.is_elsewhere and s.id in subquery(user_scene_ids),
-      order_by: [desc_nulls_last: lp.last_post_at, asc: s.name],
+      where:
+        not s.is_elsewhere and
+          s.id in subquery(user_scene_ids) and
+          (s.status == :archived or
+             (s.status == :active and s.locked_to_users != ^[])),
+      order_by: [
+        # Active locked scenes first, then archived
+        asc:
+          fragment(
+            "CASE WHEN ? = 'active' THEN 0 ELSE 1 END",
+            s.status
+          ),
+        desc_nulls_last: lp.last_post_at,
+        asc: s.name
+      ],
       preload: [:owner]
     )
     |> Repo.all()

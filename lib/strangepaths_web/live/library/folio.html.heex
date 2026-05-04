@@ -121,9 +121,9 @@
       <%= if @is_folio_editor do %>
         <div class="flex gap-3 items-center mt-2">
           <button phx-click="claim_body_lock" class="btn-secondary text-sm">
-            <%= if @folio.body, do: "✎ Edit Body", else: "+ Add Body" %>
+            <%= if @folio.body, do: "✎ Edit Prolegomenon", else: "+ Add Prolegomenon" %>
           </button>
-          <%= live_redirect "Edit Entries →", to: "/library/#{@folio.slug}/compose", class: "btn-secondary text-sm" %>
+          <%= live_redirect "Edit Folio →", to: "/library/#{@folio.slug}/compose", class: "btn-secondary text-sm" %>
         </div>
       <% end %>
     <% end %>
