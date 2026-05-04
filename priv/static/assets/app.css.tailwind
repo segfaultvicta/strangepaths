@@ -1674,6 +1674,10 @@ input[type=range].slider-purple::-moz-range-progress {
   display: initial;
 }
 
+.prose-invert img {
+  display: initial;
+}
+
 /* Entry stream */
 .library-entry {
   padding: 0.75rem 0;
