@@ -643,13 +643,15 @@ defmodule Strangepaths.Site do
   def list_used_author_names() do
     scenes_char =
       from(p in "scene_posts",
-        where: not is_nil(p.author_nickname) and p.author_nickname != "",
+        join: s in "scenes", on: s.id == p.scene_id,
+        where: not is_nil(p.author_nickname) and p.author_nickname != "" and not s.is_elsewhere,
         select: p.author_nickname
       )
 
     scenes_narr =
       from(p in "scene_posts",
-        where: not is_nil(p.narrative_author_name) and p.narrative_author_name != "",
+        join: s in "scenes", on: s.id == p.scene_id,
+        where: not is_nil(p.narrative_author_name) and p.narrative_author_name != "" and not s.is_elsewhere,
         select: p.narrative_author_name
       )
 
