@@ -361,6 +361,11 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
      |> renew_lock()}
   end
 
+  @impl true
+  def handle_event("keepalive", _params, socket) do
+    {:noreply, renew_lock(socket)}
+  end
+
   def compute_group_actions(entries) do
     Map.new(entries, fn entry ->
       action =

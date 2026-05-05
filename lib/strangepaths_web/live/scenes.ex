@@ -97,6 +97,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:pinned_scene_ids, MapSet.new())
         |> assign(:card_lookup, build_card_lookup())
         |> assign(:glorified_lookup, build_glorified_lookup())
+        |> assign(:folio_lookup, build_folio_lookup())
 
       # Only load data and subscribe when connected (WebSocket established)
       if connected?(socket) do
@@ -2296,6 +2297,35 @@ defmodule StrangepathsWeb.Scenes do
           display_name = if glorified?, do: "🟔#{escaped_name}🟔", else: escaped_name
 
           "<a href=\"/cosmos/#{card.id}\" target=\"_blank\" class=\"card-reference\" data-card-img=\"/uploads/card#{card.img}\">#{display_name}</a>"
+      end
+    end)
+  end
+
+  defp build_folio_lookup do
+    import Ecto.Query, warn: false
+
+    from(f in Strangepaths.Library.Folio,
+      select: %{
+        title: f.title,
+        title_downcased: fragment("lower(?)", f.title),
+        slug: f.slug
+      }
+    )
+    |> Strangepaths.Repo.all()
+  end
+
+  defp process_folio_references(html, folio_lookup) do
+    Regex.replace(~r/\{([^{}]+)\}/, html, fn full_match, inner ->
+      name = String.trim(inner)
+      downcased = String.downcase(name)
+
+      case Enum.find(folio_lookup, fn f -> f.title_downcased == downcased end) do
+        nil ->
+          full_match
+
+        folio ->
+          escaped_name = Phoenix.HTML.html_escape(name) |> Phoenix.HTML.safe_to_string()
+          "<a href=\"/library/#{folio.slug}\" class=\"folio-reference\">#{escaped_name}</a>"
       end
     end)
   end

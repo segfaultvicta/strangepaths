@@ -38,7 +38,7 @@ defmodule Strangepaths.Library.Typefaces do
       color: "#33ddff",
       font_size: "1em"
     },
-    %{id: "caion", name: "Caion", font: "'Caveat', serif", color: "#6797b3", font_size: "2em"},
+    %{id: "caion", name: "Caion", font: "'Caveat', serif", color: "#6797b3", font_size: "1.6em"},
     %{
       id: "mystery",
       name: "???",

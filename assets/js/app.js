@@ -2421,6 +2421,28 @@ Hooks.BBSCopyQuote = {
     }
 };
 
+Hooks.ComposerKeepalive = {
+  mounted() {
+    this._active = false;
+    this._onActivity = () => { this._active = true; };
+    document.addEventListener("scroll", this._onActivity, { passive: true, capture: true });
+    document.addEventListener("mousemove", this._onActivity, { passive: true });
+    document.addEventListener("keydown", this._onActivity, { passive: true });
+    this._interval = setInterval(() => {
+      if (this._active) {
+        this._active = false;
+        this.pushEvent("keepalive", {});
+      }
+    }, 60_000);
+  },
+  destroyed() {
+    clearInterval(this._interval);
+    document.removeEventListener("scroll", this._onActivity, { capture: true });
+    document.removeEventListener("mousemove", this._onActivity);
+    document.removeEventListener("keydown", this._onActivity);
+  }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {
