@@ -15,7 +15,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
      |> assign(:search_query, "")
      |> assign(:filter_author_id, nil)
      |> assign(:filter_tag, "")
-     |> assign(:sort_by, :date)
+     |> assign(:sort_by, :updated)
      |> assign(:all_users, Library.list_folio_authors())
      |> assign(:all_tags, Library.list_all_folio_tags())
      |> assign(:folios, Library.search_folios([]))
@@ -78,7 +78,8 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
     sort_by = case sort_str do
       "title" -> :title
       "author" -> :author
-      _ -> :date
+      "date" -> :date
+      _ -> :updated
     end
 
     author_id =

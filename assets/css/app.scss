@@ -1694,10 +1694,18 @@ input[type="range"].slider-purple {
 }
 
 .library-bird-bark {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 1.4rem;
     color: var(--library-text-muted);
     margin-bottom: 0.5rem;
     margin-left: 0.5rem;
+}
+
+.library-bird-bark-icon {
+    height: 1.6rem;
+    width: auto;
 }
 
 /* Marginalia reply form resets inherited typeface so the form is readable */
@@ -1840,7 +1848,8 @@ input[type="range"].slider-purple {
     align-items: center;
     gap: 0.25rem;
     font-size: 1.1rem;
-    padding: 0.15rem 0.5rem;
+    padding-top: 0.15rem;
+    padding-bottom: 0.15rem;
     background: var(--library-surface);
     color: var(--library-accent-muted);
 }
@@ -1931,12 +1940,12 @@ select.library-input {
     }
 }
 
-.library-folio-row-title {
-    color: var(--library-accent);
+a.library-folio-row-title {
+    color: var(--library-text);
     font-size: 1.15rem;
 
     &:hover {
-        color: var(--library-text);
+        color: var(--library-accent);
     }
 }
 
@@ -1944,6 +1953,10 @@ select.library-input {
     font-size: 1.0rem;
     color: var(--library-text-muted);
     margin-top: 0.2rem;
+}
+
+.library-folio-row-meta-date {
+    color: var(--library-text);
 }
 
 .library-new-marginalia-badge {

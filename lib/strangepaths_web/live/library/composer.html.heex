@@ -30,7 +30,12 @@
             phx-value-scene-id={scene.id}
             class="w-full text-left px-3 hover:bg-gray-800 rounded text-xl flex items-start justify-between"
           >
-            <span class="font-medium"><%= scene.name %></span>
+            <span class="font-medium">
+              <%= if scene.status == :active do %>
+                <span class="text-violet-400 text-base mr-1" title="open backchannel">⬡</span>
+              <% end %>
+              <%= scene.name %>
+            </span>
             <span class="flex gap-1 flex-wrap pt-1">
               <%= for tag <- scene.tags do %>
                 <span class="text-sm px-1"><%= tag %></span>

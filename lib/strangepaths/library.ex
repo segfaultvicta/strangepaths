@@ -89,13 +89,13 @@ defmodule Strangepaths.Library do
     - :query       - String to search title, subtitle, and body (ILIKE; nil or "" = no search)
     - :author_id   - Filter to folios by this user id (nil = all authors)
     - :tag         - Filter to folios with this tag (nil or "" = no tag filter)
-    - :sort_by     - :date (newest first, default), :title (asc), :author (asc by nickname)
+    - :sort_by     - :updated (recently updated first, default), :date (recently accessioned first), :title (asc), :author (asc by nickname)
   """
   def search_folios(opts \\ []) do
     query_str = Keyword.get(opts, :query)
     author_id = Keyword.get(opts, :author_id)
     tag_filter = Keyword.get(opts, :tag)
-    sort_by = Keyword.get(opts, :sort_by, :date)
+    sort_by = Keyword.get(opts, :sort_by, :updated)
 
     query =
       from(f in Folio,
@@ -146,7 +146,8 @@ defmodule Strangepaths.Library do
       case sort_by do
         :title -> from([f, u] in query, order_by: [asc: f.title])
         :author -> from([f, u] in query, order_by: [asc: u.nickname, asc: f.title])
-        _ -> from([f, u] in query, order_by: [desc: f.inserted_at])
+        :date -> from([f, u] in query, order_by: [desc: f.inserted_at])
+        _ -> from([f, u] in query, order_by: [desc: f.updated_at])
       end
 
     query

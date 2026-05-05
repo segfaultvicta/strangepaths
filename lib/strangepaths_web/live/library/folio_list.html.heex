@@ -7,7 +7,8 @@
   </div>
 
   <div class="library-bird-bark">
-    <%= @bird_bark %>
+    <img src="/images/JORULE_WAS_HERE/bird_lavender.png" alt="bird" class="library-bird-bark-icon" />
+    <span class="inline-liminal"><%= @bird_bark %></span>
   </div>
 
   <form phx-change="search" phx-submit="search" class="library-search-bar mb-6">
@@ -56,7 +57,8 @@
       <div class="min-w-32">
         <label class="library-label">Sort</label>
         <select name="sort_by" class="library-input">
-          <option value="date" selected={@sort_by == :date}>Newest</option>
+          <option value="updated" selected={@sort_by == :updated}>Updated</option>
+          <option value="date" selected={@sort_by == :date}>Accessioned</option>
           <option value="title" selected={@sort_by == :title}>Title</option>
           <option value="author" selected={@sort_by == :author}>Author</option>
         </select>
@@ -103,7 +105,7 @@
             <p class="text-sm text-gray-400 mt-1"><%= folio.subtitle %></p>
           <% end %>
           <p class="library-folio-row-meta">
-            <%= folio.user && folio.user.nickname %> · updated <%= folio.updated_at && format_relative_time(folio.updated_at) %> · accessioned <%= folio.inserted_at && format_relative_time(folio.inserted_at) %>
+            <%= folio.user && folio.user.nickname %> · <span class="library-folio-row-meta-date">updated <%= folio.updated_at && format_relative_time(folio.updated_at) %></span> · <span class="library-folio-row-meta-date">accessioned <%= folio.inserted_at && format_relative_time(folio.inserted_at) %></span> · 
           
             <%= if folio.tags != [] do %>
               <span>

@@ -136,7 +136,8 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
            |> assign(:lock_timer_ref, ref)}
 
         {:error, :locked} ->
-          {:noreply, put_flash(socket, :error, "Another editor is currently editing the body.")}
+          {:noreply,
+           put_flash(socket, :error, "Another editor is currently editing the prolegomenon.")}
       end
     else
       {:noreply, socket}
