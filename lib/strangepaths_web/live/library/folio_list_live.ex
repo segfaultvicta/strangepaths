@@ -11,6 +11,7 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
     {:ok,
      socket
      |> assign(:page_title, "The Liminal Library")
+     |> assign(:bird_bark, Library.bird_bark())
      |> assign(:search_query, "")
      |> assign(:filter_author_id, nil)
      |> assign(:filter_tag, "")

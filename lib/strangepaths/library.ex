@@ -754,8 +754,9 @@ defmodule Strangepaths.Library do
   end
 
   def bird_bark() do
-    # randomly select one bark from the list
-    Enum.random(@bird_barks)
+    seed = div(System.os_time(:second), 10)
+    {idx, _} = :rand.uniform_s(length(@bird_barks), :rand.seed_s(:exsss, {seed, seed, seed}))
+    Enum.at(@bird_barks, idx - 1)
   end
 
   @spec update_marginalia(

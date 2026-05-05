@@ -1,4 +1,4 @@
-<div class="library-root p-6 max-w-4xl mx-auto">
+<div class="library-root p-6 pb-36 max-w-4xl mx-auto">
   <div class="flex items-center justify-between mb-6">
     <h1 class="library-page-heading">The Liminal Library</h1>
     <%= if @is_folio_editor do %>
@@ -7,7 +7,7 @@
   </div>
 
   <div class="library-bird-bark">
-    <%= Strangepaths.Library.bird_bark() %>
+    <%= @bird_bark %>
   </div>
 
   <form phx-change="search" phx-submit="search" class="library-search-bar mb-6">
