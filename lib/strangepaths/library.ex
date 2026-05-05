@@ -2,7 +2,16 @@ defmodule Strangepaths.Library do
   import Ecto.Query
   import Ecto.Changeset
   alias Strangepaths.Repo
-  alias Strangepaths.Library.{Folio, FolioTag, Entry, Marginalia, UserTypeface, FolioReadMark}
+
+  alias Strangepaths.Library.{
+    Folio,
+    FolioTag,
+    Entry,
+    Marginalia,
+    UserTypeface,
+    FolioReadMark,
+    MarginaliaReadMark
+  }
 
   @bird_barks [
     "Welcome to the Liminal Library!",
@@ -90,12 +99,16 @@ defmodule Strangepaths.Library do
     - :author_id   - Filter to folios by this user id (nil = all authors)
     - :tag         - Filter to folios with this tag (nil or "" = no tag filter)
     - :sort_by     - :updated (recently updated first, default), :date (recently accessioned first), :title (asc), :author (asc by nickname)
+    - :viewer_id   - The current user's id; they can see their own private folios (nil = anonymous)
+    - :is_dragon   - If true, all folios including private ones are visible
   """
   def search_folios(opts \\ []) do
     query_str = Keyword.get(opts, :query)
     author_id = Keyword.get(opts, :author_id)
     tag_filter = Keyword.get(opts, :tag)
     sort_by = Keyword.get(opts, :sort_by, :updated)
+    viewer_id = Keyword.get(opts, :viewer_id)
+    is_dragon = Keyword.get(opts, :is_dragon, false)
 
     query =
       from(f in Folio,
@@ -141,6 +154,12 @@ defmodule Strangepaths.Library do
         query
       end
 
+    # Visibility: hide private folios unless viewer is the author or a dragon
+    query =
+      from([f] in query,
+        where: not f.is_private or ^is_dragon or f.user_id == ^viewer_id
+      )
+
     # Sort
     query =
       case sort_by do
@@ -165,8 +184,9 @@ defmodule Strangepaths.Library do
       if author_filter == "" do
         from(f in Folio,
           where:
-            ilike(f.body, ^pattern) or
-              fragment("similarity(?, ?) > ?", f.body, ^query, ^threshold),
+            not f.is_private and
+              (ilike(f.body, ^pattern) or
+                 fragment("similarity(?, ?) > ?", f.body, ^query, ^threshold)),
           select: f.id
         )
         |> Repo.all()
@@ -177,8 +197,11 @@ defmodule Strangepaths.Library do
 
     note_base =
       from(e in Entry,
+        join: f in Folio,
+        on: f.id == e.folio_id,
         where:
-          e.kind == :note and
+          not f.is_private and
+            e.kind == :note and
             (ilike(e.content, ^pattern) or
                fragment("similarity(?, ?) > ?", e.content, ^query, ^threshold)),
         select: e.folio_id
@@ -187,7 +210,7 @@ defmodule Strangepaths.Library do
     note_folio_ids =
       if author_filter != "" do
         author_pattern = "%#{author_filter}%"
-        where(note_base, [e], ilike(e.name, ^author_pattern))
+        where(note_base, [e, _f], ilike(e.name, ^author_pattern))
       else
         note_base
       end
@@ -198,16 +221,19 @@ defmodule Strangepaths.Library do
       from(m in Marginalia,
         join: e in Entry,
         on: e.id == m.entry_id,
+        join: f in Folio,
+        on: f.id == e.folio_id,
         where:
-          ilike(m.content, ^pattern) or
-            fragment("similarity(?, ?) > ?", m.content, ^query, ^threshold),
+          not f.is_private and
+            (ilike(m.content, ^pattern) or
+               fragment("similarity(?, ?) > ?", m.content, ^query, ^threshold)),
         select: e.folio_id
       )
 
     marginalia_folio_ids =
       if author_filter != "" do
         author_pattern = "%#{author_filter}%"
-        where(marginalia_base, [m, _e], ilike(m.name, ^author_pattern))
+        where(marginalia_base, [m, _e, _f], ilike(m.name, ^author_pattern))
       else
         marginalia_base
       end
@@ -221,7 +247,7 @@ defmodule Strangepaths.Library do
     if all_folio_ids == [] do
       []
     else
-      folios = from(f in Folio, where: f.id in ^all_folio_ids) |> Repo.all()
+      folios = from(f in Folio, where: f.id in ^all_folio_ids and not f.is_private) |> Repo.all()
 
       folios
       |> Enum.map(fn folio ->
@@ -263,7 +289,7 @@ defmodule Strangepaths.Library do
 
   defp folio_body_snippet(folio, body_ids, query) do
     if MapSet.member?(body_ids, folio.id) do
-      %{snippet: archive_extract_snippet(folio.body, query, 150), source: :body}
+      %{snippet: archive_extract_snippet(folio.body, query, 150), source: :prolegomenon}
     end
   end
 
@@ -352,6 +378,12 @@ defmodule Strangepaths.Library do
   def update_folio_title(folio, attrs) do
     folio
     |> Folio.title_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def update_folio_privacy(folio, is_private) do
+    folio
+    |> Folio.create_changeset(%{is_private: is_private})
     |> Repo.update()
   end
 
@@ -515,14 +547,18 @@ defmodule Strangepaths.Library do
            |> Repo.update_all(inc: [position: 10_001])
 
            # Insert new entry at the caret position
-           %Entry{}
-           |> Entry.post_ref_changeset(%{
-             folio_id: folio.id,
-             user_id: user.id,
-             scene_post_id: scene_post_id,
-             position: pos
-           })
-           |> Repo.insert()
+           result =
+             %Entry{}
+             |> Entry.post_ref_changeset(%{
+               folio_id: folio.id,
+               user_id: user.id,
+               scene_post_id: scene_post_id,
+               position: pos
+             })
+             |> Repo.insert()
+
+           touch_folio_updated_at(folio.id)
+           result
          end) do
       {:ok, {:ok, entry}} -> {:ok, entry}
       {:ok, {:error, changeset}} -> {:error, changeset}
@@ -558,7 +594,9 @@ defmodule Strangepaths.Library do
                }
              end)
 
-           Repo.insert_all(Entry, entries, returning: true)
+           result = Repo.insert_all(Entry, entries, returning: true)
+           touch_folio_updated_at(folio.id)
+           result
          end) do
       {:ok, {_count, entries}} -> {:ok, entries}
       error -> error
@@ -584,14 +622,18 @@ defmodule Strangepaths.Library do
            |> Repo.update_all(inc: [position: 10_001])
 
            # Insert new entry at the caret position
-           %Entry{}
-           |> Entry.note_changeset(
-             attrs
-             |> Map.put("folio_id", folio.id)
-             |> Map.put("user_id", user.id)
-             |> Map.put("position", pos)
-           )
-           |> Repo.insert()
+           result =
+             %Entry{}
+             |> Entry.note_changeset(
+               attrs
+               |> Map.put("folio_id", folio.id)
+               |> Map.put("user_id", user.id)
+               |> Map.put("position", pos)
+             )
+             |> Repo.insert()
+
+           touch_folio_updated_at(folio.id)
+           result
          end) do
       {:ok, {:ok, entry}} -> {:ok, entry}
       {:ok, {:error, changeset}} -> {:error, changeset}
@@ -599,16 +641,20 @@ defmodule Strangepaths.Library do
     end
   end
 
-  def delete_entry(entry), do: Repo.delete(entry)
+  def delete_entry(entry) do
+    result = Repo.delete(entry)
+    touch_folio_updated_at(entry.folio_id)
+    result
+  end
 
   def entry_has_marginalia?(entry_id) do
     Repo.exists?(from(m in Marginalia, where: m.entry_id == ^entry_id))
   end
 
   def update_note_entry(entry, attrs) do
-    entry
-    |> Entry.note_changeset(attrs)
-    |> Repo.update()
+    result = entry |> Entry.note_changeset(attrs) |> Repo.update()
+    if match?({:ok, _}, result), do: touch_folio_updated_at(entry.folio_id)
+    result
   end
 
   def reorder_entries(folio_id, ordered_ids) do
@@ -630,6 +676,8 @@ defmodule Strangepaths.Library do
           from(e in Entry, where: e.id == ^id and e.folio_id == ^folio_id)
           |> Repo.update_all(set: [position: final_pos])
         end)
+
+        touch_folio_updated_at(folio_id)
       end)
 
     case result do
@@ -639,9 +687,14 @@ defmodule Strangepaths.Library do
   end
 
   def update_entry_group(entry, group_id) do
-    entry
-    |> Entry.group_changeset(%{group_id: group_id})
-    |> Repo.update()
+    result = entry |> Entry.group_changeset(%{group_id: group_id}) |> Repo.update()
+    if match?({:ok, _}, result), do: touch_folio_updated_at(entry.folio_id)
+    result
+  end
+
+  defp touch_folio_updated_at(folio_id) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    from(f in Folio, where: f.id == ^folio_id) |> Repo.update_all(set: [updated_at: now])
   end
 
   defp next_entry_position(folio_id) do
@@ -742,9 +795,10 @@ defmodule Strangepaths.Library do
 
   def new_marginalia_counts(folio_ids, user_id) do
     from(e in Entry,
-      join: m in Marginalia, on: m.entry_id == e.id,
+      join: m in Marginalia,
+      on: m.entry_id == e.id,
       left_join: rm in FolioReadMark,
-        on: rm.folio_id == e.folio_id and rm.user_id == ^user_id,
+      on: rm.folio_id == e.folio_id and rm.user_id == ^user_id,
       where: e.folio_id in ^folio_ids,
       where: is_nil(rm.last_visited_at) or m.inserted_at > rm.last_visited_at,
       group_by: e.folio_id,
@@ -752,6 +806,40 @@ defmodule Strangepaths.Library do
     )
     |> Repo.all()
     |> Map.new()
+  end
+
+  # Returns a MapSet of marginalia IDs the user has not yet read within the given folio.
+  def unread_marginalia_ids(_folio_id, nil), do: MapSet.new()
+
+  def unread_marginalia_ids(folio_id, user_id) do
+    from(m in Marginalia,
+      join: e in Entry,
+      on: e.id == m.entry_id,
+      left_join: rm in MarginaliaReadMark,
+      on: rm.marginalia_id == m.id and rm.user_id == ^user_id,
+      where: e.folio_id == ^folio_id,
+      where: is_nil(rm.id),
+      select: m.id
+    )
+    |> Repo.all()
+    |> MapSet.new()
+  end
+
+  # Marks all marginalia on an entry as read for the given user (idempotent).
+  def mark_entry_marginalia_read(user_id, entry_id) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    marginalia_ids =
+      from(m in Marginalia, where: m.entry_id == ^entry_id, select: m.id) |> Repo.all()
+
+    rows = Enum.map(marginalia_ids, &%{user_id: user_id, marginalia_id: &1, inserted_at: now})
+
+    Repo.insert_all(MarginaliaReadMark, rows,
+      on_conflict: :nothing,
+      conflict_target: [:user_id, :marginalia_id]
+    )
+
+    :ok
   end
 
   def bird_bark() do

@@ -19,7 +19,12 @@
           <p class="library-folio-subtitle"><%= @folio.subtitle %></p>
         <% end %>
         <%= if @is_author || @is_dragon do %>
-          <button phx-click="start_edit_title" class="btn-secondary text-sm mt-3">✎ Edit Title &amp; Subtitle</button>
+          <div class="flex gap-2 mt-3">
+            <button phx-click="start_edit_title" class="btn-secondary text-sm">✎ Edit Title &amp; Subtitle</button>
+            <button phx-click="toggle_privacy" class="btn-secondary text-sm">
+              <%= if @folio.is_private, do: "🔓 Make Public", else: "🔒 Make Private" %>
+            </button>
+          </div>
         <% end %>
       </div>
     <% end %>
@@ -187,6 +192,7 @@
               marginalia_with_depth = Map.get(@marginalia_flat_map, entry.id, [])
               count = length(marginalia_with_depth)
               is_expanded = MapSet.member?(@expanded_entries, entry.id)
+              unread_count = Enum.count(marginalia_with_depth, fn {m, _} -> MapSet.member?(@unread_marginalia_ids, m.id) end)
             %>
 
             <!-- Collapsed: count badge + toggle -->
@@ -198,6 +204,7 @@
               <%= cond do %>
               <% count == 0 -> %> ○ no marginalia
               <% is_expanded -> %> ▾ <%= count %> marginalia
+              <% unread_count > 0 -> %> ▸ <%= count %> marginalia <span class="library-marginalia-unread-badge"><%= unread_count %> new</span>
               <% true -> %> ▸ <%= count %> marginalia
               <% end %>
             </button>
@@ -215,6 +222,9 @@
                     class="library-marginalia-item"
                     style={"margin-left: #{depth * 16}px; font-family: #{m.font}; color: #{m.color};"}
                   >
+                    <%= if MapSet.member?(@unread_marginalia_ids, m.id) do %>
+                      <span class="library-marginalia-unread-dot" title="new"></span>
+                    <% end %>
                     <span class="font-semibold library-marginalia-meta"><%= m.name %></span>
                     <span class="library-marginalia-meta"><%= format_relative_time(m.inserted_at) %></span>
 

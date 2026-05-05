@@ -9,6 +9,7 @@ defmodule Strangepaths.Library.Folio do
     field(:body, :string)
     field(:body_locked_at, :utc_datetime)
     field(:entries_locked_at, :utc_datetime)
+    field(:is_private, :boolean, default: false)
 
     belongs_to(:user, Strangepaths.Accounts.User)
     belongs_to(:body_locked_by, Strangepaths.Accounts.User, foreign_key: :body_locked_by_id)
@@ -21,7 +22,7 @@ defmodule Strangepaths.Library.Folio do
 
   def create_changeset(folio, attrs) do
     folio
-    |> cast(attrs, [:user_id, :title, :subtitle, :body])
+    |> cast(attrs, [:user_id, :title, :subtitle, :body, :is_private])
     |> validate_required([:user_id, :title])
     |> validate_length(:title, min: 1, max: 200)
     |> validate_length(:subtitle, max: 400)

@@ -20,6 +20,16 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
       folio ->
         user = socket.assigns.current_user
+        is_dragon = user != nil && user.role == :dragon
+        is_author = user != nil && folio.user_id == user.id
+
+        if folio.is_private && !is_dragon && !is_author do
+          {:ok,
+           socket
+           |> put_flash(:error, "That folio is private.")
+           |> push_redirect(to: "/library")}
+        else
+
         entries = Library.list_entries(folio.id)
         folio_tags = Library.list_folio_tags(folio.id)
 
@@ -50,8 +60,8 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          |> assign(:new_tag_value, "")
          |> assign(:editing_title, false)
          |> assign(:title_changeset, Library.change_folio(folio))
-         |> assign(:is_author, user != nil && folio.user_id == user.id)
-         |> assign(:is_dragon, user != nil && user.role == :dragon)
+         |> assign(:is_author, is_author)
+         |> assign(:is_dragon, is_dragon)
          |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))
          |> assign(:editing_body, false)
          |> assign(:body_content, folio.body || "")
@@ -62,10 +72,12 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
          )
          |> assign(:marginalia_flat_map, marginalia_flat_map)
          |> assign(:expanded_entries, MapSet.new())
+         |> assign(:unread_marginalia_ids, Library.unread_marginalia_ids(folio.id, user && user.id))
          |> assign(:marginalia_form_entry_id, nil)
          |> assign(:marginalia_reply_to_id, nil)
          |> assign(:editing_marginalia_id, nil)
          |> assign(:lock_timer_ref, nil)}
+        end
     end
   end
 
@@ -113,6 +125,16 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
        socket
        |> put_flash(:info, "Folio deleted.")
        |> push_redirect(to: "/library")}
+    else
+      {:noreply, put_flash(socket, :error, "Unauthorized.")}
+    end
+  end
+
+  def handle_event("toggle_privacy", _params, socket) do
+    if socket.assigns.is_author || socket.assigns.is_dragon do
+      folio = socket.assigns.folio
+      {:ok, updated} = Library.update_folio_privacy(folio, !folio.is_private)
+      {:noreply, assign(socket, :folio, updated)}
     else
       {:noreply, put_flash(socket, :error, "Unauthorized.")}
     end
@@ -191,17 +213,38 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
   def handle_event("toggle_marginalia_thread", %{"entry-id" => entry_id_str}, socket) do
     entry_id = String.to_integer(entry_id_str)
+    is_open = MapSet.member?(socket.assigns.expanded_entries, entry_id)
 
-    updated =
-      if MapSet.member?(socket.assigns.expanded_entries, entry_id) do
-        MapSet.delete(socket.assigns.expanded_entries, entry_id)
+    updated_expanded =
+      if is_open,
+        do: MapSet.delete(socket.assigns.expanded_entries, entry_id),
+        else: MapSet.put(socket.assigns.expanded_entries, entry_id)
+
+    socket =
+      if !is_open do
+        user = socket.assigns.current_user
+
+        if user do
+          Library.mark_entry_marginalia_read(user.id, entry_id)
+
+          entry_marginalia_ids =
+            socket.assigns.marginalia_flat_map
+            |> Map.get(entry_id, [])
+            |> Enum.map(fn {m, _depth} -> m.id end)
+            |> MapSet.new()
+
+          assign(socket, :unread_marginalia_ids,
+            MapSet.difference(socket.assigns.unread_marginalia_ids, entry_marginalia_ids))
+        else
+          socket
+        end
       else
-        MapSet.put(socket.assigns.expanded_entries, entry_id)
+        socket
       end
 
     {:noreply,
      socket
-     |> assign(:expanded_entries, updated)
+     |> assign(:expanded_entries, updated_expanded)
      |> assign(:marginalia_form_entry_id, entry_id)}
   end
 
@@ -407,7 +450,19 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
     updated_flat = flatten_marginalia_tree(deduplicated)
 
     updated_map = Map.put(socket.assigns.marginalia_flat_map, entry_id, updated_flat)
-    {:noreply, assign(socket, :marginalia_flat_map, updated_map)}
+
+    user = socket.assigns.current_user
+    unread =
+      if user && m.user_id != user.id do
+        MapSet.put(socket.assigns.unread_marginalia_ids, m.id)
+      else
+        socket.assigns.unread_marginalia_ids
+      end
+
+    {:noreply,
+     socket
+     |> assign(:marginalia_flat_map, updated_map)
+     |> assign(:unread_marginalia_ids, unread)}
   end
 
   @impl true

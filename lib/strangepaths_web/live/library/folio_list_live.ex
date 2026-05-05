@@ -18,9 +18,11 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
      |> assign(:sort_by, :updated)
      |> assign(:all_users, Library.list_folio_authors())
      |> assign(:all_tags, Library.list_all_folio_tags())
-     |> assign(:folios, Library.search_folios([]))
+     |> assign(:folios, Library.search_folios(viewer_id: user && user.id, is_dragon: user && user.role == :dragon))
      |> assign(:folio_changeset, nil)
      |> assign(:is_folio_editor, user != nil && Library.folio_editor?(user.id))
+     |> assign(:viewer_id, user && user.id)
+     |> assign(:is_dragon, user != nil && user.role == :dragon)
      |> load_new_marginalia_counts()}
   end
 
@@ -105,12 +107,14 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
         query: socket.assigns.search_query,
         author_id: socket.assigns.filter_author_id,
         tag: socket.assigns.filter_tag,
-        sort_by: socket.assigns.sort_by
+        sort_by: socket.assigns.sort_by,
+        viewer_id: socket.assigns.viewer_id,
+        is_dragon: socket.assigns.is_dragon
       ]
       # Note: sort_by is always an atom (:date, :title, or :author) and never nil/empty,
       # so it always passes through the filter. If the default changes from :date, ensure
       # it remains truthy (an atom is always truthy, so any atom value works fine).
-      |> Enum.reject(fn {_k, v} -> v == nil or v == "" end)
+      |> Enum.reject(fn {_k, v} -> v == nil or v == "" or v == false end)
 
     socket
     |> assign(:folios, Library.search_folios(opts))

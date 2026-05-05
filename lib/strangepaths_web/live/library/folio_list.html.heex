@@ -95,6 +95,9 @@
       <%= for folio <- @folios do %>
         <div class="library-folio-row">
           <div class="flex items-baseline gap-2">
+            <%= if folio.is_private do %>
+              <span class="library-private-indicator" title="private">🔒</span>
+            <% end %>
             <%= live_redirect folio.title, to: "/library/#{folio.slug}", class: "library-folio-row-title" %>
             <% new_count = Map.get(@new_marginalia_counts, folio.id, 0) %>
             <%= if new_count > 0 do %>
