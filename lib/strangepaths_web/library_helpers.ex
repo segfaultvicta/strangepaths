@@ -51,8 +51,15 @@ defmodule StrangepathsWeb.LibraryHelpers do
             "[#{name}]#{raw_text}[/#{name}]"
 
           tf ->
-            escaped = Phoenix.HTML.html_escape(raw_text) |> Phoenix.HTML.safe_to_string()
-            ~s(<span style="font-family: #{tf.font}; color: #{tf.color}; font-size: #{tf.font_size};">#{escaped}</span>)
+            inner =
+              raw_text
+              |> render_post_content([])
+              |> String.replace(~r/<\/p>\s*<p>/, "<br><br>")
+              |> String.replace("<p>", "")
+              |> String.replace("</p>", "")
+              |> String.trim()
+
+            ~s(<span style="font-family: #{tf.font}; color: #{tf.color}; font-size: #{tf.font_size};">#{inner}</span>)
         end
 
       String.replace(acc, token, replacement)
