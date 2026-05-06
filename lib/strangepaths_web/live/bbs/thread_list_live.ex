@@ -16,6 +16,8 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
          |> push_redirect(to: Routes.bbs_board_list_path(socket, :index))}
 
       board ->
+        if connected?(socket), do: StrangepathsWeb.Endpoint.subscribe("bbs_board:#{board.id}")
+
         thread_rows = BBS.list_threads_with_unread_counts(board, socket.assigns.current_user)
 
         socket =
@@ -104,5 +106,44 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
     else
       {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info(%{event: "new_thread", payload: %{thread_id: id}}, socket) do
+    if Enum.any?(socket.assigns.thread_rows, &(&1.thread.id == id)) do
+      {:noreply, socket}
+    else
+      case BBS.get_thread_row(id, socket.assigns.current_user) do
+        nil -> {:noreply, socket}
+        row ->
+          rows = sort_thread_rows([row | socket.assigns.thread_rows])
+          {:noreply, assign(socket, :thread_rows, rows)}
+      end
+    end
+  end
+
+  @impl true
+  def handle_info(%{event: "thread_updated", payload: %{thread_id: id}}, socket) do
+    case BBS.get_thread_row(id, socket.assigns.current_user) do
+      nil -> {:noreply, socket}
+      row ->
+        rows =
+          socket.assigns.thread_rows
+          |> Enum.reject(&(&1.thread.id == id))
+          |> then(&[row | &1])
+          |> sort_thread_rows()
+        {:noreply, assign(socket, :thread_rows, rows)}
+    end
+  end
+
+  @impl true
+  def handle_info(_msg, socket), do: {:noreply, socket}
+
+  defp sort_thread_rows(rows) do
+    Enum.sort_by(rows, fn row ->
+      {if(row.thread.is_pinned, do: 1, else: 0),
+       if(row.is_stickied, do: 1, else: 0),
+       DateTime.to_unix(row.thread.last_post_at)}
+    end, :desc)
   end
 end

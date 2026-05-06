@@ -17,7 +17,9 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
       |> assign(:editing_board_id, nil)
       |> assign(:edit_changeset, nil)
 
-    boards = BBS.list_boards()
+    if connected?(socket), do: StrangepathsWeb.Endpoint.subscribe("bbs_boards")
+
+    boards = BBS.list_boards_with_unread(socket.assigns.current_user)
 
     {:ok, assign(socket, :boards, boards)}
   end
@@ -72,7 +74,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
           {:noreply,
            socket
            |> assign(:editing_board_id, nil)
-           |> assign(:boards, BBS.list_boards())
+           |> assign(:boards, BBS.list_boards_with_unread(socket.assigns.current_user))
            |> put_flash(:info, "Board deleted successfully.")}
 
         {:error, _changeset} ->
@@ -146,7 +148,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
            socket
            |> assign(:editing_board_id, nil)
            |> assign(:edit_changeset, nil)
-           |> assign(:boards, BBS.list_boards())}
+           |> assign(:boards, BBS.list_boards_with_unread(socket.assigns.current_user))}
 
         {:error, changeset} ->
           {:noreply, assign(socket, :edit_changeset, changeset)}
@@ -160,7 +162,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   def handle_event("reorder_boards", %{"ids" => ids}, socket) do
     if socket.assigns.current_user && socket.assigns.current_user.role == :dragon do
       BBS.reorder_boards(ids)
-      {:noreply, assign(socket, :boards, BBS.list_boards())}
+      {:noreply, assign(socket, :boards, BBS.list_boards_with_unread(socket.assigns.current_user))}
     else
       {:noreply, socket}
     end
@@ -169,4 +171,13 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   def handle_event(_event, _params, socket) do
     {:noreply, socket}
   end
+
+  @impl true
+  def handle_info(%{event: "board_activity"}, socket) do
+    boards = BBS.list_boards_with_unread(socket.assigns.current_user)
+    {:noreply, assign(socket, :boards, boards)}
+  end
+
+  @impl true
+  def handle_info(_msg, socket), do: {:noreply, socket}
 end

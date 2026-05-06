@@ -1612,6 +1612,16 @@ input[type="range"].slider-purple {
     }
 }
 
+.bbs-activity-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #5050c0;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
 /* ============================================================
    LIMINAL LIBRARY
    ============================================================ */

@@ -89,7 +89,7 @@ __ \_/\_/ \___|_|\___\___/|_| |_|_|_|\___|   |_|\___/  __|_| |_|_|_|\___|
         No boards available yet.
       </div>
     <% else %>
-      <%= for %{board: board, thread_count: thread_count, last_post_at: last_post_at} <- @boards do %>
+      <%= for %{board: board, thread_count: thread_count, last_post_at: last_post_at, has_unread: has_unread} <- @boards do %>
         <div class="bbs-panel p-4" data-id={board.id} id={"board-#{board.id}"}>
           <%= if @editing_board_id == board.id && @edit_changeset do %>
             <!-- Inline edit form -->
@@ -151,7 +151,7 @@ __ \_/\_/ \___|_|\___\___/|_| |_|_|_|\___|   |_|\___/  __|_| |_|_|_|\___|
               <div class="flex-1">
                 <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :index, board.slug) do %>
                   <h2 class="font-semibold bbs-title cursor-pointer">
-                    <%= board.name %>
+                    <%= board.name %><%= if has_unread do %><span class="bbs-activity-dot"></span><% end %>
                   </h2>
                 <% end %>
                 <%= if board.description do %>

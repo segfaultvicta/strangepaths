@@ -25,6 +25,37 @@ defmodule Strangepaths.BBS do
   end
 
   @doc """
+  Returns all boards with thread counts, last post times, and a has_unread flag.
+  For guests: has_unread is always false.
+  For authenticated users: has_unread is true if any thread in the board has unread posts.
+  """
+  def list_boards_with_unread(nil) do
+    list_boards() |> Enum.map(&Map.put(&1, :has_unread, false))
+  end
+
+  def list_boards_with_unread(user) do
+    user_id = user.id
+
+    from(b in Board,
+      left_join: t in Thread,
+      on: t.board_id == b.id,
+      group_by: b.id,
+      select: %{
+        board: b,
+        thread_count: count(t.id),
+        last_post_at: max(t.last_post_at),
+        has_unread:
+          fragment(
+            "EXISTS (SELECT 1 FROM bbs_threads t2 LEFT JOIN bbs_thread_read_marks rm ON rm.thread_id = t2.id AND rm.user_id = ? WHERE t2.board_id = b0.id AND (rm.id IS NULL OR (rm.last_read_post_id IS NOT NULL AND EXISTS (SELECT 1 FROM bbs_posts p WHERE p.thread_id = t2.id AND p.id > rm.last_read_post_id))))",
+            ^user_id
+          )
+      },
+      order_by: [asc_nulls_last: b.position, asc: b.name]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single board by id.
   Raises Ecto.NoResultsError if not found.
   """
@@ -192,6 +223,78 @@ defmodule Strangepaths.BBS do
   end
 
   @doc """
+  Returns a single thread row map in the same shape as list_threads_with_unread_counts/2.
+  Used by the ThreadList LiveView to refresh one row after a real-time update.
+  Returns nil if the thread does not exist.
+  """
+  def get_thread_row(thread_id, nil) do
+    row =
+      from(t in Thread,
+        where: t.id == ^thread_id,
+        select: %{
+          thread: t,
+          is_stickied: false,
+          unread_count: 0,
+          opener_display_name:
+            fragment(
+              "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at ASC LIMIT 1)",
+              t.id
+            ),
+          last_poster_display_name:
+            fragment(
+              "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at DESC LIMIT 1)",
+              t.id
+            )
+        }
+      )
+      |> Repo.one()
+
+    if row do
+      %{row | thread: Repo.preload(row.thread, :user)}
+    end
+  end
+
+  def get_thread_row(thread_id, user) do
+    user_id = user.id
+
+    row =
+      from(t in Thread,
+        left_join: s in UserThreadSticky,
+        on: s.thread_id == t.id and s.user_id == ^user_id,
+        left_join: rm in ThreadReadMark,
+        on: rm.thread_id == t.id and rm.user_id == ^user_id,
+        where: t.id == ^thread_id,
+        select: %{
+          thread: t,
+          is_stickied: not is_nil(s.id),
+          unread_count:
+            fragment(
+              "CASE WHEN ? IS NULL THEN ? ELSE (SELECT COUNT(*) FROM bbs_posts p WHERE p.thread_id = ? AND p.id > ?) END",
+              rm.id,
+              t.post_count,
+              t.id,
+              rm.last_read_post_id
+            ),
+          opener_display_name:
+            fragment(
+              "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at ASC LIMIT 1)",
+              t.id
+            ),
+          last_poster_display_name:
+            fragment(
+              "(SELECT display_name FROM bbs_posts WHERE thread_id = ? ORDER BY posted_at DESC LIMIT 1)",
+              t.id
+            )
+        }
+      )
+      |> Repo.one()
+
+    if row do
+      %{row | thread: Repo.preload(row.thread, :user)}
+    end
+  end
+
+  @doc """
   Returns a map of %{thread_id => title} for the given list of thread IDs.
   Used for rendering cross-thread quote block headers.
   """
@@ -226,30 +329,41 @@ defmodule Strangepaths.BBS do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     thread_attrs = Map.merge(attrs, %{"board_id" => board.id, "user_id" => user.id})
 
-    Repo.transaction(fn ->
-      thread =
-        %Thread{}
-        |> Thread.create_changeset(thread_attrs)
-        |> Ecto.Changeset.put_change(:last_post_at, now)
-        |> Ecto.Changeset.put_change(:post_count, 1)
-        |> Repo.insert!()
+    result =
+      Repo.transaction(fn ->
+        thread =
+          %Thread{}
+          |> Thread.create_changeset(thread_attrs)
+          |> Ecto.Changeset.put_change(:last_post_at, now)
+          |> Ecto.Changeset.put_change(:post_count, 1)
+          |> Repo.insert!()
 
-      post_attrs = %{
-        "thread_id" => thread.id,
-        "user_id" => user.id,
-        "display_name" => attrs["display_name"] || attrs[:display_name] || user.nickname,
-        "character_name" => user.nickname,
-        "content" => attrs["content"] || attrs[:content] || "",
-        "posted_at" => now
-      }
+        post_attrs = %{
+          "thread_id" => thread.id,
+          "user_id" => user.id,
+          "display_name" => attrs["display_name"] || attrs[:display_name] || user.nickname,
+          "character_name" => user.nickname,
+          "content" => attrs["content"] || attrs[:content] || "",
+          "posted_at" => now
+        }
 
-      post =
-        %Post{}
-        |> Post.create_changeset(post_attrs)
-        |> Repo.insert!()
+        post =
+          %Post{}
+          |> Post.create_changeset(post_attrs)
+          |> Repo.insert!()
 
-      {thread, post}
-    end)
+        {thread, post}
+      end)
+
+    case result do
+      {:ok, {thread, _post}} ->
+        StrangepathsWeb.Endpoint.broadcast("bbs_board:#{board.id}", "new_thread", %{thread_id: thread.id})
+        StrangepathsWeb.Endpoint.broadcast("bbs_boards", "board_activity", %{board_id: board.id})
+        result
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -317,6 +431,8 @@ defmodule Strangepaths.BBS do
     case result do
       {:ok, post} ->
         StrangepathsWeb.Endpoint.broadcast("bbs_thread:#{thread.id}", "new_post", %{post: post})
+        StrangepathsWeb.Endpoint.broadcast("bbs_board:#{thread.board_id}", "thread_updated", %{thread_id: thread.id})
+        StrangepathsWeb.Endpoint.broadcast("bbs_boards", "board_activity", %{board_id: thread.board_id})
         {:ok, post}
 
       error ->
