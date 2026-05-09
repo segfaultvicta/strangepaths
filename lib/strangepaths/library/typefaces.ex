@@ -13,7 +13,7 @@ defmodule Strangepaths.Library.Typefaces do
       name: "Aurelius",
       font: "'Rock Salt', serif",
       color: "#c5a332",
-      font_size: "0.85em"
+      font_size: "0.9em"
     },
     %{
       id: "salme",
@@ -30,7 +30,13 @@ defmodule Strangepaths.Library.Typefaces do
       color: "#857cff",
       font_size: "1.2em"
     },
-    %{id: "wolf", name: "Wolf", font: "'EB Garamond', serif", color: "#a9ff87", font_size: "1em"},
+    %{
+      id: "wolf",
+      name: "Wolf",
+      font: "'Island Moments', serif",
+      color: "#53b383f3",
+      font_size: "1.7em"
+    },
     %{
       id: "awoken",
       name: "The Awoken",
@@ -38,7 +44,7 @@ defmodule Strangepaths.Library.Typefaces do
       color: "#33ddff",
       font_size: "1em"
     },
-    %{id: "caion", name: "Caion", font: "'Caveat', serif", color: "#6797b3", font_size: "1.6em"},
+    %{id: "caion", name: "Caion", font: "'Caveat', serif", color: "#6797b3", font_size: "1.4em"},
     %{
       id: "mystery",
       name: "???",

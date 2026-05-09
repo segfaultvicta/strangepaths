@@ -156,9 +156,16 @@ defmodule Strangepaths.Library do
 
     # Visibility: hide private folios unless viewer is the author or a dragon
     query =
-      from([f] in query,
-        where: not f.is_private or ^is_dragon or f.user_id == ^viewer_id
-      )
+      cond do
+        is_dragon ->
+          query
+
+        is_integer(viewer_id) ->
+          from([f] in query, where: not f.is_private or f.user_id == ^viewer_id)
+
+        true ->
+          from([f] in query, where: not f.is_private)
+      end
 
     # Sort
     query =
