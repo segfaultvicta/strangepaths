@@ -290,7 +290,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   defp do_delete_entry(socket, entry, entry_index) do
-    Library.delete_entry(entry)
+    Library.delete_entry(entry, socket.assigns.current_user.id)
     entries = Library.list_entries(socket.assigns.folio.id)
 
     deleted_position = entry_index + 1
@@ -333,7 +333,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         {:noreply, put_flash(socket, :error, "Unauthorized.")}
 
       true ->
-        case Library.update_note_entry(entry, %{"content" => content}) do
+        case Library.update_note_entry(entry, %{"content" => content}, user.id) do
           {:ok, _} ->
             entries = Library.list_entries(socket.assigns.folio.id)
 
@@ -351,7 +351,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   def handle_event("reorder_entries", %{"ids" => ids_str}, socket) do
     ids = String.split(ids_str, ",") |> Enum.map(&String.to_integer/1)
-    Library.reorder_entries(socket.assigns.folio.id, ids)
+    Library.reorder_entries(socket.assigns.folio.id, ids, socket.assigns.current_user.id)
     entries = Library.list_entries(socket.assigns.folio.id)
 
     {:noreply,

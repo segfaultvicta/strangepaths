@@ -108,7 +108,7 @@
             <p class="text-sm text-gray-400 mt-1"><%= folio.subtitle %></p>
           <% end %>
           <p class="library-folio-row-meta">
-            <%= folio.user && folio.user.nickname %> · <span class="library-folio-row-meta-date">updated <%= folio.updated_at && format_relative_time(folio.updated_at) %></span> · <span class="library-folio-row-meta-date">accessioned <%= folio.inserted_at && format_relative_time(folio.inserted_at) %></span> · 
+            <%= (folio.last_updated_by || folio.user) && (folio.last_updated_by || folio.user).nickname %> · <span class="library-folio-row-meta-date">updated <%= folio.updated_at && format_relative_time(folio.updated_at) %></span> · <%= folio.user && folio.user.nickname %> · <span class="library-folio-row-meta-date">accessioned <%= folio.inserted_at && format_relative_time(folio.inserted_at) %></span> ·
           
             <%= if folio.tags != [] do %>
               <span>

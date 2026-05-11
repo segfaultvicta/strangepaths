@@ -114,7 +114,9 @@ defmodule Strangepaths.Library do
       from(f in Folio,
         join: u in Strangepaths.Accounts.User,
         on: u.id == f.user_id,
-        preload: [user: u]
+        left_join: ub in Strangepaths.Accounts.User,
+        on: ub.id == f.last_updated_by_id,
+        preload: [user: u, last_updated_by: ub]
       )
 
     # Text search across title, subtitle, body
@@ -444,6 +446,7 @@ defmodule Strangepaths.Library do
           body: content,
           body_locked_by_id: nil,
           body_locked_at: nil,
+          last_updated_by_id: user_id,
           updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
         ]
       )
@@ -564,7 +567,7 @@ defmodule Strangepaths.Library do
              })
              |> Repo.insert()
 
-           touch_folio_updated_at(folio.id)
+           touch_folio_updated_at(folio.id, user.id)
            result
          end) do
       {:ok, {:ok, entry}} -> {:ok, entry}
@@ -602,7 +605,7 @@ defmodule Strangepaths.Library do
              end)
 
            result = Repo.insert_all(Entry, entries, returning: true)
-           touch_folio_updated_at(folio.id)
+           touch_folio_updated_at(folio.id, user.id)
            result
          end) do
       {:ok, {_count, entries}} -> {:ok, entries}
@@ -639,7 +642,7 @@ defmodule Strangepaths.Library do
              )
              |> Repo.insert()
 
-           touch_folio_updated_at(folio.id)
+           touch_folio_updated_at(folio.id, user.id)
            result
          end) do
       {:ok, {:ok, entry}} -> {:ok, entry}
@@ -648,9 +651,9 @@ defmodule Strangepaths.Library do
     end
   end
 
-  def delete_entry(entry) do
+  def delete_entry(entry, user_id \\ nil) do
     result = Repo.delete(entry)
-    touch_folio_updated_at(entry.folio_id)
+    touch_folio_updated_at(entry.folio_id, user_id)
     result
   end
 
@@ -658,13 +661,13 @@ defmodule Strangepaths.Library do
     Repo.exists?(from(m in Marginalia, where: m.entry_id == ^entry_id))
   end
 
-  def update_note_entry(entry, attrs) do
+  def update_note_entry(entry, attrs, user_id \\ nil) do
     result = entry |> Entry.note_changeset(attrs) |> Repo.update()
-    if match?({:ok, _}, result), do: touch_folio_updated_at(entry.folio_id)
+    if match?({:ok, _}, result), do: touch_folio_updated_at(entry.folio_id, user_id)
     result
   end
 
-  def reorder_entries(folio_id, ordered_ids) do
+  def reorder_entries(folio_id, ordered_ids, user_id \\ nil) do
     result =
       Repo.transaction(fn ->
         # Use temporary negative positions to avoid unique constraint violations
@@ -684,7 +687,7 @@ defmodule Strangepaths.Library do
           |> Repo.update_all(set: [position: final_pos])
         end)
 
-        touch_folio_updated_at(folio_id)
+        touch_folio_updated_at(folio_id, user_id)
       end)
 
     case result do
@@ -699,9 +702,10 @@ defmodule Strangepaths.Library do
     result
   end
 
-  defp touch_folio_updated_at(folio_id) do
+  defp touch_folio_updated_at(folio_id, user_id \\ nil) do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-    from(f in Folio, where: f.id == ^folio_id) |> Repo.update_all(set: [updated_at: now])
+    set = [updated_at: now] ++ if(user_id, do: [last_updated_by_id: user_id], else: [])
+    from(f in Folio, where: f.id == ^folio_id) |> Repo.update_all(set: set)
   end
 
   defp next_entry_position(folio_id) do
