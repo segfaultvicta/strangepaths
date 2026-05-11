@@ -77,6 +77,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:starlit, false)
         |> assign(:collapse_gm_controls, true)
         |> assign(:character_presets, [])
+        |> assign(:presets_json, "[]")
         |> assign(:collapse_presets, true)
         |> assign(:new_preset_name, "")
         |> assign(:editing_preset_id, nil)
@@ -158,9 +159,13 @@ defmodule StrangepathsWeb.Scenes do
 
         socket =
           if socket.assigns.current_user.role == :dragon do
+            presets = Accounts.list_character_presets(socket.assigns.current_user)
+
             socket
             |> assign(:ascended_users, ascended_users)
             |> assign(:private_users, private_users)
+            |> assign(:character_presets, presets)
+            |> assign_presets_json()
           else
             socket
           end
@@ -910,8 +915,6 @@ defmodule StrangepathsWeb.Scenes do
     user = socket.assigns.current_user
     trimmed_name = String.trim(socket.assigns.new_preset_name)
 
-    IO.puts("save_preset is being called")
-
     if trimmed_name == "" do
       {:noreply, put_flash(socket, :error, "Preset name cannot be empty")}
     else
@@ -922,6 +925,7 @@ defmodule StrangepathsWeb.Scenes do
           {:noreply,
            socket
            |> assign(:character_presets, presets)
+           |> assign_presets_json()
            |> assign(:new_preset_name, "")
            |> put_flash(:info, "Preset '#{trimmed_name}' saved successfully")}
 
@@ -940,14 +944,9 @@ defmodule StrangepathsWeb.Scenes do
         {:noreply, put_flash(socket, :error, "Preset not found")}
 
       preset ->
-        IO.inspect(preset)
-
         case Accounts.load_preset_to_user(user, preset) do
           {:ok, updated_user} ->
             # Update selected avatar if in preset
-            IO.inspect(updated_user)
-            IO.puts(updated_user.color_category)
-
             avatar =
               if preset.selected_avatar_id,
                 do: Accounts.get_avatar!(preset.selected_avatar_id),
@@ -1000,6 +999,7 @@ defmodule StrangepathsWeb.Scenes do
             {:noreply,
              socket
              |> assign(:character_presets, presets)
+             |> assign_presets_json()
              |> put_flash(:info, "Preset '#{preset.name}' deleted successfully")}
 
           {:error, _} ->
@@ -1123,18 +1123,17 @@ defmodule StrangepathsWeb.Scenes do
 
         case Accounts.update_character_preset(preset, update_attrs) do
           {:ok, _updated_preset} ->
-            IO.puts("ok, we're getting here")
             presets = Accounts.list_character_presets(socket.assigns.current_user)
 
             {:noreply,
              socket
              |> assign(:character_presets, presets)
+             |> assign_presets_json()
              |> assign(:editing_preset_id, nil)
              |> assign(:editing_preset_data, %{})
              |> put_flash(:info, "Preset '#{preset.name}' updated successfully")}
 
           {:error, changeset} ->
-            IO.inspect(changeset)
             {:noreply, put_flash(socket, :error, "Failed to update preset")}
         end
     end
@@ -2312,6 +2311,34 @@ defmodule StrangepathsWeb.Scenes do
       }
     )
     |> Strangepaths.Repo.all()
+  end
+
+  defp assign_presets_json(socket) do
+    presets = socket.assigns.character_presets
+
+    avatar_ids =
+      presets |> Enum.map(& &1.selected_avatar_id) |> Enum.reject(&is_nil/1) |> Enum.uniq()
+
+    avatar_paths =
+      avatar_ids
+      |> Enum.map(fn id -> {id, Accounts.get_avatar!(id).filepath} end)
+      |> Map.new()
+
+    json =
+      presets
+      |> Enum.map(fn p ->
+        %{
+          id: p.id,
+          name: p.name,
+          narrative_author_name: p.narrative_author_name,
+          color_category: p.color_category,
+          arete: p.arete,
+          avatar_path: Map.get(avatar_paths, p.selected_avatar_id)
+        }
+      end)
+      |> Jason.encode!()
+
+    assign(socket, :presets_json, json)
   end
 
   defp process_folio_references(html, folio_lookup) do

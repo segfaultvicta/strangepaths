@@ -2443,6 +2443,219 @@ Hooks.ComposerKeepalive = {
   }
 };
 
+Hooks.NPCQuickSwitch = {
+  mounted() {
+    this._pins = this._loadPins();
+    this._isOpen = false;
+    this._focusedIdx = -1;
+    this._filteredItems = [];
+
+    this._modal = document.createElement('div');
+    this._modal.className = 'npc-qs-overlay';
+    this._modal.style.display = 'none';
+    this._modal.innerHTML = `
+      <div class="npc-qs-modal">
+        <div class="npc-qs-header">
+          <span class="npc-qs-title">Quick-switch NPC</span>
+          <button class="npc-qs-close" type="button" aria-label="Close">✕</button>
+        </div>
+        <input class="npc-qs-search" type="text" placeholder="Search…" autocomplete="off" spellcheck="false" />
+        <div class="npc-qs-list"></div>
+        <div class="npc-qs-footer">
+          <button class="npc-qs-reset-btn" type="button">↺ Reset to Dragon basis</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(this._modal);
+
+    this._modal.querySelector('.npc-qs-reset-btn').addEventListener('click', () => {
+      this.pushEvent('reset_to_dragon_basis', {});
+      this._close();
+    });
+
+    this.el.addEventListener('click', () => this._open());
+
+    this._modal.addEventListener('click', (e) => {
+      if (e.target === this._modal) this._close();
+    });
+
+    this._modal.querySelector('.npc-qs-close').addEventListener('click', () => this._close());
+
+    this._searchEl = this._modal.querySelector('.npc-qs-search');
+    this._searchEl.addEventListener('input', () => {
+      this._focusedIdx = -1;
+      this._render();
+    });
+
+    this._handleKeydown = (e) => {
+      if (!this._isOpen) return;
+      if (e.key === 'Escape') { e.preventDefault(); this._close(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); this._moveFocus(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this._moveFocus(-1); }
+      else if (e.key === 'Enter') { e.preventDefault(); this._selectFocused(); }
+    };
+    document.addEventListener('keydown', this._handleKeydown);
+  },
+
+  updated() {
+    if (this._isOpen) this._render();
+  },
+
+  destroyed() {
+    this._modal.remove();
+    document.removeEventListener('keydown', this._handleKeydown);
+  },
+
+  _loadPins() {
+    try { return JSON.parse(localStorage.getItem('npc-pins') || '[]'); }
+    catch { return []; }
+  },
+
+  _savePins() {
+    localStorage.setItem('npc-pins', JSON.stringify(this._pins));
+  },
+
+  _getPresets() {
+    try { return JSON.parse(this.el.dataset.presets || '[]'); }
+    catch { return []; }
+  },
+
+  _open() {
+    this._isOpen = true;
+    this._focusedIdx = -1;
+    this._modal.style.display = 'flex';
+    this._render();
+    requestAnimationFrame(() => this._searchEl.focus());
+  },
+
+  _close() {
+    this._isOpen = false;
+    this._modal.style.display = 'none';
+    this._searchEl.value = '';
+  },
+
+  _render() {
+    const query = this._searchEl.value.toLowerCase().trim();
+    const presets = this._getPresets();
+    const existingIds = new Set(presets.map(p => p.id));
+    this._pins = this._pins.filter(id => existingIds.has(id));
+    const pinSet = new Set(this._pins);
+
+    const filtered = presets.filter(p => {
+      if (!query) return true;
+      return (p.name || '').toLowerCase().includes(query) ||
+             (p.narrative_author_name || '').toLowerCase().includes(query);
+    });
+
+    const alpha = (a, b) => (a.name || '').localeCompare(b.name || '');
+    const pinned = filtered.filter(p => pinSet.has(p.id)).sort(alpha);
+    const rest = filtered.filter(p => !pinSet.has(p.id)).sort(alpha);
+    this._filteredItems = [...pinned, ...rest];
+    this._focusedIdx = Math.min(this._focusedIdx, this._filteredItems.length - 1);
+
+    const listEl = this._modal.querySelector('.npc-qs-list');
+    listEl.innerHTML = '';
+
+    if (this._filteredItems.length === 0) {
+      listEl.innerHTML = '<div class="npc-qs-empty">No NPCs found</div>';
+      return;
+    }
+
+    const colorMap = { red: '#ef4444', green: '#22c55e', blue: '#3b82f6', white: '#e2e8f0', black: '#9ca3af', redacted: '#7c3aed' };
+    let shownSep = false;
+
+    this._filteredItems.forEach((preset, idx) => {
+      const isPinned = pinSet.has(preset.id);
+
+      if (!isPinned && !shownSep && pinned.length > 0) {
+        shownSep = true;
+        const sep = document.createElement('div');
+        sep.className = 'npc-qs-separator';
+        listEl.appendChild(sep);
+      }
+
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'npc-qs-item' +
+        (isPinned ? ' npc-qs-item--pinned' : '') +
+        (idx === this._focusedIdx ? ' npc-qs-item--focused' : '');
+      item.dataset.idx = idx;
+
+      const dotColor = colorMap[preset.color_category] || '#7c3aed';
+      const authorName = preset.narrative_author_name || preset.name || '';
+      const presetName = preset.name || '';
+      const showSubname = authorName !== presetName && presetName;
+
+      const avatarHtml = preset.avatar_path
+        ? `<img src="${this._esc(preset.avatar_path)}" class="npc-qs-avatar" alt="" />`
+        : `<div class="npc-qs-avatar npc-qs-avatar--placeholder"></div>`;
+
+      item.innerHTML = `
+        ${avatarHtml}
+        <div class="npc-qs-item-text">
+          <span class="npc-qs-item-author">${this._esc(authorName)}</span>
+          ${showSubname ? `<span class="npc-qs-item-name">${this._esc(presetName)}</span>` : ''}
+        </div>
+        <span class="npc-qs-color-dot" style="background:${dotColor}"></span>
+        <button type="button" class="npc-qs-pin-btn" data-preset-id="${preset.id}" title="${isPinned ? 'Unpin' : 'Pin'}">${isPinned ? '★' : '☆'}</button>
+      `;
+
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.npc-qs-pin-btn')) return;
+        this._select(preset.id);
+      });
+
+      item.querySelector('.npc-qs-pin-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._togglePin(preset.id);
+      });
+
+      listEl.appendChild(item);
+    });
+  },
+
+  _moveFocus(dir) {
+    const len = this._filteredItems.length;
+    if (len === 0) return;
+    if (this._focusedIdx === -1 && dir === -1) {
+      this._focusedIdx = len - 1;
+    } else {
+      this._focusedIdx = (this._focusedIdx + dir + len) % len;
+    }
+    this._render();
+    const focused = this._modal.querySelector('.npc-qs-item--focused');
+    if (focused) focused.scrollIntoView({ block: 'nearest' });
+  },
+
+  _selectFocused() {
+    if (this._focusedIdx >= 0 && this._filteredItems[this._focusedIdx]) {
+      this._select(this._filteredItems[this._focusedIdx].id);
+    }
+  },
+
+  _select(id) {
+    this.pushEvent('load_preset', { preset_id: String(id) });
+    this._close();
+  },
+
+  _togglePin(id) {
+    const idx = this._pins.indexOf(id);
+    if (idx >= 0) {
+      this._pins.splice(idx, 1);
+    } else {
+      this._pins.push(id);
+    }
+    this._savePins();
+    this._render();
+  },
+
+  _esc(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {
