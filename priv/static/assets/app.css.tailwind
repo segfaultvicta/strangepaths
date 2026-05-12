@@ -2187,4 +2187,69 @@ a.library-folio-row-title:hover {
   color: #a0a0d0;
 }
 
+/* Library TOC */
+.library-toc {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--library-border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+
+.library-toc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--library-text-muted);
+  padding: 0;
+  font-family: var(--library-font);
+}
+.library-toc-toggle:hover {
+  color: var(--library-accent);
+}
+
+.library-toc-list {
+  margin: 0.5rem 0 0 0;
+  padding: 0 0 0 0.75rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.library-toc-link {
+  font-size: 0.8rem;
+  font-family: var(--library-font);
+  opacity: 0.8;
+  text-decoration: none;
+}
+.library-toc-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.library-scroll-top {
+  display: block;
+  text-align: right;
+  font-size: 0.65rem;
+  font-family: var(--library-font);
+  opacity: 0;
+  color: var(--library-text-muted);
+  text-decoration: none;
+  padding-top: 0.25rem;
+  transition: opacity 0.15s;
+}
+.library-entry:hover .library-scroll-top {
+  opacity: 0.5;
+}
+.library-scroll-top:hover {
+  opacity: 1 !important;
+}
+
 /*# sourceMappingURL=app.css.tailwind.map */

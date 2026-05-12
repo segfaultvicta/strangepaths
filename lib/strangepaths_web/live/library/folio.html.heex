@@ -137,6 +137,25 @@
 
   <!-- Entry stream -->
   <%= if Enum.any?(@entries) do %>
+    <%= if Enum.any?(@entries, &(&1.kind == :note)) do %>
+      <div id="folio-toc" class="library-toc" x-data="{ open: true }">
+        <button class="library-toc-toggle" @click="open = !open">
+          <span>Annotations</span>
+          <span x-text="open ? '▾' : '▸'">▾</span>
+        </button>
+        <ul x-show="open" x-transition class="library-toc-list">
+          <%= for entry <- @entries, entry.kind == :note do %>
+            <li>
+              <a href={"#entry-#{entry.id}"}
+                 style={"color: #{entry.color};"}
+                 class="library-toc-link">
+                <%= if String.length(entry.content) > 80, do: String.slice(entry.content, 0, 80) <> "…", else: entry.content %>
+              </a>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
     <div id="library-entries" class="space-y-4 mb-8" phx-hook="LibrarySceneTooltip">
       <%= for entry <- @entries do %>
         <!-- entry id used by marginalia anchors -->
@@ -185,6 +204,7 @@
             <div class="library-entry-note" style={"font-family: #{entry.font}; color: #{entry.color}; font-size: #{note_font_size};"}>
               <%= raw render_library_content(entry.content) %>
             </div>
+            <a href="#folio-toc" class="library-scroll-top">↑ contents</a>
           <% end %>
 
           <!-- Marginalia thread for this entry -->
