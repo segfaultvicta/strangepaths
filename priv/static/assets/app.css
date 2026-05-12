@@ -649,7 +649,7 @@ h5{
   color: rgb(238 242 255 / var(--tw-text-opacity));
 }
 
-a:not([class*=btn]){
+a:not([class*=btn]):not([class*=library-meta-link]){
   font-size: 1.125rem;
   line-height: 1.75rem;
   font-weight: 700;
@@ -657,12 +657,12 @@ a:not([class*=btn]){
   color: rgb(124 58 237 / var(--tw-text-opacity));
 }
 
-a:not([class*=btn]):hover{
+a:not([class*=btn]):not([class*=library-meta-link]):hover{
   --tw-text-opacity: 1;
   color: rgb(139 92 246 / var(--tw-text-opacity));
 }
 
-.dark a:not([class*=btn]){
+.dark a:not([class*=btn]):not([class*=library-meta-link]){
   --tw-text-opacity: 1;
   color: rgb(209 213 219 / var(--tw-text-opacity));
 }
@@ -3977,14 +3977,6 @@ a:not([class*=btn]):hover{
   transition-duration: 150ms;
 }
 
-.transition-colors{
-  transition-property: color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
 .delay-700{
   transition-delay: 700ms;
 }
@@ -6656,6 +6648,15 @@ input[type=range].slider-purple::-moz-range-progress {
   color: var(--library-text-muted);
   font-style: italic;
   margin-top: 0.2rem;
+}
+
+.library-meta-link {
+  color: var(--library-text-muted);
+  transition: color 0.15s ease;
+}
+
+.library-meta-link:hover {
+  color: var(--library-accent);
 }
 
 /* Rendered body prose */

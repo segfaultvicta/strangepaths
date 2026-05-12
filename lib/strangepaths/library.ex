@@ -98,7 +98,7 @@ defmodule Strangepaths.Library do
   Options:
     - :query       - String to search title, subtitle, and body (ILIKE; nil or "" = no search)
     - :author_id   - Filter to folios by this user id (nil = all authors)
-    - :tag         - Filter to folios with this tag (nil or "" = no tag filter)
+    - :tags        - List of tag strings; folios must match ALL tags (AND logic). Empty list = no filter.
     - :sort_by     - :updated (recently updated first, default), :date (recently accessioned first), :title (asc), :author (asc by nickname)
     - :viewer_id   - The current user's id; they can see their own private folios (nil = anonymous)
     - :is_dragon   - If true, all folios including private ones are visible
@@ -106,7 +106,7 @@ defmodule Strangepaths.Library do
   def search_folios(opts \\ []) do
     query_str = Keyword.get(opts, :query)
     author_id = Keyword.get(opts, :author_id)
-    tag_filter = Keyword.get(opts, :tag)
+    tags_filter = Keyword.get(opts, :tags, [])
     sort_by = Keyword.get(opts, :sort_by, :updated)
     viewer_id = Keyword.get(opts, :viewer_id)
     is_dragon = Keyword.get(opts, :is_dragon, false)
@@ -144,18 +144,13 @@ defmodule Strangepaths.Library do
         query
       end
 
-    # Tag filter — use subquery to avoid DISTINCT ON interfering with ORDER BY
+    # Tag filter — one subquery per tag (AND logic); subqueries avoid DISTINCT ON interfering with ORDER BY
     query =
-      if tag_filter && String.trim(tag_filter) != "" do
-        tag_pattern = "%#{String.downcase(String.trim(tag_filter))}%"
-
-        tag_subquery =
-          from(ft in FolioTag, where: ilike(ft.tag, ^tag_pattern), select: ft.folio_id)
-
-        from([f] in query, where: f.id in subquery(tag_subquery))
-      else
-        query
-      end
+      Enum.reduce(tags_filter, query, fn tag, q ->
+        tag_pattern = "%#{String.downcase(String.trim(tag))}%"
+        tag_subquery = from(ft in FolioTag, where: ilike(ft.tag, ^tag_pattern), select: ft.folio_id)
+        from([f] in q, where: f.id in subquery(tag_subquery))
+      end)
 
     # Visibility: hide private folios unless viewer is the author or a dragon
     query =

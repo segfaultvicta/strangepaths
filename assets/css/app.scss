@@ -59,7 +59,7 @@ body {
         @apply text-sm text-indigo-800 dark:text-indigo-50;
     }
 
-    a:not([class*="btn"]) {
+    a:not([class*="btn"]):not([class*="library-meta-link"]) {
         @apply font-bold text-lg text-violet-600 dark:text-gray-300 hover:text-violet-500;
     }
 }
@@ -1751,6 +1751,15 @@ input[type="range"].slider-purple {
     margin-top: 0.2rem;
 }
 
+.library-meta-link {
+    color: var(--library-text-muted);
+    transition: color 0.15s ease;
+
+    &:hover {
+        color: var(--library-accent);
+    }
+}
+
 /* Rendered body prose */
 .library-body {
     line-height: 1.8;
@@ -2118,7 +2127,9 @@ a.library-folio-row-title {
     padding: 2px 4px;
     line-height: 1;
 
-    &:hover { color: #b0b0e0; }
+    &:hover {
+        color: #b0b0e0;
+    }
 }
 
 .npc-qs-search {
@@ -2132,8 +2143,13 @@ a.library-folio-row-title {
     outline: none;
     flex-shrink: 0;
 
-    &::placeholder { color: #4a4a7a; }
-    &:focus { border-bottom-color: #5a5a9a; }
+    &::placeholder {
+        color: #4a4a7a;
+    }
+
+    &:focus {
+        border-bottom-color: #5a5a9a;
+    }
 }
 
 .npc-qs-list {
@@ -2154,23 +2170,31 @@ a.library-folio-row-title {
     text-align: left;
     color: #c0c0e0;
 
-    .npc-qs-pin-btn { opacity: 0; }
+    .npc-qs-pin-btn {
+        opacity: 0;
+    }
 
     &:hover,
     &.npc-qs-item--focused {
         background: #252545;
         color: #ffffff;
 
-        .npc-qs-pin-btn { opacity: 1; }
+        .npc-qs-pin-btn {
+            opacity: 1;
+        }
     }
 
     &.npc-qs-item--pinned {
         border-left: 2px solid #5050a0;
         padding-left: 12px;
 
-        .npc-qs-pin-btn { opacity: 0.6; }
+        .npc-qs-pin-btn {
+            opacity: 0.6;
+        }
 
-        &:hover .npc-qs-pin-btn { opacity: 1; }
+        &:hover .npc-qs-pin-btn {
+            opacity: 1;
+        }
     }
 }
 
@@ -2228,7 +2252,9 @@ a.library-folio-row-title {
     flex-shrink: 0;
     transition: opacity 0.1s, color 0.1s;
 
-    &:hover { color: #b0b0ff; }
+    &:hover {
+        color: #b0b0ff;
+    }
 }
 
 .npc-qs-separator {

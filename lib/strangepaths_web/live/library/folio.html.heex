@@ -29,10 +29,10 @@
       </div>
     <% end %>
 
-    <p class="text-xs text-gray-600 mt-2">
+    <p class="text-sm text-gray-400 mt-2">
       by <%= @folio.user.nickname %> ·
       <%= format_relative_time(@folio.inserted_at) %> ·
-      <%= live_redirect "history", to: "/library/#{@folio.slug}/history", class: "hover:text-gray-400 transition-colors" %>
+      <%= live_redirect "view history →", to: "/library/#{@folio.slug}/history", class: "library-meta-link" %>
     </p>
 
     <!-- Tags -->

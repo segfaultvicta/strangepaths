@@ -36,6 +36,9 @@
           phx-debounce="300"
           list="folio-tags-datalist"
           autocomplete="off"
+          id="folio-tag-filter"
+          phx-hook="TagFilterInput"
+          data-all-tags={Jason.encode!(@all_tags)}
         />
         <datalist id="folio-tags-datalist">
           <%= for tag <- @all_tags do %>

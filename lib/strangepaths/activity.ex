@@ -84,7 +84,7 @@ defmodule Strangepaths.Activity do
         timestamp: to_utc(s.archived_at),
         actor_name: nil,
         title: "Scene archived: #{s.name}",
-        body: nil,
+        body: if(s.tags != [], do: Enum.join(s.tags, ", "), else: nil),
         url: "/scenes/archives/#{s.slug}"
       }
     end)

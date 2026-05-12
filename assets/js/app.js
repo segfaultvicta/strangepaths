@@ -2656,6 +2656,42 @@ Hooks.NPCQuickSwitch = {
   }
 };
 
+Hooks.TagFilterInput = {
+  mounted() {
+    this.allTags = JSON.parse(this.el.dataset.allTags || "[]");
+    this.datalist = document.getElementById(this.el.getAttribute("list"));
+    this._onInput = () => this._updateOptions();
+    this.el.addEventListener("input", this._onInput);
+  },
+  updated() {
+    this.allTags = JSON.parse(this.el.dataset.allTags || "[]");
+    this._updateOptions();
+  },
+  destroyed() {
+    this.el.removeEventListener("input", this._onInput);
+  },
+  _updateOptions() {
+    const value = this.el.value;
+    const parts = value.split(",");
+    const completedParts = parts.slice(0, -1).map(t => t.trim()).filter(t => t !== "");
+    const currentToken = parts[parts.length - 1].trim().toLowerCase();
+    const prefix = completedParts.length > 0 ? completedParts.join(", ") + ", " : "";
+    const selectedLower = new Set(completedParts.map(t => t.toLowerCase()));
+
+    const matches = this.allTags.filter(tag => {
+      const tl = tag.toLowerCase();
+      return tl.includes(currentToken) && !selectedLower.has(tl);
+    });
+
+    while (this.datalist.firstChild) this.datalist.removeChild(this.datalist.firstChild);
+    matches.forEach(tag => {
+      const opt = document.createElement("option");
+      opt.value = prefix + tag;
+      this.datalist.appendChild(opt);
+    });
+  }
+};
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
     dom: {

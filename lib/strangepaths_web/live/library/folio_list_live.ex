@@ -102,19 +102,22 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
   end
 
   defp rebuild_folios(socket) do
+    tags =
+      socket.assigns.filter_tag
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
     opts =
       [
         query: socket.assigns.search_query,
         author_id: socket.assigns.filter_author_id,
-        tag: socket.assigns.filter_tag,
+        tags: tags,
         sort_by: socket.assigns.sort_by,
         viewer_id: socket.assigns.viewer_id,
         is_dragon: socket.assigns.is_dragon
       ]
-      # Note: sort_by is always an atom (:date, :title, or :author) and never nil/empty,
-      # so it always passes through the filter. If the default changes from :date, ensure
-      # it remains truthy (an atom is always truthy, so any atom value works fine).
-      |> Enum.reject(fn {_k, v} -> v == nil or v == "" or v == false end)
+      |> Enum.reject(fn {_k, v} -> v == nil or v == "" or v == false or v == [] end)
 
     socket
     |> assign(:folios, Library.search_folios(opts))

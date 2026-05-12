@@ -105,7 +105,7 @@ body {
   h5 {
     @apply text-sm text-indigo-800 dark:text-indigo-50;
   }
-  a:not([class*=btn]) {
+  a:not([class*=btn]):not([class*=library-meta-link]) {
     @apply font-bold text-lg text-violet-600 dark:text-gray-300 hover:text-violet-500;
   }
 }
@@ -1688,6 +1688,14 @@ input[type=range].slider-purple::-moz-range-progress {
   color: var(--library-text-muted);
   font-style: italic;
   margin-top: 0.2rem;
+}
+
+.library-meta-link {
+  color: var(--library-text-muted);
+  transition: color 0.15s ease;
+}
+.library-meta-link:hover {
+  color: var(--library-accent);
 }
 
 /* Rendered body prose */
