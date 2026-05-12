@@ -23,7 +23,7 @@
          data-range-anchor-id={@range_anchor_post_id || ""}>
       <%= for scene <- @visible_scenes do %>
         <div data-scene-id={scene.id} class={"mb-1 rounded " <>
-          if(scene.id in @included_scene_ids, do: "border-l-2 border-l-indigo-500/70 ", else: "") <>
+          if(scene.id in @included_scene_ids, do: "border-l-4 border-l-indigo-400/90 ", else: "") <>
           if("full cast session" in scene.tags, do: "bg-emerald-900/25 border border-emerald-700/50 shadow-[inset_0_0_12px_rgba(16,185,129,0.07)]", else: "")}>
           <button
             phx-click="expand_scene"
@@ -60,7 +60,7 @@
                     _ -> ""
                   end
                   left_border = cond do
-                    already_included -> "border-l-2 border-l-indigo-400/70 pl-1"
+                    already_included -> "border-l-4 border-l-indigo-400/90 pl-2"
                     is_pure_narrator -> "border-l-2 border-l-purple-800/60 pl-1"
                     true -> ""
                   end
