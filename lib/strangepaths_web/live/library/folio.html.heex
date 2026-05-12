@@ -31,7 +31,8 @@
 
     <p class="text-xs text-gray-600 mt-2">
       by <%= @folio.user.nickname %> ·
-      <%= format_relative_time(@folio.inserted_at) %>
+      <%= format_relative_time(@folio.inserted_at) %> ·
+      <%= live_redirect "history", to: "/library/#{@folio.slug}/history", class: "hover:text-gray-400 transition-colors" %>
     </p>
 
     <!-- Tags -->

@@ -696,9 +696,14 @@ defmodule StrangepathsWeb.Scenes do
           # Reload scenes
           scenes = Scenes.list_active_scenes(user)
 
+          # Auto-pin the new scene
+          new_pinned = MapSet.put(socket.assigns.pinned_scene_ids, scene.id)
+
           {:noreply,
            socket
            |> assign(:scenes, scenes)
+           |> assign(:pinned_scene_ids, new_pinned)
+           |> push_event("update_pinned_scenes", %{ids: MapSet.to_list(new_pinned)})
            |> assign(:create_scene_name, "")
            |> assign(:create_scene_locked, false)
            |> assign(:create_scene_user_ids, [])

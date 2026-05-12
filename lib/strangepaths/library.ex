@@ -5,6 +5,7 @@ defmodule Strangepaths.Library do
 
   alias Strangepaths.Library.{
     Folio,
+    FolioEdit,
     FolioTag,
     Entry,
     Marginalia,
@@ -458,6 +459,9 @@ defmodule Strangepaths.Library do
         %{body: content, updated_by_id: user_id}
       )
 
+      summary = body_diff_summary(folio.body, content)
+      record_folio_edit(folio.id, user_id, "body", summary)
+
       :ok
     else
       {:error, :lock_lost}
@@ -616,11 +620,6 @@ defmodule Strangepaths.Library do
   def create_note_entry(folio, user, attrs, position \\ nil) do
     pos = position || next_entry_position(folio.id)
 
-    # Notes for later: this insert() is failing because we're missing a name, font, and color, that should be coming from the folio editor info
-    # but doesn't seem to be being loaded here - note creation should pass in which editor is creating the note (i.e. there should be a dropdown in the UX
-    # if you have more than one editor name to pick from, and it should auto-insert your editor name/font/color if you only have one)
-    IO.inspect(Strangepaths.Library.folio_editor_typefaces(user.id))
-
     case Repo.transaction(fn ->
            # Use temporary negative positions to avoid unique constraint violations during shift.
            # First, shift all entries at position >= pos to temporary negative positions.
@@ -740,6 +739,105 @@ defmodule Strangepaths.Library do
       preload: [:user]
     )
     |> Repo.all()
+  end
+
+  def list_recent_marginalia(limit \\ 10) do
+    from(m in Marginalia,
+      join: e in Entry,
+      on: e.id == m.entry_id,
+      join: f in Folio,
+      on: f.id == e.folio_id,
+      where: not f.is_private,
+      order_by: [desc: m.inserted_at],
+      limit: ^limit,
+      select: %{
+        id: m.id,
+        name: m.name,
+        content: m.content,
+        inserted_at: m.inserted_at,
+        folio_slug: f.slug,
+        folio_title: f.title
+      }
+    )
+    |> Repo.all()
+  end
+
+
+  def list_folio_edits(folio_id) do
+    from(fe in FolioEdit,
+      join: u in Strangepaths.Accounts.User, on: u.id == fe.editor_id,
+      where: fe.folio_id == ^folio_id,
+      order_by: [desc: fe.inserted_at],
+      select: %{
+        kind: fe.kind,
+        summary: fe.summary,
+        detail: fe.detail,
+        editor_nickname: u.nickname,
+        inserted_at: fe.inserted_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  def list_recent_folio_edits(limit \\ 10) do
+    from(fe in FolioEdit,
+      join: f in Folio, on: f.id == fe.folio_id,
+      join: u in Strangepaths.Accounts.User, on: u.id == fe.editor_id,
+      where: not f.is_private,
+      order_by: [desc: fe.inserted_at],
+      limit: ^limit,
+      select: %{
+        folio_title: f.title,
+        folio_slug: f.slug,
+        editor_nickname: u.nickname,
+        kind: fe.kind,
+        summary: fe.summary,
+        inserted_at: fe.inserted_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  def record_entries_edit(folio_id, editor_id, summary, detail \\ nil) do
+    record_folio_edit(folio_id, editor_id, "entries", summary, detail)
+  end
+
+  defp record_folio_edit(folio_id, editor_id, kind, summary, detail \\ nil) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    Repo.insert_all("library_folio_edits", [%{
+      folio_id: folio_id,
+      editor_id: editor_id,
+      kind: kind,
+      summary: summary,
+      detail: detail,
+      inserted_at: now
+    }])
+  end
+
+  defp strip_typeface_tags(text) do
+    Regex.replace(~r/\[[a-z]+\](.*?)\[\/[a-z]+\]/s, text, "\\1")
+  end
+
+  defp body_diff_summary(old_body, new_body) do
+    old_clean = strip_typeface_tags(old_body || "")
+    new_clean = strip_typeface_tags(new_body || "")
+
+    case Strangepaths.Rumor.Diff.word_diff(old_clean, new_clean) do
+      nil ->
+        new_clean
+
+      segments ->
+        segments
+        |> Enum.map(fn
+          :sep -> "..."
+          {:eq, w} -> w
+          {:del, w} -> "[-#{w}-]"
+          {:ins, w} -> "[+#{w}+]"
+        end)
+        |> Enum.join(" ")
+        |> String.replace(" ... ", "...")
+    end
   end
 
   def create_marginalia(entry, user, attrs) do

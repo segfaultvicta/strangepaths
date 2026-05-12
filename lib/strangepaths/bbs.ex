@@ -331,28 +331,31 @@ defmodule Strangepaths.BBS do
 
     result =
       Repo.transaction(fn ->
-        thread =
+        thread_changeset =
           %Thread{}
           |> Thread.create_changeset(thread_attrs)
           |> Ecto.Changeset.put_change(:last_post_at, now)
           |> Ecto.Changeset.put_change(:post_count, 1)
-          |> Repo.insert!()
 
-        post_attrs = %{
-          "thread_id" => thread.id,
-          "user_id" => user.id,
-          "display_name" => attrs["display_name"] || attrs[:display_name] || user.nickname,
-          "character_name" => user.nickname,
-          "content" => attrs["content"] || attrs[:content] || "",
-          "posted_at" => now
-        }
+        case Repo.insert(thread_changeset) do
+          {:ok, thread} ->
+            post_attrs = %{
+              "thread_id" => thread.id,
+              "user_id" => user.id,
+              "display_name" => attrs["display_name"] || attrs[:display_name] || user.nickname,
+              "character_name" => user.nickname,
+              "content" => attrs["content"] || attrs[:content] || "",
+              "posted_at" => now
+            }
 
-        post =
-          %Post{}
-          |> Post.create_changeset(post_attrs)
-          |> Repo.insert!()
+            case %Post{} |> Post.create_changeset(post_attrs) |> Repo.insert() do
+              {:ok, post} -> {thread, post}
+              {:error, _post_changeset} -> Repo.rollback(thread_changeset)
+            end
 
-        {thread, post}
+          {:error, changeset} ->
+            Repo.rollback(changeset)
+        end
       end)
 
     case result do
@@ -361,8 +364,8 @@ defmodule Strangepaths.BBS do
         StrangepathsWeb.Endpoint.broadcast("bbs_boards", "board_activity", %{board_id: board.id})
         result
 
-      error ->
-        error
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
@@ -417,15 +420,16 @@ defmodule Strangepaths.BBS do
         # Lock the thread row to prevent concurrent post_count drift
         Repo.one!(from(t in Thread, where: t.id == ^thread.id, lock: "FOR UPDATE"))
 
-        post =
-          %Post{}
-          |> Post.create_changeset(post_attrs)
-          |> Repo.insert!()
+        case %Post{} |> Post.create_changeset(post_attrs) |> Repo.insert() do
+          {:ok, post} ->
+            from(t in Thread, where: t.id == ^thread.id)
+            |> Repo.update_all(set: [last_post_at: now], inc: [post_count: 1])
 
-        from(t in Thread, where: t.id == ^thread.id)
-        |> Repo.update_all(set: [last_post_at: now], inc: [post_count: 1])
+            Repo.preload(post, :user)
 
-        Repo.preload(post, :user)
+          {:error, changeset} ->
+            Repo.rollback(changeset)
+        end
       end)
 
     case result do
@@ -435,8 +439,8 @@ defmodule Strangepaths.BBS do
         StrangepathsWeb.Endpoint.broadcast("bbs_boards", "board_activity", %{board_id: thread.board_id})
         {:ok, post}
 
-      error ->
-        error
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
@@ -782,6 +786,25 @@ defmodule Strangepaths.BBS do
       |> Enum.sort_by(& &1.sort_score)
       |> Enum.map(&Map.delete(&1, :sort_score))
     end
+  end
+
+  def list_recent_posts(limit \\ 10) do
+    from(p in Post,
+      join: t in Thread, on: t.id == p.thread_id,
+      join: b in Board, on: b.id == t.board_id,
+      order_by: [desc: p.posted_at],
+      limit: ^limit,
+      select: %{
+        id: p.id,
+        display_name: p.display_name,
+        content: p.content,
+        posted_at: p.posted_at,
+        thread_id: t.id,
+        thread_title: t.title,
+        board_slug: b.slug
+      }
+    )
+    |> Repo.all()
   end
 
   defp bbs_extract_snippet(content, query, max_length) do

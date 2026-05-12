@@ -451,7 +451,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
             "avatar_id" => {node.avatar_id, updated_node.avatar_id}
           }
           |> Enum.reject(fn {_k, {old, new}} -> old == new end)
-          |> Enum.map(fn {k, {old, new}} -> %{"field" => k, "from" => inspect(old), "to" => inspect(new)} end)
+          |> Enum.map(fn {k, {old, new}} -> %{"field" => k, "from" => to_log_value(old), "to" => to_log_value(new)} end)
 
         log_rumor_change(socket, "node_updated", %{
           node_id: updated_node.id,
@@ -1344,6 +1344,10 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       _ -> action
     end
   end
+
+  defp to_log_value(nil), do: nil
+  defp to_log_value(val) when is_binary(val), do: val
+  defp to_log_value(val), do: inspect(val)
 
   defp node_visible?(node, visible_layer_ids) do
     MapSet.member?(visible_layer_ids, node.layer_id)

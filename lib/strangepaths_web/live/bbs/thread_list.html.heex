@@ -59,7 +59,7 @@
         </div>
 
         <!-- Content Field -->
-        <div>
+        <div x-data="{ charCount: 0 }" x-init="charCount = $refs.threadContent.value.length">
           <label class="block mb-1">Message:</label>
           <textarea
             id="bbs-thread-content"
@@ -69,12 +69,17 @@
             class="bbs-input w-full resize-none"
             rows="6"
             phx-hook="PostContentInput"
+            x-ref="threadContent"
+            @input="charCount = $el.value.length"
           ><%= @changeset.changes[:content] %></textarea>
-          <%= if @changeset.action && @changeset.errors[:content] do %>
-            <div class="bbs-error mt-1">
-              <%= elem(@changeset.errors[:content], 0) %>
+          <div class="flex justify-between mt-1">
+            <div>
+              <%= if @changeset.action && @changeset.errors[:content] do %>
+                <span class="bbs-error"><%= translate_error(@changeset.errors[:content]) %></span>
+              <% end %>
             </div>
-          <% end %>
+            <span class="text-xs" :class="charCount > 10000 ? 'text-red-400' : 'text-gray-500'" x-text="`${charCount} / 10,000`"></span>
+          </div>
         </div>
 
         <!-- Buttons -->

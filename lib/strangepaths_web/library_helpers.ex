@@ -8,6 +8,17 @@ defmodule StrangepathsWeb.LibraryHelpers do
 
   import StrangepathsWeb.SceneHelpers, only: [render_post_content: 2]
 
+  def render_diff_body(nil), do: ""
+
+  def render_diff_body(body) do
+    escaped = body |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+    escaped
+    |> String.replace(~r/\[-(.+?)-\]/, "<span class=\"text-red-400\">\\1</span>")
+    |> String.replace(~r/\[\+(.+?)\+\]/, "<span class=\"text-green-400\">\\1</span>")
+    |> Phoenix.HTML.raw()
+  end
+
   @doc """
   Renders library content with typeface tag support.
 

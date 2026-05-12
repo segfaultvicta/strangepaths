@@ -193,7 +193,7 @@
         </div>
 
         <!-- Content Field -->
-        <div>
+        <div x-data="{ charCount: 0 }" x-init="charCount = $refs.replyContent.value.length">
           <label class="block mb-1">Message:</label>
           <textarea
             id="bbs-reply-content"
@@ -204,12 +204,17 @@
             rows="6"
             phx-hook="PostContentInput"
             data-scene-id={"bbs-#{@thread.id}"}
+            x-ref="replyContent"
+            @input="charCount = $el.value.length"
           ><%= @reply_changeset.changes[:content] %></textarea>
-          <%= if @reply_changeset.action && @reply_changeset.errors[:content] do %>
-            <div class="bbs-error mt-1">
-              <%= elem(@reply_changeset.errors[:content], 0) %>
+          <div class="flex justify-between mt-1">
+            <div>
+              <%= if @reply_changeset.action && @reply_changeset.errors[:content] do %>
+                <span class="bbs-error"><%= translate_error(@reply_changeset.errors[:content]) %></span>
+              <% end %>
             </div>
-          <% end %>
+            <span class="text-xs" :class="charCount > 10000 ? 'text-red-400' : 'text-gray-500'" x-text="`${charCount} / 10,000`"></span>
+          </div>
         </div>
 
         <!-- Buttons -->

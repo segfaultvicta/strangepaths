@@ -2,6 +2,7 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
   use StrangepathsWeb, :live_view
 
   import StrangepathsWeb.LiveHelpers
+  import StrangepathsWeb.ErrorHelpers, only: [translate_error: 1]
   alias Strangepaths.BBS
 
   @impl true

@@ -3,6 +3,7 @@ defmodule StrangepathsWeb.BBSLive.Thread do
 
   import StrangepathsWeb.LiveHelpers
   import StrangepathsWeb.BBSHelpers
+  import StrangepathsWeb.ErrorHelpers, only: [translate_error: 1]
   alias Strangepaths.BBS
 
   @impl true

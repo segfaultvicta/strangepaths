@@ -24,6 +24,7 @@ defmodule StrangepathsWeb.Router do
     pipe_through(:browser)
 
     get("/", PageController, :index)
+    get("/activity", PageController, :activity)
 
     # Secure music file serving
     get("/music/:guid", MusicFileController, :serve)
@@ -73,6 +74,7 @@ defmodule StrangepathsWeb.Router do
     live("/library/new", LibraryLive.FolioList, :new)
     live("/library/admin", LibraryLive.Admin)
     live("/library/:slug/compose", LibraryLive.Composer, :compose)
+    live("/library/:slug/history", LibraryLive.FolioHistory, :show)
     live("/library/:slug", LibraryLive.Folio, :show)
   end
 

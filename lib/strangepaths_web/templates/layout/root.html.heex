@@ -49,9 +49,12 @@
       <div class="container mx-auto px-6 h-full flex items-center justify-between">
         <!-- Desktop nav links (hidden on mobile) -->
         <div class="hidden lg:flex items-center gap-3">
-          <%= if @devour_count > 0 do %>
-            <span class="text-red-700 dark:text-red-600 whitespace-nowrap">CYCLE <%= @devour_count + 217 %></span>
-          <% end %>
+          <div class="flex flex-col items-center">
+            <%= if @devour_count > 0 do %>
+              <span class="text-red-700 dark:text-red-600 whitespace-nowrap">CYCLE <%= @devour_count + 217 %></span>
+            <% end %>
+            <%= live_redirect "ACTIVITY", to: "/activity", class: "activitynav" %>
+          </div>
           <div class="flex flex-col justify-center gap-y-1">
             <!-- Row 1: ARCHIVES/STILLNESS → DECK -->
             <div class="flex items-center">

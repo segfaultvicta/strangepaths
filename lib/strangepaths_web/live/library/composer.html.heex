@@ -5,7 +5,7 @@
     <div class="p-4 border-b border-gray-800 flex-shrink-0">
       <h2 class="font-semibold mb-3">Scene Browser</h2>
 
-      <form phx-change="set_filter">
+      <form phx-change="set_filter" phx-submit="noop">
         <input
           type="text"
           placeholder="Filter by title or tag..."
@@ -144,7 +144,7 @@
             <textarea
               id="composer-note-textarea"
               name="note[content]"
-              placeholder="Add inline note..."
+              placeholder="Add inline annotation..."
               class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
               x-model="noteContent"
             ></textarea>
@@ -166,7 +166,7 @@
                   <input type="text" class="grimoire-add-input" maxlength="1" style="display:none;" />
                 </div>
               </div>
-              <button type="submit" class="btn-primary-sm disabled:opacity-40 disabled:cursor-not-allowed" :disabled="noteContent.trim() === ''">+ Add note</button>
+              <button type="submit" class="btn-primary-sm disabled:opacity-40 disabled:cursor-not-allowed" :disabled="noteContent.trim() === ''">+ Add annotation</button>
             </div>
           </form>
         </div>
@@ -307,7 +307,7 @@
               <textarea
                 id={"composer-note-textarea-#{index + 1}"}
                 name="note[content]"
-                placeholder="Add inline note..."
+                placeholder="Add inline annotation..."
                 class="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs h-16 resize-none"
                 x-model="noteContent"
               ></textarea>

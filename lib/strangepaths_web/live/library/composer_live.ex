@@ -58,6 +58,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
                |> assign(:is_author, folio.user_id == user.id)
                |> assign(:is_dragon, user.role == :dragon)
                |> assign(:entries_lock_timer_ref, timer_ref)
+               |> assign(:session_ops, [])
                |> assign(
                  :editor_typefaces,
                  if(user, do: Library.folio_editor_typefaces(user.id), else: [])
@@ -83,6 +84,8 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     {:noreply, socket |> assign(:filter_query, q) |> recompute_visible_scenes()}
   end
 
+  def handle_event("noop", _params, socket), do: {:noreply, socket}
+
   def handle_event("expand_scene", %{"scene-id" => scene_id_str}, socket) do
     scene_id = String.to_integer(scene_id_str)
 
@@ -104,12 +107,16 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
     case Library.create_post_entry(socket.assigns.folio, user, post_id, position) do
       {:ok, _entry} ->
+        old_ids = MapSet.new(socket.assigns.entries, & &1.id)
         entries = Library.list_entries(socket.assigns.folio.id)
+        new_entry = Enum.find(entries, &(!MapSet.member?(old_ids, &1.id)))
+        op = %{op: :added_post, label: post_entry_label(new_entry)}
 
         {:noreply,
          socket
          |> assign_entries(entries)
          |> assign(:caret_position, position + 1)
+         |> update(:session_ops, &(&1 ++ [op]))
          |> renew_lock()}
 
       {:error, _} ->
@@ -140,13 +147,18 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
     case Library.create_post_entries_at(socket.assigns.folio, user, range_ids, position) do
       {:ok, _entries} ->
+        old_ids = MapSet.new(socket.assigns.entries, & &1.id)
         entries = Library.list_entries(socket.assigns.folio.id)
+        new_ops = entries
+          |> Enum.filter(&(!MapSet.member?(old_ids, &1.id)))
+          |> Enum.map(&%{op: :added_post, label: post_entry_label(&1)})
 
         {:noreply,
          socket
          |> assign_entries(entries)
          |> assign(:caret_position, position + length(range_ids))
          |> assign(:range_anchor_post_id, nil)
+         |> update(:session_ops, &(&1 ++ new_ops))
          |> renew_lock()}
 
       {:error, _} ->
@@ -242,11 +254,13 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     case Library.create_note_entry(socket.assigns.folio, user, note_attrs, position) do
       {:ok, _} ->
         entries = Library.list_entries(socket.assigns.folio.id)
+        op = %{op: :added_note, content: String.slice(attrs["content"] || "", 0, 60)}
 
         {:noreply,
          socket
          |> assign_entries(entries)
          |> assign(:caret_position, position + 1)
+         |> update(:session_ops, &(&1 ++ [op]))
          |> renew_lock()}
 
       {:error, e} ->
@@ -290,6 +304,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   defp do_delete_entry(socket, entry, entry_index) do
+    op = deleted_entry_op(entry)
     Library.delete_entry(entry, socket.assigns.current_user.id)
     entries = Library.list_entries(socket.assigns.folio.id)
 
@@ -302,6 +317,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
      |> assign(:pending_delete_entry_id, nil)
      |> assign_entries(entries)
      |> assign(:caret_position, new_caret)
+     |> update(:session_ops, &(&1 ++ [op]))
      |> renew_lock()}
   end
 
@@ -336,11 +352,13 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         case Library.update_note_entry(entry, %{"content" => content}, user.id) do
           {:ok, _} ->
             entries = Library.list_entries(socket.assigns.folio.id)
+            op = %{op: :edited_note, content: String.slice(content, 0, 60)}
 
             {:noreply,
              socket
              |> assign(:editing_note_entry_id, nil)
              |> assign_entries(entries)
+             |> update(:session_ops, &(&1 ++ [op]))
              |> renew_lock()}
 
           {:error, _changeset} ->
@@ -358,6 +376,9 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
      socket
      |> assign_entries(entries)
      |> assign(:caret_position, length(entries) + 1)
+     |> update(:session_ops, fn ops ->
+       if Enum.any?(ops, &(&1.op == :reordered)), do: ops, else: ops ++ [%{op: :reordered}]
+     end)
      |> renew_lock()}
   end
 
@@ -412,6 +433,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   @impl true
   def handle_info(:entries_lock_timeout, socket) do
+    flush_session_edit(socket)
     Library.release_entries_lock(socket.assigns.folio.id)
 
     {:noreply,
@@ -424,6 +446,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   @impl true
   def terminate(_reason, socket) do
     if socket.assigns[:folio] do
+      flush_session_edit(socket)
       Library.release_entries_lock(socket.assigns.folio.id)
     end
 
@@ -431,6 +454,76 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   # --- Private helpers ---
+
+  defp post_entry_label(nil), do: "post #unknown"
+  defp post_entry_label(%{scene_post: nil}), do: "post #unknown"
+  defp post_entry_label(%{scene_post: post}) do
+    author = post.narrative_author_name || post.author_nickname || (post.user && post.user.nickname) || "unknown"
+    scene  = (post.scene && post.scene.name) || "unknown scene"
+    snippet = String.slice(post.content_stripped || "", 0, 80)
+    "post by #{author} in #{scene} (#{snippet})"
+  end
+  defp post_entry_label(_), do: "post #unknown"
+
+  defp deleted_entry_op(%{kind: :post_ref, scene_post: nil}) do
+    %{op: :deleted_post, label: "post #unknown"}
+  end
+  defp deleted_entry_op(%{kind: :post_ref, scene_post: post}) do
+    author = post.narrative_author_name || post.author_nickname || (post.user && post.user.nickname) || "unknown"
+    scene  = (post.scene && post.scene.name) || "unknown scene"
+    snippet = String.slice(post.content_stripped || "", 0, 80)
+    %{op: :deleted_post, label: "post by #{author} in #{scene} (#{snippet})"}
+  end
+  defp deleted_entry_op(%{kind: :note, content: content}) do
+    %{op: :deleted_note, content: String.slice(content || "", 0, 60)}
+  end
+
+  defp flush_session_edit(socket) do
+    ops = socket.assigns.session_ops
+    if ops != [] do
+      summary = build_count_summary(ops)
+      detail  = build_entry_detail(ops)
+      Library.record_entries_edit(socket.assigns.folio.id, socket.assigns.current_user.id, summary, detail)
+    end
+  end
+
+  defp build_count_summary(ops) do
+    posts_added  = Enum.count(ops, &(&1.op == :added_post))
+    notes_added  = Enum.count(ops, &(&1.op == :added_note))
+    notes_edited = Enum.count(ops, &(&1.op == :edited_note))
+    deleted      = Enum.count(ops, &(&1.op in [:deleted_post, :deleted_note]))
+    reordered    = Enum.any?(ops, &(&1.op == :reordered))
+
+    [
+      posts_added  > 0 && "added #{posts_added} post#{if posts_added == 1, do: "", else: "s"}",
+      notes_added  > 0 && "added #{notes_added} note#{if notes_added == 1, do: "", else: "s"}",
+      notes_edited > 0 && "edited #{notes_edited} note#{if notes_edited == 1, do: "", else: "s"}",
+      deleted      > 0 && "deleted #{deleted} entr#{if deleted == 1, do: "y", else: "ies"}",
+      reordered            && "reordered entries"
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(", ")
+  end
+
+  defp build_entry_detail(ops) do
+    added_posts  = ops |> Enum.filter(&(&1.op == :added_post))  |> Enum.map(& &1.label)
+    added_notes  = ops |> Enum.filter(&(&1.op == :added_note))  |> Enum.map(& &1.content)
+    deleted_post = ops |> Enum.filter(&(&1.op == :deleted_post)) |> Enum.map(& &1.label)
+    deleted_note = ops |> Enum.filter(&(&1.op == :deleted_note)) |> Enum.map(& &1.content)
+    edited_notes = ops |> Enum.filter(&(&1.op == :edited_note)) |> Enum.map(& &1.content)
+    reordered    = Enum.any?(ops, &(&1.op == :reordered))
+
+    [
+      if(added_posts  != [], do: "added: #{Enum.join(added_posts, ", ")}"),
+      if(added_notes  != [], do: Enum.map_join(added_notes, ", ", &"added note: \"#{&1}\"")),
+      if(deleted_post != [], do: "deleted: #{Enum.join(deleted_post, ", ")}"),
+      if(deleted_note != [], do: Enum.map_join(deleted_note, ", ", &"deleted note: \"#{&1}\"")),
+      if(edited_notes != [], do: Enum.map_join(edited_notes, ", ", &"edited note: \"#{&1}\"")),
+      if(reordered,           do: "reordered entries"),
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+  end
 
   defp renew_lock(socket) do
     if ref = socket.assigns[:entries_lock_timer_ref], do: Process.cancel_timer(ref)

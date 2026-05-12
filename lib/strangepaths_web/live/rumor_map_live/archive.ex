@@ -77,6 +77,41 @@ defmodule StrangepathsWeb.RumorMapLive.Archive do
     end
   end
 
+  def format_change_detail(%{"field" => "content", "from" => from, "to" => to}) do
+    case Strangepaths.Rumor.Diff.word_diff(from, to) do
+      nil ->
+        Phoenix.HTML.raw("(no change)")
+
+      segments ->
+        html =
+          segments
+          |> Enum.map(fn
+            :sep ->
+              " <span class=\"text-gray-600\">...</span> "
+
+            {:eq, w} ->
+              w |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+            {:del, w} ->
+              esc = w |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+              "<span class=\"text-red-400 line-through\">#{esc}</span>"
+
+            {:ins, w} ->
+              esc = w |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+              "<span class=\"text-green-400\">#{esc}</span>"
+          end)
+          |> Enum.join(" ")
+
+        Phoenix.HTML.raw(html)
+    end
+  end
+
+  def format_change_detail(%{"field" => field, "from" => from, "to" => to}) do
+    "#{field}: #{from || "(none)"} → #{to || "(none)"}"
+  end
+
+  def format_change_detail(_), do: nil
+
   defp format_change_action(action) do
     case action do
       "node_created" -> "created node"

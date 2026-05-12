@@ -1,0 +1,44 @@
+<div class="mb-4">
+  <%= live_redirect "← #{@folio.title}", to: "/library/#{@folio.slug}", class: "text-sm text-indigo-400 hover:underline" %>
+</div>
+
+<h1 class="text-2xl font-bold mb-6">Edit History</h1>
+
+<%= if @events == [] do %>
+  <p class="dark:text-gray-400 text-sm">No history recorded yet.</p>
+<% else %>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="dark:text-gray-500 text-left border-b dark:border-gray-700">
+          <th class="pr-4 pb-2 font-normal whitespace-nowrap">When</th>
+          <th class="pr-4 pb-2 font-normal whitespace-nowrap">Who</th>
+          <th class="pr-4 pb-2 font-normal whitespace-nowrap">Kind</th>
+          <th class="pb-2 font-normal">Summary</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y dark:divide-gray-800">
+        <%= for event <- @events do %>
+          <tr class="align-top">
+            <td class="pr-4 py-2 whitespace-nowrap dark:text-gray-500 font-mono text-xs">
+              <%= format_relative_time(event.inserted_at) %>
+            </td>
+            <td class="pr-4 py-2 whitespace-nowrap dark:text-gray-400"><%= event.editor_nickname %></td>
+            <td class="pr-4 py-2 whitespace-nowrap dark:text-gray-400">
+              <%= case event.event_type do %>
+                <% :edit -> %><%= if event.kind == "body", do: "prolegomenon", else: "entries" %>
+                <% :marginalia -> %>marginalia
+              <% end %>
+            </td>
+            <td class="py-2 dark:text-gray-400 leading-relaxed">
+              <%= case event.event_type do %>
+                <% :edit -> %><%= render_diff_body(event.detail || event.summary) %>
+                <% :marginalia -> %><%= event.summary %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
