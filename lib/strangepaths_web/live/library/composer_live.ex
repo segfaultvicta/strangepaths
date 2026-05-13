@@ -103,7 +103,8 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   def handle_event("add_post", %{"post-id" => post_id_str}, socket) do
     user = socket.assigns.current_user
     post_id = String.to_integer(post_id_str)
-    position = socket.assigns.caret_position
+    rank = socket.assigns.caret_position
+    position = rank_to_db_position(socket.assigns.entries, rank)
 
     case Library.create_post_entry(socket.assigns.folio, user, post_id, position) do
       {:ok, _entry} ->
@@ -115,7 +116,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         {:noreply,
          socket
          |> assign_entries(entries)
-         |> assign(:caret_position, position + 1)
+         |> assign(:caret_position, rank + 1)
          |> update(:session_ops, &(&1 ++ [op]))
          |> renew_lock()}
 
@@ -143,7 +144,8 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     {start_idx, end_idx} = if from_idx <= to_idx, do: {from_idx, to_idx}, else: {to_idx, from_idx}
     range_ids = Enum.slice(post_ids, start_idx..end_idx)
 
-    position = socket.assigns.caret_position
+    rank = socket.assigns.caret_position
+    position = rank_to_db_position(socket.assigns.entries, rank)
 
     case Library.create_post_entries_at(socket.assigns.folio, user, range_ids, position) do
       {:ok, _entries} ->
@@ -156,7 +158,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         {:noreply,
          socket
          |> assign_entries(entries)
-         |> assign(:caret_position, position + length(range_ids))
+         |> assign(:caret_position, rank + length(range_ids))
          |> assign(:range_anchor_post_id, nil)
          |> update(:session_ops, &(&1 ++ new_ops))
          |> renew_lock()}
@@ -234,7 +236,8 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   def handle_event("add_note", %{"note" => attrs, "position" => pos_str} = params, socket) do
     user = socket.assigns.current_user
-    position = String.to_integer(pos_str)
+    rank = String.to_integer(pos_str)
+    position = rank_to_db_position(socket.assigns.entries, rank)
     typefaces = Library.folio_editor_typefaces(user.id)
     typeface_id = get_in(params, ["marginalia", "typeface_id"])
 
@@ -259,7 +262,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
         {:noreply,
          socket
          |> assign_entries(entries)
-         |> assign(:caret_position, position + 1)
+         |> assign(:caret_position, rank + 1)
          |> update(:session_ops, &(&1 ++ [op]))
          |> renew_lock()}
 
@@ -523,6 +526,18 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     ]
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" · ")
+  end
+
+  defp rank_to_db_position(entries, rank) do
+    case Enum.at(entries, rank - 1) do
+      nil ->
+        case List.last(entries) do
+          nil  -> 1
+          last -> last.position + 1
+        end
+      entry ->
+        entry.position
+    end
   end
 
   defp renew_lock(socket) do
