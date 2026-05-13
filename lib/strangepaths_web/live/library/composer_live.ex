@@ -7,6 +7,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   import StrangepathsWeb.LibraryHelpers, only: [render_library_content: 1]
 
   alias Strangepaths.{Library, Scenes}
+  alias Strangepaths.Library.ComposerSessionMonitor
 
   @entries_lock_timeout_ms Library.entries_lock_timeout_seconds() * 1_000
 
@@ -38,6 +39,10 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
             :ok ->
               entries = Library.list_entries(folio.id)
+
+              if connected?(socket) do
+                ComposerSessionMonitor.register(folio.id, user.id)
+              end
 
               timer_ref =
                 if connected?(socket),
@@ -438,8 +443,10 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   @impl true
   def handle_info(:entries_lock_timeout, socket) do
+    folio_id = socket.assigns.folio.id
+    ComposerSessionMonitor.unregister(folio_id)
     flush_session_edit(socket, :timeout)
-    Library.release_entries_lock(socket.assigns.folio.id)
+    Library.release_entries_lock(folio_id)
 
     {:noreply,
      socket
@@ -458,8 +465,9 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     )
 
     if socket.assigns[:folio] do
+      ComposerSessionMonitor.unregister(folio_id)
       flush_session_edit(socket, :terminate)
-      Library.release_entries_lock(socket.assigns.folio.id)
+      Library.release_entries_lock(folio_id)
     end
 
     :ok
@@ -584,7 +592,10 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   defp renew_lock(socket) do
     if ref = socket.assigns[:entries_lock_timer_ref], do: Process.cancel_timer(ref)
-    Library.claim_entries_lock(socket.assigns.folio.id, socket.assigns.current_user.id)
+    folio_id = socket.assigns.folio.id
+    user_id = socket.assigns.current_user.id
+    Library.claim_entries_lock(folio_id, user_id)
+    ComposerSessionMonitor.sync_ops(folio_id, socket.assigns.session_ops)
     ref = Process.send_after(self(), :entries_lock_timeout, @entries_lock_timeout_ms)
     assign(socket, :entries_lock_timer_ref, ref)
   end

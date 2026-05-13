@@ -22,7 +22,8 @@ defmodule Strangepaths.Application do
       Strangepaths.Cards.Ceremony,
       Strangepaths.Presence,
       Strangepaths.Site.MusicQueue,
-      Strangepaths.Scenes.SceneServer
+      Strangepaths.Scenes.SceneServer,
+      Strangepaths.Library.ComposerSessionMonitor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
