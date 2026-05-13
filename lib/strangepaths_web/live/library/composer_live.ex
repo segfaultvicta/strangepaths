@@ -1,6 +1,8 @@
 defmodule StrangepathsWeb.LibraryLive.Composer do
   use StrangepathsWeb, :live_view
 
+  require Logger
+
   import StrangepathsWeb.SceneHelpers, only: [render_post_content: 2]
   import StrangepathsWeb.LibraryHelpers, only: [render_library_content: 1]
 
@@ -436,7 +438,7 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   @impl true
   def handle_info(:entries_lock_timeout, socket) do
-    flush_session_edit(socket)
+    flush_session_edit(socket, :timeout)
     Library.release_entries_lock(socket.assigns.folio.id)
 
     {:noreply,
@@ -447,9 +449,16 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
   end
 
   @impl true
-  def terminate(_reason, socket) do
+  def terminate(reason, socket) do
+    folio_id = socket.assigns[:folio] && socket.assigns.folio.id
+    ops_count = length(socket.assigns[:session_ops] || [])
+
+    Logger.info(
+      "[FolioFlush] terminate folio=#{inspect(folio_id)} ops=#{ops_count} reason=#{inspect(reason)}"
+    )
+
     if socket.assigns[:folio] do
-      flush_session_edit(socket)
+      flush_session_edit(socket, :terminate)
       Library.release_entries_lock(socket.assigns.folio.id)
     end
 
@@ -481,12 +490,45 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
     %{op: :deleted_note, content: String.slice(content || "", 0, 60)}
   end
 
-  defp flush_session_edit(socket) do
-    ops = socket.assigns.session_ops
-    if ops != [] do
-      summary = build_count_summary(ops)
-      detail  = build_entry_detail(ops)
-      Library.record_entries_edit(socket.assigns.folio.id, socket.assigns.current_user.id, summary, detail)
+  defp flush_session_edit(socket, path) do
+    folio_id = socket.assigns[:folio] && socket.assigns.folio.id
+    user_id = socket.assigns[:current_user] && socket.assigns.current_user.id
+    ops = socket.assigns[:session_ops] || []
+
+    cond do
+      ops == [] ->
+        Logger.info(
+          "[FolioFlush] flush path=#{path} folio=#{inspect(folio_id)} user=#{inspect(user_id)} ops=0 result=noop"
+        )
+        :noop
+
+      is_nil(folio_id) or is_nil(user_id) ->
+        Logger.error(
+          "[FolioFlush] flush path=#{path} folio=#{inspect(folio_id)} user=#{inspect(user_id)} ops=#{length(ops)} result=missing_context"
+        )
+        :error
+
+      true ->
+        try do
+          summary = build_count_summary(ops)
+          detail = build_entry_detail(ops)
+          Library.record_entries_edit(folio_id, user_id, summary, detail)
+
+          Logger.info(
+            "[FolioFlush] flush path=#{path} folio=#{folio_id} user=#{user_id} ops=#{length(ops)} result=ok summary=#{inspect(summary)}"
+          )
+
+          :ok
+        rescue
+          e ->
+            Logger.error(
+              "[FolioFlush] flush path=#{path} folio=#{folio_id} user=#{user_id} ops=#{length(ops)} result=raised class=#{inspect(e.__struct__)} message=#{Exception.message(e)}"
+            )
+
+            Logger.error(Exception.format(:error, e, __STACKTRACE__))
+
+            :error
+        end
     end
   end
 
