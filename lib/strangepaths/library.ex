@@ -747,6 +747,7 @@ defmodule Strangepaths.Library do
       limit: ^limit,
       select: %{
         id: m.id,
+        entry_id: m.entry_id,
         name: m.name,
         content: m.content,
         inserted_at: m.inserted_at,

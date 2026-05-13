@@ -55,7 +55,7 @@ defmodule Strangepaths.Activity do
         actor_name: m.name,
         title: "Comment on \"#{m.folio_title}\"",
         body: String.slice(m.content, 0, 120),
-        url: "/library/#{m.folio_slug}"
+        url: "/library/#{m.folio_slug}#entry-#{m.entry_id}"
       }
     end)
   end
