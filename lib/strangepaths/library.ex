@@ -906,6 +906,7 @@ defmodule Strangepaths.Library do
       on: rm.folio_id == e.folio_id and rm.user_id == ^user_id,
       where: e.folio_id in ^folio_ids,
       where: is_nil(rm.last_visited_at) or m.inserted_at > rm.last_visited_at,
+      where: m.user_id != ^user_id,
       group_by: e.folio_id,
       select: {e.folio_id, count(m.id)}
     )
@@ -924,6 +925,7 @@ defmodule Strangepaths.Library do
       on: rm.marginalia_id == m.id and rm.user_id == ^user_id,
       where: e.folio_id == ^folio_id,
       where: is_nil(rm.id),
+      where: m.user_id != ^user_id,
       select: m.id
     )
     |> Repo.all()
