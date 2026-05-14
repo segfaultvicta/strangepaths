@@ -40,9 +40,9 @@ defmodule Strangepaths.Library.Typefaces do
     %{
       id: "awoken",
       name: "The Awoken",
-      font: "'EB Garamond', serif",
+      font: "'Jim Nightshade', serif",
       color: "#33ddff",
-      font_size: "1em"
+      font_size: "1.2em"
     },
     %{id: "caion", name: "Caion", font: "'Caveat', serif", color: "#6797b3", font_size: "1.4em"},
     %{
