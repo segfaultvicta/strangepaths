@@ -2349,6 +2349,8 @@ a.library-folio-row-title {
     padding: 0.4rem 0.6rem 0.5rem;
     font-family: var(--library-font);
     font-size: 0.72rem;
+    max-height: calc(100vh - 100px - 2rem);
+    overflow-y: auto;
 }
 
 .library-prolog-toc-header {
