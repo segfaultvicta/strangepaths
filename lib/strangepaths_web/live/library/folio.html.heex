@@ -68,6 +68,15 @@
     </div>
   </div>
 
+  <%= if @is_folio_editor && !@editing_body do %>
+    <div class="flex gap-3 items-center mt-3 mb-2">
+      <button phx-click="claim_body_lock" class="btn-secondary text-sm">
+        <%= if @folio.body, do: "✎ Edit Prolegomenon", else: "+ Add Prolegomenon" %>
+      </button>
+      <%= live_redirect "Edit Folio →", to: "/library/#{@folio.slug}/compose", class: "btn-secondary text-sm" %>
+    </div>
+  <% end %>
+
   <!-- Body section -->
   <div class="mb-8">
     <%= if @editing_body do %>
@@ -119,7 +128,7 @@
       </div>
     <% else %>
       <%= if @folio.body do %>
-        <div class="library-body mb-4">
+        <div id="library-body-content" class="library-body mb-4" phx-hook="LibraryProlegomenonTOC">
           <%= raw render_library_content(@folio.body) %>
         </div>
       <% end %>

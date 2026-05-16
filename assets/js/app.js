@@ -547,33 +547,33 @@ Hooks.Grimoire = {
 }
 
 Hooks.LibraryBodyEditor = {
-  mounted() {
-    this.el.querySelectorAll("[data-insert-tag]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const tagName = btn.dataset.insertTag;
-        const textarea = document.getElementById("library-body-textarea");
-        if (!textarea) return;
+    mounted() {
+        this.el.querySelectorAll("[data-insert-tag]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const tagName = btn.dataset.insertTag;
+                const textarea = document.getElementById("library-body-textarea");
+                if (!textarea) return;
 
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selected = textarea.value.substring(start, end);
-        const insert = `[${tagName}]${selected}[/${tagName}]`;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const selected = textarea.value.substring(start, end);
+                const insert = `[${tagName}]${selected}[/${tagName}]`;
 
-        textarea.value =
-          textarea.value.substring(0, start) +
-          insert +
-          textarea.value.substring(end);
+                textarea.value =
+                    textarea.value.substring(0, start) +
+                    insert +
+                    textarea.value.substring(end);
 
-        // Move cursor to inside the closing tag (after selected text)
-        const newPos = start + insert.length - `[/${tagName}]`.length;
-        textarea.setSelectionRange(newPos, newPos);
-        textarea.focus();
+                // Move cursor to inside the closing tag (after selected text)
+                const newPos = start + insert.length - `[/${tagName}]`.length;
+                textarea.setSelectionRange(newPos, newPos);
+                textarea.focus();
 
-        // Trigger phx-change so the LiveView preview updates
-        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-      });
-    });
-  },
+                // Trigger phx-change so the LiveView preview updates
+                textarea.dispatchEvent(new Event("input", { bubbles: true }));
+            });
+        });
+    },
 }
 
 Hooks.OOCContentInput = {
@@ -829,6 +829,73 @@ Hooks.TooltipUpdater = {
     }
 }
 
+Hooks.LibraryProlegomenonTOC = {
+    mounted() { this.buildTOC(); },
+    updated() { this.buildTOC(); },
+    destroyed() {
+        if (this._toc) { this._toc.remove(); this._toc = null; }
+        if (this._resizeObserver) { this._resizeObserver.disconnect(); }
+    },
+    buildTOC() {
+        const el = this.el;
+        const headings = Array.from(el.querySelectorAll("h1, h2, h3"));
+        if (headings.length < 2) {
+            if (this._toc) { this._toc.remove(); this._toc = null; }
+            return;
+        }
+
+        const slugCounts = {};
+        headings.forEach(h => {
+            const base = h.textContent.trim()
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, "")
+                .replace(/\s+/g, "-")
+                .replace(/-+/g, "-");
+            slugCounts[base] = (slugCounts[base] || 0) + 1;
+            h.id = slugCounts[base] > 1 ? `${base}-${slugCounts[base]}` : base;
+        });
+
+        const items = headings.map(h => {
+            const indent = (parseInt(h.tagName[1]) - 1) * 14;
+            return `<li style="padding-left:${indent}px"><a class="library-toc-link" href="#${h.id}">${h.textContent.trim()}</a></li>`;
+        }).join("");
+
+        if (!this._toc) {
+            this._toc = document.createElement("div");
+            this._toc.className = "library-prolog-toc";
+            document.body.appendChild(this._toc);
+        }
+        const annotationsEl = document.getElementById("folio-toc");
+        const annotationsLink = annotationsEl
+            ? `<div class="library-prolog-toc-footer"><a class="library-toc-link" href="#folio-toc">annotations ↓</a></div>`
+            : "";
+        this._toc.innerHTML = `<div class="library-prolog-toc-header"><a class="library-toc-link" href="#">↑ top</a></div><div class="library-prolog-toc-title">Contents</div><ul class="library-prolog-toc-list">${items}</ul>${annotationsLink}`;
+
+        this.positionTOC();
+
+        if (!this._resizeObserver) {
+            this._resizeObserver = new ResizeObserver(() => this.positionTOC());
+            this._resizeObserver.observe(document.documentElement);
+        }
+    },
+    positionTOC() {
+        if (!this._toc) return;
+        const rect = this.el.getBoundingClientRect();
+        const tocWidth = 360;
+        const gap = 0;
+        const rightMargin = window.innerWidth - rect.right;
+        if (rightMargin < tocWidth + gap) {
+            this._toc.style.display = "none";
+            return;
+        }
+        this._toc.style.display = "block";
+        this._toc.style.position = "fixed";
+        this._toc.style.top = "calc(100px + 1rem)";
+        this._toc.style.left = `${rect.right + gap}px`;
+        this._toc.style.width = `${Math.min(tocWidth, rightMargin - gap)}px`;
+    }
+};
+
 Hooks.LibraryComposer = {
     mounted() {
         this.initSortable();
@@ -881,7 +948,7 @@ Hooks.LibraryComposer = {
                 // regardless of which member was grabbed.
                 this.groupSnapshot = groupId
                     ? Array.from(list.querySelectorAll(`[data-group-id="${groupId}"]`))
-                          .map(el => el.dataset.entryId)
+                        .map(el => el.dataset.entryId)
                     : null;
             },
             onEnd: (event) => {
@@ -2255,7 +2322,7 @@ Hooks.CreateConnectionButton = {
 
 Hooks.CopyPlaintext = {
     mounted() {
-        this.handleEvent("copy_to_clipboard", ({text}) => {
+        this.handleEvent("copy_to_clipboard", ({ text }) => {
             navigator.clipboard.writeText(text).then(() => {
                 // Brief flash on the button
                 const btn = this.el;
@@ -2269,7 +2336,7 @@ Hooks.CopyPlaintext = {
 
 Hooks.BBSScrollManager = {
     mounted() {
-        this.handleEvent("bbs-scroll-to-bottom", ({post_id}) => {
+        this.handleEvent("bbs-scroll-to-bottom", ({ post_id }) => {
             // Scroll to the post element or the last element in the container
             const el = document.getElementById("post-" + post_id) || this.el.lastElementChild;
             if (el) {
@@ -2281,7 +2348,7 @@ Hooks.BBSScrollManager = {
 
 Hooks.BBSReplyForm = {
     mounted() {
-        this.handleEvent("bbs-insert-quote", ({post_id, author, thread_id, board, excerpt, same_thread}) => {
+        this.handleEvent("bbs-insert-quote", ({ post_id, author, thread_id, board, excerpt, same_thread }) => {
             const textarea = this.el.querySelector("textarea[name*='content']");
             if (!textarea) return;
 
@@ -2422,38 +2489,38 @@ Hooks.BBSCopyQuote = {
 };
 
 Hooks.ComposerKeepalive = {
-  mounted() {
-    this._active = false;
-    this._onActivity = () => { this._active = true; };
-    document.addEventListener("scroll", this._onActivity, { passive: true, capture: true });
-    document.addEventListener("mousemove", this._onActivity, { passive: true });
-    document.addEventListener("keydown", this._onActivity, { passive: true });
-    this._interval = setInterval(() => {
-      if (this._active) {
+    mounted() {
         this._active = false;
-        this.pushEvent("keepalive", {});
-      }
-    }, 60_000);
-  },
-  destroyed() {
-    clearInterval(this._interval);
-    document.removeEventListener("scroll", this._onActivity, { capture: true });
-    document.removeEventListener("mousemove", this._onActivity);
-    document.removeEventListener("keydown", this._onActivity);
-  }
+        this._onActivity = () => { this._active = true; };
+        document.addEventListener("scroll", this._onActivity, { passive: true, capture: true });
+        document.addEventListener("mousemove", this._onActivity, { passive: true });
+        document.addEventListener("keydown", this._onActivity, { passive: true });
+        this._interval = setInterval(() => {
+            if (this._active) {
+                this._active = false;
+                this.pushEvent("keepalive", {});
+            }
+        }, 60_000);
+    },
+    destroyed() {
+        clearInterval(this._interval);
+        document.removeEventListener("scroll", this._onActivity, { capture: true });
+        document.removeEventListener("mousemove", this._onActivity);
+        document.removeEventListener("keydown", this._onActivity);
+    }
 };
 
 Hooks.NPCQuickSwitch = {
-  mounted() {
-    this._pins = this._loadPins();
-    this._isOpen = false;
-    this._focusedIdx = -1;
-    this._filteredItems = [];
+    mounted() {
+        this._pins = this._loadPins();
+        this._isOpen = false;
+        this._focusedIdx = -1;
+        this._filteredItems = [];
 
-    this._modal = document.createElement('div');
-    this._modal.className = 'npc-qs-overlay';
-    this._modal.style.display = 'none';
-    this._modal.innerHTML = `
+        this._modal = document.createElement('div');
+        this._modal.className = 'npc-qs-overlay';
+        this._modal.style.display = 'none';
+        this._modal.innerHTML = `
       <div class="npc-qs-modal">
         <div class="npc-qs-header">
           <span class="npc-qs-title">Quick-switch NPC</span>
@@ -2466,131 +2533,131 @@ Hooks.NPCQuickSwitch = {
         </div>
       </div>
     `;
-    document.body.appendChild(this._modal);
+        document.body.appendChild(this._modal);
 
-    this._modal.querySelector('.npc-qs-reset-btn').addEventListener('click', () => {
-      this.pushEvent('reset_to_dragon_basis', {});
-      this._close();
-    });
+        this._modal.querySelector('.npc-qs-reset-btn').addEventListener('click', () => {
+            this.pushEvent('reset_to_dragon_basis', {});
+            this._close();
+        });
 
-    this.el.addEventListener('click', () => this._open());
+        this.el.addEventListener('click', () => this._open());
 
-    this._modal.addEventListener('click', (e) => {
-      if (e.target === this._modal) this._close();
-    });
+        this._modal.addEventListener('click', (e) => {
+            if (e.target === this._modal) this._close();
+        });
 
-    this._modal.querySelector('.npc-qs-close').addEventListener('click', () => this._close());
+        this._modal.querySelector('.npc-qs-close').addEventListener('click', () => this._close());
 
-    this._searchEl = this._modal.querySelector('.npc-qs-search');
-    this._searchEl.addEventListener('input', () => {
-      this._focusedIdx = -1;
-      this._render();
-    });
+        this._searchEl = this._modal.querySelector('.npc-qs-search');
+        this._searchEl.addEventListener('input', () => {
+            this._focusedIdx = -1;
+            this._render();
+        });
 
-    this._handleKeydown = (e) => {
-      if (!this._isOpen) return;
-      if (e.key === 'Escape') { e.preventDefault(); this._close(); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); this._moveFocus(1); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); this._moveFocus(-1); }
-      else if (e.key === 'Enter') { e.preventDefault(); this._selectFocused(); }
-    };
-    document.addEventListener('keydown', this._handleKeydown);
-  },
+        this._handleKeydown = (e) => {
+            if (!this._isOpen) return;
+            if (e.key === 'Escape') { e.preventDefault(); this._close(); }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); this._moveFocus(1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); this._moveFocus(-1); }
+            else if (e.key === 'Enter') { e.preventDefault(); this._selectFocused(); }
+        };
+        document.addEventListener('keydown', this._handleKeydown);
+    },
 
-  updated() {
-    if (this._isOpen) this._render();
-  },
+    updated() {
+        if (this._isOpen) this._render();
+    },
 
-  destroyed() {
-    this._modal.remove();
-    document.removeEventListener('keydown', this._handleKeydown);
-  },
+    destroyed() {
+        this._modal.remove();
+        document.removeEventListener('keydown', this._handleKeydown);
+    },
 
-  _loadPins() {
-    try { return JSON.parse(localStorage.getItem('npc-pins') || '[]'); }
-    catch { return []; }
-  },
+    _loadPins() {
+        try { return JSON.parse(localStorage.getItem('npc-pins') || '[]'); }
+        catch { return []; }
+    },
 
-  _savePins() {
-    localStorage.setItem('npc-pins', JSON.stringify(this._pins));
-  },
+    _savePins() {
+        localStorage.setItem('npc-pins', JSON.stringify(this._pins));
+    },
 
-  _getPresets() {
-    try { return JSON.parse(this.el.dataset.presets || '[]'); }
-    catch { return []; }
-  },
+    _getPresets() {
+        try { return JSON.parse(this.el.dataset.presets || '[]'); }
+        catch { return []; }
+    },
 
-  _open() {
-    this._isOpen = true;
-    this._focusedIdx = -1;
-    this._modal.style.display = 'flex';
-    this._render();
-    requestAnimationFrame(() => this._searchEl.focus());
-  },
+    _open() {
+        this._isOpen = true;
+        this._focusedIdx = -1;
+        this._modal.style.display = 'flex';
+        this._render();
+        requestAnimationFrame(() => this._searchEl.focus());
+    },
 
-  _close() {
-    this._isOpen = false;
-    this._modal.style.display = 'none';
-    this._searchEl.value = '';
-  },
+    _close() {
+        this._isOpen = false;
+        this._modal.style.display = 'none';
+        this._searchEl.value = '';
+    },
 
-  _render() {
-    const query = this._searchEl.value.toLowerCase().trim();
-    const presets = this._getPresets();
-    const existingIds = new Set(presets.map(p => p.id));
-    this._pins = this._pins.filter(id => existingIds.has(id));
-    const pinSet = new Set(this._pins);
+    _render() {
+        const query = this._searchEl.value.toLowerCase().trim();
+        const presets = this._getPresets();
+        const existingIds = new Set(presets.map(p => p.id));
+        this._pins = this._pins.filter(id => existingIds.has(id));
+        const pinSet = new Set(this._pins);
 
-    const filtered = presets.filter(p => {
-      if (!query) return true;
-      return (p.name || '').toLowerCase().includes(query) ||
-             (p.narrative_author_name || '').toLowerCase().includes(query);
-    });
+        const filtered = presets.filter(p => {
+            if (!query) return true;
+            return (p.name || '').toLowerCase().includes(query) ||
+                (p.narrative_author_name || '').toLowerCase().includes(query);
+        });
 
-    const alpha = (a, b) => (a.name || '').localeCompare(b.name || '');
-    const pinned = filtered.filter(p => pinSet.has(p.id)).sort(alpha);
-    const rest = filtered.filter(p => !pinSet.has(p.id)).sort(alpha);
-    this._filteredItems = [...pinned, ...rest];
-    this._focusedIdx = Math.min(this._focusedIdx, this._filteredItems.length - 1);
+        const alpha = (a, b) => (a.name || '').localeCompare(b.name || '');
+        const pinned = filtered.filter(p => pinSet.has(p.id)).sort(alpha);
+        const rest = filtered.filter(p => !pinSet.has(p.id)).sort(alpha);
+        this._filteredItems = [...pinned, ...rest];
+        this._focusedIdx = Math.min(this._focusedIdx, this._filteredItems.length - 1);
 
-    const listEl = this._modal.querySelector('.npc-qs-list');
-    listEl.innerHTML = '';
+        const listEl = this._modal.querySelector('.npc-qs-list');
+        listEl.innerHTML = '';
 
-    if (this._filteredItems.length === 0) {
-      listEl.innerHTML = '<div class="npc-qs-empty">No NPCs found</div>';
-      return;
-    }
+        if (this._filteredItems.length === 0) {
+            listEl.innerHTML = '<div class="npc-qs-empty">No NPCs found</div>';
+            return;
+        }
 
-    const colorMap = { red: '#ef4444', green: '#22c55e', blue: '#3b82f6', white: '#e2e8f0', black: '#9ca3af', redacted: '#7c3aed' };
-    let shownSep = false;
+        const colorMap = { red: '#ef4444', green: '#22c55e', blue: '#3b82f6', white: '#e2e8f0', black: '#9ca3af', redacted: '#7c3aed' };
+        let shownSep = false;
 
-    this._filteredItems.forEach((preset, idx) => {
-      const isPinned = pinSet.has(preset.id);
+        this._filteredItems.forEach((preset, idx) => {
+            const isPinned = pinSet.has(preset.id);
 
-      if (!isPinned && !shownSep && pinned.length > 0) {
-        shownSep = true;
-        const sep = document.createElement('div');
-        sep.className = 'npc-qs-separator';
-        listEl.appendChild(sep);
-      }
+            if (!isPinned && !shownSep && pinned.length > 0) {
+                shownSep = true;
+                const sep = document.createElement('div');
+                sep.className = 'npc-qs-separator';
+                listEl.appendChild(sep);
+            }
 
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'npc-qs-item' +
-        (isPinned ? ' npc-qs-item--pinned' : '') +
-        (idx === this._focusedIdx ? ' npc-qs-item--focused' : '');
-      item.dataset.idx = idx;
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'npc-qs-item' +
+                (isPinned ? ' npc-qs-item--pinned' : '') +
+                (idx === this._focusedIdx ? ' npc-qs-item--focused' : '');
+            item.dataset.idx = idx;
 
-      const dotColor = colorMap[preset.color_category] || '#7c3aed';
-      const authorName = preset.narrative_author_name || preset.name || '';
-      const presetName = preset.name || '';
-      const showSubname = authorName !== presetName && presetName;
+            const dotColor = colorMap[preset.color_category] || '#7c3aed';
+            const authorName = preset.narrative_author_name || preset.name || '';
+            const presetName = preset.name || '';
+            const showSubname = authorName !== presetName && presetName;
 
-      const avatarHtml = preset.avatar_path
-        ? `<img src="${this._esc(preset.avatar_path)}" class="npc-qs-avatar" alt="" />`
-        : `<div class="npc-qs-avatar npc-qs-avatar--placeholder"></div>`;
+            const avatarHtml = preset.avatar_path
+                ? `<img src="${this._esc(preset.avatar_path)}" class="npc-qs-avatar" alt="" />`
+                : `<div class="npc-qs-avatar npc-qs-avatar--placeholder"></div>`;
 
-      item.innerHTML = `
+            item.innerHTML = `
         ${avatarHtml}
         <div class="npc-qs-item-text">
           <span class="npc-qs-item-author">${this._esc(authorName)}</span>
@@ -2600,96 +2667,96 @@ Hooks.NPCQuickSwitch = {
         <button type="button" class="npc-qs-pin-btn" data-preset-id="${preset.id}" title="${isPinned ? 'Unpin' : 'Pin'}">${isPinned ? '★' : '☆'}</button>
       `;
 
-      item.addEventListener('click', (e) => {
-        if (e.target.closest('.npc-qs-pin-btn')) return;
-        this._select(preset.id);
-      });
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.npc-qs-pin-btn')) return;
+                this._select(preset.id);
+            });
 
-      item.querySelector('.npc-qs-pin-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        this._togglePin(preset.id);
-      });
+            item.querySelector('.npc-qs-pin-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._togglePin(preset.id);
+            });
 
-      listEl.appendChild(item);
-    });
-  },
+            listEl.appendChild(item);
+        });
+    },
 
-  _moveFocus(dir) {
-    const len = this._filteredItems.length;
-    if (len === 0) return;
-    if (this._focusedIdx === -1 && dir === -1) {
-      this._focusedIdx = len - 1;
-    } else {
-      this._focusedIdx = (this._focusedIdx + dir + len) % len;
+    _moveFocus(dir) {
+        const len = this._filteredItems.length;
+        if (len === 0) return;
+        if (this._focusedIdx === -1 && dir === -1) {
+            this._focusedIdx = len - 1;
+        } else {
+            this._focusedIdx = (this._focusedIdx + dir + len) % len;
+        }
+        this._render();
+        const focused = this._modal.querySelector('.npc-qs-item--focused');
+        if (focused) focused.scrollIntoView({ block: 'nearest' });
+    },
+
+    _selectFocused() {
+        if (this._focusedIdx >= 0 && this._filteredItems[this._focusedIdx]) {
+            this._select(this._filteredItems[this._focusedIdx].id);
+        }
+    },
+
+    _select(id) {
+        this.pushEvent('load_preset', { preset_id: String(id) });
+        this._close();
+    },
+
+    _togglePin(id) {
+        const idx = this._pins.indexOf(id);
+        if (idx >= 0) {
+            this._pins.splice(idx, 1);
+        } else {
+            this._pins.push(id);
+        }
+        this._savePins();
+        this._render();
+    },
+
+    _esc(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-    this._render();
-    const focused = this._modal.querySelector('.npc-qs-item--focused');
-    if (focused) focused.scrollIntoView({ block: 'nearest' });
-  },
-
-  _selectFocused() {
-    if (this._focusedIdx >= 0 && this._filteredItems[this._focusedIdx]) {
-      this._select(this._filteredItems[this._focusedIdx].id);
-    }
-  },
-
-  _select(id) {
-    this.pushEvent('load_preset', { preset_id: String(id) });
-    this._close();
-  },
-
-  _togglePin(id) {
-    const idx = this._pins.indexOf(id);
-    if (idx >= 0) {
-      this._pins.splice(idx, 1);
-    } else {
-      this._pins.push(id);
-    }
-    this._savePins();
-    this._render();
-  },
-
-  _esc(str) {
-    return String(str || '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 };
 
 Hooks.TagFilterInput = {
-  mounted() {
-    this.allTags = JSON.parse(this.el.dataset.allTags || "[]");
-    this.datalist = document.getElementById(this.el.getAttribute("list"));
-    this._onInput = () => this._updateOptions();
-    this.el.addEventListener("input", this._onInput);
-  },
-  updated() {
-    this.allTags = JSON.parse(this.el.dataset.allTags || "[]");
-    this._updateOptions();
-  },
-  destroyed() {
-    this.el.removeEventListener("input", this._onInput);
-  },
-  _updateOptions() {
-    const value = this.el.value;
-    const parts = value.split(",");
-    const completedParts = parts.slice(0, -1).map(t => t.trim()).filter(t => t !== "");
-    const currentToken = parts[parts.length - 1].trim().toLowerCase();
-    const prefix = completedParts.length > 0 ? completedParts.join(", ") + ", " : "";
-    const selectedLower = new Set(completedParts.map(t => t.toLowerCase()));
+    mounted() {
+        this.allTags = JSON.parse(this.el.dataset.allTags || "[]");
+        this.datalist = document.getElementById(this.el.getAttribute("list"));
+        this._onInput = () => this._updateOptions();
+        this.el.addEventListener("input", this._onInput);
+    },
+    updated() {
+        this.allTags = JSON.parse(this.el.dataset.allTags || "[]");
+        this._updateOptions();
+    },
+    destroyed() {
+        this.el.removeEventListener("input", this._onInput);
+    },
+    _updateOptions() {
+        const value = this.el.value;
+        const parts = value.split(",");
+        const completedParts = parts.slice(0, -1).map(t => t.trim()).filter(t => t !== "");
+        const currentToken = parts[parts.length - 1].trim().toLowerCase();
+        const prefix = completedParts.length > 0 ? completedParts.join(", ") + ", " : "";
+        const selectedLower = new Set(completedParts.map(t => t.toLowerCase()));
 
-    const matches = this.allTags.filter(tag => {
-      const tl = tag.toLowerCase();
-      return tl.includes(currentToken) && !selectedLower.has(tl);
-    });
+        const matches = this.allTags.filter(tag => {
+            const tl = tag.toLowerCase();
+            return tl.includes(currentToken) && !selectedLower.has(tl);
+        });
 
-    while (this.datalist.firstChild) this.datalist.removeChild(this.datalist.firstChild);
-    matches.forEach(tag => {
-      const opt = document.createElement("option");
-      opt.value = prefix + tag;
-      this.datalist.appendChild(opt);
-    });
-  }
+        while (this.datalist.firstChild) this.datalist.removeChild(this.datalist.firstChild);
+        matches.forEach(tag => {
+            const opt = document.createElement("option");
+            opt.value = prefix + tag;
+            this.datalist.appendChild(opt);
+        });
+    }
 };
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
