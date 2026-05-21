@@ -548,6 +548,56 @@ Hooks.Grimoire = {
 
 Hooks.LibraryBodyEditor = {
     mounted() {
+        const slug = this.el.dataset.folioSlug;
+        this.storageKey = slug ? `library_body_${slug}` : null;
+        this.textarea = document.getElementById("library-body-textarea");
+
+        if (this.storageKey && this.textarea) {
+            // Capture server's current folio body BEFORE any restoration
+            this.baseValue = this.textarea.value;
+
+            const raw = localStorage.getItem(this.storageKey);
+            if (raw) {
+                try {
+                    const draft = JSON.parse(raw);
+                    if (draft.base === this.baseValue) {
+                        // Safe: folio body hasn't changed since draft was saved
+                        this.textarea.value = draft.content;
+                        this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                    } else {
+                        // Stale: underlying folio changed, discard silently
+                        localStorage.removeItem(this.storageKey);
+                    }
+                } catch (_e) {
+                    // Malformed entry (e.g. old plain-string format) — discard
+                    localStorage.removeItem(this.storageKey);
+                }
+            }
+
+            this._inputHandler = () => {
+                if (this.textarea.value.trim()) {
+                    localStorage.setItem(this.storageKey, JSON.stringify({
+                        content: this.textarea.value,
+                        base: this.baseValue
+                    }));
+                } else {
+                    localStorage.removeItem(this.storageKey);
+                }
+            };
+            this.textarea.addEventListener("input", this._inputHandler);
+        }
+
+        this.handleEvent("body_saved", () => {
+            if (this.storageKey) localStorage.removeItem(this.storageKey);
+        });
+
+        const cancelBtn = this.el.querySelector("[phx-click='cancel_edit_body']");
+        if (cancelBtn) {
+            cancelBtn.addEventListener("click", () => {
+                if (this.storageKey) localStorage.removeItem(this.storageKey);
+            });
+        }
+
         this.el.querySelectorAll("[data-insert-tag]").forEach((btn) => {
             btn.addEventListener("click", () => {
                 const tagName = btn.dataset.insertTag;
@@ -564,15 +614,19 @@ Hooks.LibraryBodyEditor = {
                     insert +
                     textarea.value.substring(end);
 
-                // Move cursor to inside the closing tag (after selected text)
                 const newPos = start + insert.length - `[/${tagName}]`.length;
                 textarea.setSelectionRange(newPos, newPos);
                 textarea.focus();
 
-                // Trigger phx-change so the LiveView preview updates
                 textarea.dispatchEvent(new Event("input", { bubbles: true }));
             });
         });
+    },
+
+    destroyed() {
+        if (this.textarea && this._inputHandler) {
+            this.textarea.removeEventListener("input", this._inputHandler);
+        }
     },
 }
 

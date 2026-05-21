@@ -195,7 +195,8 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
            |> assign(:folio, updated_folio)
            |> assign(:editing_body, false)
            |> assign(:preview_html, render_library_content(content))
-           |> assign(:lock_timer_ref, nil)}
+           |> assign(:lock_timer_ref, nil)
+           |> push_event("body_saved", %{})}
 
         {:error, :lock_lost} ->
           if ref = socket.assigns[:lock_timer_ref], do: Process.cancel_timer(ref)

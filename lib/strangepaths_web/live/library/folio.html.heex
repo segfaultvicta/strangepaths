@@ -81,7 +81,7 @@
   <div class="mb-8">
     <%= if @editing_body do %>
       <%!-- Body editor — split pane: editor left, preview right --%>
-      <div id="library-body-editor" phx-hook="LibraryBodyEditor">
+      <div id="library-body-editor" phx-hook="LibraryBodyEditor" data-folio-slug={@folio.slug}>
         <div class="flex gap-2 mb-2">
           <%!-- Grimoire glyph toolbar --%>
           <div id="library-body-grimoire" phx-hook="Grimoire" phx-update="ignore" data-textarea-id="library-body-textarea">
