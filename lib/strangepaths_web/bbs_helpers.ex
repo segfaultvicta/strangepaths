@@ -34,11 +34,7 @@ defmodule StrangepathsWeb.BBSHelpers do
     quote_matches = Regex.scan(quote_regex, content, capture: :all_but_first)
 
     if quote_matches == [] do
-      # No quotes — escape and render markdown
-      content
-      |> Phoenix.HTML.html_escape()
-      |> Phoenix.HTML.safe_to_string()
-      |> render_post_content()
+      render_post_content(content)
     else
       # Batch-load titles for any cross-thread quote targets (one query for all)
       cross_thread_ids =
@@ -49,8 +45,7 @@ defmodule StrangepathsWeb.BBSHelpers do
 
       thread_titles = Strangepaths.BBS.get_thread_titles(cross_thread_ids)
       # Step 1: Replace each [quote] block with a unique alphanumeric placeholder.
-      # Alphanumeric only — no HTML or markdown special characters, so neither
-      # html_escape nor Earmark will touch them.
+      # Alphanumeric only — no markdown special characters, so Earmark won't touch them.
       {placeholdered, _} =
         Enum.reduce(quote_matches, {content, 0}, fn _match, {text, idx} ->
           new_text = Regex.replace(quote_regex, text, "XBBSQ#{idx}XBBSQ", global: false)
@@ -62,21 +57,17 @@ defmodule StrangepathsWeb.BBSHelpers do
       # quote's excerpt up to the inner [/quote], leaving the outer [/quote] as stray text.
       placeholdered = String.replace(placeholdered, "[/quote]", "")
 
-      # Step 2: HTML-escape user content. Placeholders are alphanumeric and pass through unchanged.
-      escaped = Phoenix.HTML.html_escape(placeholdered) |> Phoenix.HTML.safe_to_string()
-
-      # Step 3: Replace text placeholders with HTML comment stubs AFTER html_escape so the
-      # stubs won't be re-escaped. Earmark passes HTML comments through verbatim, without
-      # adding newlines or other modifications.
+      # Step 2: Replace text placeholders with HTML comment stubs. Earmark passes HTML comments
+      # through verbatim, without adding newlines or other modifications.
       stubbed =
-        Enum.reduce(Enum.with_index(quote_matches), escaped, fn {_, idx}, text ->
+        Enum.reduce(Enum.with_index(quote_matches), placeholdered, fn {_, idx}, text ->
           String.replace(text, "XBBSQ#{idx}XBBSQ", "<!-- BBSQPH:#{idx} -->")
         end)
 
-      # Step 4: Render through glyph + Earmark pipeline. Comment stubs pass through unchanged.
+      # Step 3: Render through glyph + Earmark pipeline. Comment stubs pass through unchanged.
       rendered = render_post_content(stubbed)
 
-      # Step 5: Replace comment stubs with rendered quote HTML, AFTER Earmark — so Earmark never
+      # Step 4: Replace comment stubs with rendered quote HTML, AFTER Earmark — so Earmark never
       # sees or re-escapes the quote block HTML. Replace one occurrence at a time (parts: 2)
       # so duplicate quote blocks are each restored exactly once.
       Enum.reduce(Enum.with_index(quote_matches), rendered, fn
