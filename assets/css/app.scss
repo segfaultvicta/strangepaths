@@ -1781,6 +1781,18 @@ input[type="range"].slider-purple {
         display: initial;
         padding: 0 .25rem;
     }
+
+    ul {
+        margin: revert;
+        padding: revert;
+        list-style: revert;
+    }
+
+    ol {
+        margin: revert;
+        padding: revert;
+        list-style: revert;
+    }
 }
 
 .prose {
