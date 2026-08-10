@@ -75,8 +75,8 @@
        style="touch-action: none;"
        phx-hook="RumorMapViewport">
 
-    <!-- Connection manager (invisible, just for hook) -->
-    <div id="rumor-map-connections" phx-hook="RumorMap" phx-update="ignore"></div>
+    <!-- Connection lines (canvas-rendered) -->
+    <canvas id="rumor-map-connections" phx-hook="RumorMap" phx-update="ignore" class="absolute inset-0" style="pointer-events: none;"></canvas>
 
     <!-- The pannable/zoomable world container -->
     <div id="rumor-map-world"

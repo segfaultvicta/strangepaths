@@ -2062,30 +2062,126 @@ Hooks.RumorMapNode = {
 
 Hooks.RumorMap = {
     mounted() {
-        this.lines = {};    // connId -> { instance, startNodeId, endNodeId, conn, isMerged, partner }
-        this.pairIndex = {}; // pairKey -> { primaryId, secondaryId }
+        this.canvas = this.el;
+        this.ctx = this.canvas.getContext('2d');
+        this.viewport = document.getElementById('rumor-map-viewport');
+        this.world = document.getElementById('rumor-map-world');
 
-        // Method to update all line positions (skip merged secondaries — they share an instance)
-        this.updateAllLines = () => {
-            Object.values(this.lines).forEach(lineData => {
-                if (lineData.instance) lineData.instance.position();
+        this.connections = {}; // connId -> { fromId, toId, conn, color, size, dash, isMerged, bidirectional, partner }
+        this.pairIndex = {};   // pairKey -> { primaryId, secondaryId }
+
+        // Keep the canvas backing store matched to the visible viewport (not the 20000px world)
+        this.resizeCanvas = () => {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = this.viewport.getBoundingClientRect();
+            this.canvas.width = rect.width * dpr;
+            this.canvas.height = rect.height * dpr;
+            this.canvas.style.width = `${rect.width}px`;
+            this.canvas.style.height = `${rect.height}px`;
+            this.redraw();
+        };
+        // Parse pan/zoom from the world's inline transform (same local coordinate space the
+        // node divs' left/top styles already use — no getBoundingClientRect/CTM math needed)
+        this.getWorldTransform = () => {
+            const match = this.world.style.transform.match(
+                /translate3d\(([^,]+)px,\s*([^,]+)px,\s*[^)]+\)\s*scale\(([\d.]+)\)/
+            );
+            if (!match) return { panX: 0, panY: 0, zoom: 1 };
+            return { panX: parseFloat(match[1]), panY: parseFloat(match[2]), zoom: parseFloat(match[3]) };
+        };
+
+        this.drawArrowhead = (x, y, angle, color, zoom) => {
+            const size = 10 / zoom;
+            const ctx = this.ctx;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-size, size * 0.5);
+            ctx.lineTo(-size, -size * 0.5);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        };
+
+        // Approximate a node's on-screen radius in local (untransformed) units, so lines
+        // terminate near the node's edge rather than dead-center.
+        this.nodeRadius = (el) => {
+            const scaleMatch = el.style.transform && el.style.transform.match(/scale\(([\d.]+)\)/);
+            const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+            return ((el.offsetWidth || 0) / 2) * scale;
+        };
+
+        this.drawConnection = (c, zoom) => {
+            const fromEl = document.getElementById(`node-${c.fromId}`);
+            const toEl = document.getElementById(`node-${c.toId}`);
+            if (!fromEl || !toEl) return;
+
+            const x1 = parseFloat(fromEl.style.left) || 0;
+            const y1 = parseFloat(fromEl.style.top) || 0;
+            const x2 = parseFloat(toEl.style.left) || 0;
+            const y2 = parseFloat(toEl.style.top) || 0;
+
+            const dx = x2 - x1, dy = y2 - y1;
+            const dist = Math.hypot(dx, dy) || 1;
+            const ux = dx / dist, uy = dy / dist;
+
+            const sx = x1 + ux * this.nodeRadius(fromEl), sy = y1 + uy * this.nodeRadius(fromEl);
+            const ex = x2 - ux * this.nodeRadius(toEl), ey = y2 - uy * this.nodeRadius(toEl);
+
+            // Gentle perpendicular bend, mirroring the old 'fluid' curve style
+            const nx = -uy, ny = ux;
+            const bend = Math.min(dist * 0.2, 60);
+            const c1x = sx + (ex - sx) / 3 + nx * bend, c1y = sy + (ey - sy) / 3 + ny * bend;
+            const c2x = sx + (ex - sx) * 2 / 3 + nx * bend, c2y = sy + (ey - sy) * 2 / 3 + ny * bend;
+
+            const ctx = this.ctx;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
+            ctx.strokeStyle = c.color;
+            ctx.lineWidth = (c.size || 2) / zoom;
+            if (c.dash === 'dashed') {
+                ctx.setLineDash([10 / zoom, 6 / zoom]);
+            } else if (c.dash === 'dotted') {
+                ctx.setLineDash([2 / zoom, 5 / zoom]);
+            } else {
+                ctx.setLineDash([]);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            this.drawArrowhead(ex, ey, Math.atan2(ey - c2y, ex - c2x), c.color, zoom);
+            if (c.bidirectional) {
+                this.drawArrowhead(sx, sy, Math.atan2(sy - c1y, sx - c1x), c.color, zoom);
+            }
+        };
+
+        this.redraw = () => {
+            const dpr = window.devicePixelRatio || 1;
+            const { panX, panY, zoom } = this.getWorldTransform();
+            const ctx = this.ctx;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * panX, dpr * panY);
+
+            Object.values(this.connections).forEach(c => {
+                if (c.isMerged) return; // rendered as part of its partner (the primary)
+                this.drawConnection(c, zoom);
             });
         };
 
+        this._resizeObserver = new ResizeObserver(() => this.resizeCanvas());
+        this._resizeObserver.observe(this.viewport);
+        this.resizeCanvas();
+
         // Listen for node movement to update lines
-        window.addEventListener('node-moved', (e) => {
-            const nodeId = e.detail.nodeId;
-            Object.values(this.lines).forEach(lineData => {
-                if (lineData.instance && (lineData.startNodeId == nodeId || lineData.endNodeId == nodeId)) {
-                    lineData.instance.position();
-                }
-            });
-        });
+        window.addEventListener('node-moved', () => this.redraw());
 
         // Listen for viewport transformations (pan/zoom) to update all lines
-        window.addEventListener('viewport-transformed', () => {
-            this.updateAllLines();
-        });
+        window.addEventListener('viewport-transformed', () => this.redraw());
 
         // Draw a new connection (handles bidirectional merging automatically)
         this.handleEvent('draw_connection', (conn) => {
@@ -2095,7 +2191,7 @@ Hooks.RumorMap = {
         // Update a connection: remove old then redraw (naturally handles merge/unmerge)
         this.handleEvent('update_connection', (conn) => {
             this.removeConnection(conn.id);
-            this.drawConnectionFromData(conn, 'disc');
+            this.drawConnectionFromData(conn);
         });
 
         // Remove a connection (handles merged pair cleanup)
@@ -2106,12 +2202,12 @@ Hooks.RumorMap = {
         // Remove all connections to/from a deleted node (skip promotion — node is going away)
         this.handleEvent('remove_deleted_node_connections', ({ node_id }) => {
             const nodeIdStr = node_id.toString();
-            const toRemove = Object.keys(this.lines).filter(connId => {
-                const ld = this.lines[connId];
-                return ld.startNodeId === nodeIdStr || ld.endNodeId === nodeIdStr;
+            const toRemove = Object.keys(this.connections).filter(connId => {
+                const c = this.connections[connId];
+                return c.fromId.toString() === nodeIdStr || c.toId.toString() === nodeIdStr;
             });
             toRemove.forEach(connId => {
-                if (this.lines[connId]) this.removeConnection(connId, true);
+                if (this.connections[connId]) this.removeConnection(connId, true);
             });
         });
 
@@ -2150,33 +2246,31 @@ Hooks.RumorMap = {
     },
 
     // Draw a connection, merging into a bidirectional line when a same-colour reverse exists.
-    // startPlug is only used when the connection ends up drawn as a standalone line.
-    drawConnectionFromData(conn, startPlug = 'inside') {
+    drawConnectionFromData(conn) {
         const pairKey = this.getPairKey(conn.from_id, conn.to_id);
         const existing = this.pairIndex[pairKey];
 
         // Check for a merge opportunity: existing primary with no secondary and matching colour
         if (existing && !existing.secondaryId) {
-            const primaryEntry = this.lines[existing.primaryId];
+            const primaryEntry = this.connections[existing.primaryId];
             if (primaryEntry && !primaryEntry.isMerged &&
-                this.getConnColor(primaryEntry.conn) === this.getConnColor(conn)) {
+                primaryEntry.color === this.getConnColor(conn)) {
                 // Upgrade the primary line to bidirectional and register as merged secondary
-                primaryEntry.instance.setOptions({ startPlug: 'arrow2', endPlug: 'arrow2' });
+                primaryEntry.bidirectional = true;
                 primaryEntry.partner = conn.id;
-                this.lines[conn.id] = {
-                    instance: null,
-                    startNodeId: conn.from_id.toString(),
-                    endNodeId: conn.to_id.toString(),
+                this.connections[conn.id] = {
+                    fromId: conn.from_id,
+                    toId: conn.to_id,
                     conn: conn,
                     isMerged: true,
                     partner: existing.primaryId
                 };
                 this.pairIndex[pairKey].secondaryId = conn.id;
+                this.redraw();
                 return;
             }
         }
 
-        // Normal draw
         const startEl = document.getElementById(`node-${conn.from_id}`);
         const endEl = document.getElementById(`node-${conn.to_id}`);
         if (!startEl || !endEl) {
@@ -2185,66 +2279,55 @@ Hooks.RumorMap = {
         }
 
         const lineStyle = conn.line_style || {};
-        const color = this.getConnColor(conn);
-        const lineOpts = {
-            color: color,
-            size: lineStyle.size || 2,
-            path: 'fluid',
-            startPlug: startPlug,
-            endPlug: 'arrow2'
-        };
-        if (lineStyle.dash === 'dashed') {
-            lineOpts.dash = { animation: true };
-        } else if (lineStyle.dash === 'dotted') {
-            lineOpts.dash = true;
-        }
-
-        const line = new LeaderLine(startEl, endEl, lineOpts);
-        this.lines[conn.id] = {
-            instance: line,
-            startNodeId: conn.from_id.toString(),
-            endNodeId: conn.to_id.toString(),
+        this.connections[conn.id] = {
+            fromId: conn.from_id,
+            toId: conn.to_id,
             conn: conn,
+            color: this.getConnColor(conn),
+            size: lineStyle.size || 2,
+            dash: lineStyle.dash,
             isMerged: false,
+            bidirectional: false,
             partner: null
         };
         this.pairIndex[pairKey] = { primaryId: conn.id, secondaryId: null };
+        this.redraw();
     },
 
     // Remove a connection, correctly handling merged bidirectional pairs.
     // skipPromotion: when true (e.g. node deletion), both sides of a merge are dropped
     // without trying to redraw the surviving connection.
     removeConnection(connId, skipPromotion = false) {
-        const entry = this.lines[connId];
+        const entry = this.connections[connId];
         if (!entry) return;
 
-        const pairKey = this.getPairKey(entry.startNodeId, entry.endNodeId);
+        const pairKey = this.getPairKey(entry.fromId, entry.toId);
 
         if (entry.isMerged) {
             // Removing the secondary — revert the primary to a single-direction arrow
-            const primary = this.lines[entry.partner];
-            if (primary && primary.instance) {
-                primary.instance.setOptions({ startPlug: 'inside', endPlug: 'arrow2' });
+            const primary = this.connections[entry.partner];
+            if (primary) {
+                primary.bidirectional = false;
                 primary.partner = null;
             }
             if (this.pairIndex[pairKey]) this.pairIndex[pairKey].secondaryId = null;
-            delete this.lines[connId];
+            delete this.connections[connId];
+            this.redraw();
             return;
         }
 
         if (entry.partner) {
             if (skipPromotion) {
                 // Node deletion path: just remove both entries cleanly
-                delete this.lines[entry.partner];
-                entry.instance.remove();
-                delete this.lines[connId];
+                delete this.connections[entry.partner];
+                delete this.connections[connId];
                 delete this.pairIndex[pairKey];
+                this.redraw();
             } else {
                 // Normal removal of primary: promote the secondary to a standalone line
-                const secondaryConn = this.lines[entry.partner].conn;
-                entry.instance.remove();
-                delete this.lines[entry.partner];
-                delete this.lines[connId];
+                const secondaryConn = this.connections[entry.partner].conn;
+                delete this.connections[entry.partner];
+                delete this.connections[connId];
                 delete this.pairIndex[pairKey];
                 this.drawConnectionFromData(secondaryConn);
             }
@@ -2252,9 +2335,9 @@ Hooks.RumorMap = {
         }
 
         // Normal standalone removal
-        entry.instance.remove();
-        delete this.lines[connId];
+        delete this.connections[connId];
         delete this.pairIndex[pairKey];
+        this.redraw();
     },
 
     getColorForCategory(category) {
@@ -2271,10 +2354,8 @@ Hooks.RumorMap = {
     },
 
     destroyed() {
-        Object.values(this.lines).forEach(lineData => {
-            if (lineData.instance) lineData.instance.remove();
-        });
-        this.lines = {};
+        if (this._resizeObserver) this._resizeObserver.disconnect();
+        this.connections = {};
         this.pairIndex = {};
     }
 }
