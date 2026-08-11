@@ -835,6 +835,42 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     end
   end
 
+  defp handle_rumormap_event("update_connection_path", %{"connection_id" => conn_id, "waypoints" => waypoints}, socket) do
+    conn_id = String.to_integer(conn_id)
+    connection = Rumor.get_connection!(conn_id)
+
+    case Rumor.update_connection(connection, %{waypoints: waypoints}) do
+      {:ok, updated_connection} ->
+        StrangepathsWeb.Endpoint.broadcast("rumor_map", "connection_updated", %{
+          connection: updated_connection
+        })
+
+        updated_connection = Strangepaths.Repo.preload(updated_connection, [:from_node, :to_node])
+
+        log_rumor_change(socket, "connection_updated", %{
+          connection_id: updated_connection.id,
+          details: %{
+            "from" => updated_connection.from_node.title,
+            "to" => updated_connection.to_node.title,
+            "changes" => [%{"field" => "path", "from" => "", "to" => "reshaped"}]
+          }
+        })
+
+        updated_connections =
+          Enum.map(socket.assigns.connections, fn conn ->
+            if conn.id == conn_id, do: updated_connection, else: conn
+          end)
+
+        {:noreply,
+         socket
+         |> assign(:connections, updated_connections)
+         |> push_event("update_connection", connection_to_event(updated_connection))}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update connection path")}
+    end
+  end
+
   defp handle_rumormap_event("toggle_connection_sort", _params, socket) do
     new_mode =
       if socket.assigns.connection_sort_mode == :distance, do: :alpha, else: :distance
@@ -1242,7 +1278,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       to_id: connection.to_node_id,
       label: connection.label,
       category: connection.from_node.color_category,
-      line_style: connection.line_style || %{}
+      line_style: connection.line_style || %{},
+      waypoints: connection.waypoints || []
     }
   end
 

@@ -1759,6 +1759,13 @@ Hooks.RumorMapViewport = {
 
         // Pan with click-drag on background
         this.el.addEventListener('mousedown', (e) => {
+            // Let the RumorMap hook claim this first (e.g. starting a waypoint drag while
+            // editing a connection's path) — if it does, don't also start panning.
+            const canvasEl = document.getElementById('rumor-map-connections');
+            if (canvasEl && canvasEl.__rumorClaimPointer && canvasEl.__rumorClaimPointer('mousedown', e)) {
+                return;
+            }
+
             // Only pan if clicking the viewport or world div (not nodes)
             if (e.target === this.el || e.target.id === 'rumor-map-world') {
                 isPanning = true;
@@ -1802,6 +1809,13 @@ Hooks.RumorMapViewport = {
 
         // Click empty space - either create node (Shift+Click) or deselect (plain click)
         this.el.addEventListener('click', (e) => {
+            // Let the RumorMap hook claim this first (line menu, exiting path-edit mode, or a
+            // click that just finished a waypoint drag) — if it does, skip deselect/create-node.
+            const canvasEl = document.getElementById('rumor-map-connections');
+            if (canvasEl && canvasEl.__rumorClaimPointer && canvasEl.__rumorClaimPointer('click', e)) {
+                return;
+            }
+
             // Only handle clicks on viewport or world (not nodes or buttons) AND we didn't just drag
             if ((e.target === this.el || e.target.id === 'rumor-map-world') && !hasDragged) {
                 if (e.shiftKey) {
@@ -2091,6 +2105,11 @@ Hooks.RumorMap = {
         this.matchedNodeIds = null;
         this.matchedPrimaryConnIds = null;
 
+        // Path editing: id of the connection currently showing draggable waypoint handles, or null.
+        this.editingConnId = null;
+        this._justDraggedHandle = false;
+        this._lineMenuEl = null;
+
         this.applyNodeDimming = () => {
             document.querySelectorAll('#nodes-container [data-node-id]').forEach(el => {
                 const dim = this.matchedNodeIds !== null && !this.matchedNodeIds.has(el.dataset.nodeId);
@@ -2192,31 +2211,95 @@ Hooks.RumorMap = {
             return ((el.offsetWidth || 0) / 2) * scale;
         };
 
-        this.drawConnection = (c, zoom) => {
+        // Endpoints (pulled back to each node's edge) plus any user-placed waypoints in between,
+        // in order: [start, ...waypoints, end]. Empty waypoints = today's single auto-curve.
+        this.computeConnectionPoints = (c) => {
             const fromEl = document.getElementById(`node-${c.fromId}`);
             const toEl = document.getElementById(`node-${c.toId}`);
-            if (!fromEl || !toEl) return;
+            if (!fromEl || !toEl) return null;
 
             const x1 = parseFloat(fromEl.style.left) || 0;
             const y1 = parseFloat(fromEl.style.top) || 0;
             const x2 = parseFloat(toEl.style.left) || 0;
             const y2 = parseFloat(toEl.style.top) || 0;
 
-            const dx = x2 - x1, dy = y2 - y1;
-            const dist = Math.hypot(dx, dy) || 1;
-            const ux = dx / dist, uy = dy / dist;
+            const waypoints = (c.conn.waypoints || []);
+            const firstTarget = waypoints.length ? waypoints[0] : { x: x2, y: y2 };
+            const lastTarget = waypoints.length ? waypoints[waypoints.length - 1] : { x: x1, y: y1 };
 
-            const sx = x1 + ux * this.nodeRadius(fromEl), sy = y1 + uy * this.nodeRadius(fromEl);
-            const ex = x2 - ux * this.nodeRadius(toEl), ey = y2 - uy * this.nodeRadius(toEl);
+            const d1x = firstTarget.x - x1, d1y = firstTarget.y - y1;
+            const d1 = Math.hypot(d1x, d1y) || 1;
+            const sx = x1 + (d1x / d1) * this.nodeRadius(fromEl);
+            const sy = y1 + (d1y / d1) * this.nodeRadius(fromEl);
 
-            // Gentle perpendicular bend, mirroring the old 'fluid' curve style
-            const nx = -uy, ny = ux;
-            const bend = Math.min(dist * 0.2, 60);
-            const c1x = sx + (ex - sx) / 3 + nx * bend, c1y = sy + (ey - sy) / 3 + ny * bend;
-            const c2x = sx + (ex - sx) * 2 / 3 + nx * bend, c2y = sy + (ey - sy) * 2 / 3 + ny * bend;
+            const d2x = x2 - lastTarget.x, d2y = y2 - lastTarget.y;
+            const d2 = Math.hypot(d2x, d2y) || 1;
+            const ex = x2 - (d2x / d2) * this.nodeRadius(toEl);
+            const ey = y2 - (d2y / d2) * this.nodeRadius(toEl);
 
-            // Cache local-space curve geometry for hover hit-testing
-            c._geom = { sx, sy, c1x, c1y, c2x, c2y, ex, ey };
+            return [{ x: sx, y: sy }, ...waypoints, { x: ex, y: ey }];
+        };
+
+        // Shared by drawConnection (rendering) and hitTestHandle (ghost-point hit-testing) so
+        // the clickable ghost points are always exactly where they're drawn.
+        this.computeSegGeoms = (points, zoom) => {
+            const segGeoms = [];
+            if (points.length === 2) {
+                // No waypoints: gentle perpendicular bend, mirroring the old 'fluid' curve style
+                const p1 = points[0], p2 = points[1];
+                const dx = p2.x - p1.x, dy = p2.y - p1.y;
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = -dy / dist, ny = dx / dist;
+                // Cap is in local units but should read as a constant SCREEN px amount regardless
+                // of zoom (matching lineWidth/arrowhead sizing below) — otherwise, at low zoom,
+                // a fixed local-unit cap shrinks to near-invisible curvature on long segments.
+                const bend = Math.min(dist * 0.09, 30 / zoom);
+                const c1x = p1.x + dx / 3 + nx * bend, c1y = p1.y + dy / 3 + ny * bend;
+                const c2x = p1.x + dx * 2 / 3 + nx * bend, c2y = p1.y + dy * 2 / 3 + ny * bend;
+                segGeoms.push({ sx: p1.x, sy: p1.y, c1x, c1y, c2x, c2y, ex: p2.x, ey: p2.y });
+            } else {
+                // One or more waypoints: CENTRIPETAL Catmull-Rom tangents (alpha=0.5), derived
+                // from each point's neighbors on both sides. Plain/uniform Catmull-Rom (equal
+                // weight per segment regardless of length) produces loops and overshoot when
+                // consecutive segments have very different lengths or a sharp direction change
+                // — centripetal parameterization (weighting by distance^0.5) is the standard fix,
+                // and stays well-behaved for any point layout.
+                const alpha = 0.5;
+                const knotDist = (a, b) => Math.pow(Math.hypot(b.x - a.x, b.y - a.y), alpha) || 1e-6;
+
+                for (let i = 0; i < points.length - 1; i++) {
+                    const p1 = points[i], p2 = points[i + 1];
+                    // Reflect a virtual neighbor at the boundaries instead of clamping/duplicating
+                    // a real point, which is what let the tangent formula misbehave at the ends.
+                    const p0 = points[i - 1] || { x: 2 * p1.x - p2.x, y: 2 * p1.y - p2.y };
+                    const p3 = points[i + 2] || { x: 2 * p2.x - p1.x, y: 2 * p2.y - p1.y };
+
+                    const t0 = 0;
+                    const t1 = t0 + knotDist(p0, p1);
+                    const t2 = t1 + knotDist(p1, p2);
+                    const t3 = t2 + knotDist(p2, p3);
+
+                    const m1x = (t2 - t1) * ((p1.x - p0.x) / (t1 - t0) - (p2.x - p0.x) / (t2 - t0) + (p2.x - p1.x) / (t2 - t1));
+                    const m1y = (t2 - t1) * ((p1.y - p0.y) / (t1 - t0) - (p2.y - p0.y) / (t2 - t0) + (p2.y - p1.y) / (t2 - t1));
+                    const m2x = (t2 - t1) * ((p2.x - p1.x) / (t2 - t1) - (p3.x - p1.x) / (t3 - t1) + (p3.x - p2.x) / (t3 - t2));
+                    const m2y = (t2 - t1) * ((p2.y - p1.y) / (t2 - t1) - (p3.y - p1.y) / (t3 - t1) + (p3.y - p2.y) / (t3 - t2));
+
+                    const c1x = p1.x + m1x / 3, c1y = p1.y + m1y / 3;
+                    const c2x = p2.x - m2x / 3, c2y = p2.y - m2y / 3;
+
+                    segGeoms.push({ sx: p1.x, sy: p1.y, c1x, c1y, c2x, c2y, ex: p2.x, ey: p2.y });
+                }
+            }
+            return segGeoms;
+        };
+
+        this.drawConnection = (c, zoom) => {
+            const points = this.computeConnectionPoints(c);
+            if (!points) return;
+
+            const segGeoms = this.computeSegGeoms(points, zoom);
+            // Cache local-space curve geometry for hover/click hit-testing
+            c._segGeoms = segGeoms;
 
             const isDimmed = this.matchedPrimaryConnIds !== null &&
                 !this.matchedPrimaryConnIds.has(c.conn.id.toString());
@@ -2225,8 +2308,10 @@ Hooks.RumorMap = {
             ctx.save();
             ctx.globalAlpha = isDimmed ? 0.15 : 1;
             ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
+            segGeoms.forEach((g, i) => {
+                if (i === 0) ctx.moveTo(g.sx, g.sy);
+                ctx.bezierCurveTo(g.c1x, g.c1y, g.c2x, g.c2y, g.ex, g.ey);
+            });
             ctx.strokeStyle = c.color;
             ctx.lineWidth = (c.size || 2) / zoom;
             if (c.dash === 'dashed') {
@@ -2239,11 +2324,53 @@ Hooks.RumorMap = {
             ctx.stroke();
             ctx.setLineDash([]);
 
-            this.drawArrowhead(ex, ey, Math.atan2(ey - c2y, ex - c2x), c.color, zoom);
+            const last = segGeoms[segGeoms.length - 1];
+            this.drawArrowhead(last.ex, last.ey, Math.atan2(last.ey - last.c2y, last.ex - last.c2x), c.color, zoom);
             if (c.bidirectional) {
-                this.drawArrowhead(sx, sy, Math.atan2(sy - c1y, sx - c1x), c.color, zoom);
+                const first = segGeoms[0];
+                this.drawArrowhead(first.sx, first.sy, Math.atan2(first.sy - first.c1y, first.sx - first.c1x), c.color, zoom);
             }
+
+            if (this.editingConnId !== null && c.conn.id.toString() === this.editingConnId.toString()) {
+                this.drawEditHandles(points, segGeoms, zoom);
+            }
+
             ctx.restore();
+        };
+
+        // Midpoint (t=0.5) of the actual rendered cubic bezier segment — NOT the midpoint of
+        // the straight line between its endpoints, which sits visibly off the curve once
+        // there's any bend at all. Used for both drawing and hit-testing the ghost/insert
+        // points, so what you see is exactly what you can click.
+        this.bezierMidpoint = (g) => ({
+            x: 0.125 * g.sx + 0.375 * g.c1x + 0.375 * g.c2x + 0.125 * g.ex,
+            y: 0.125 * g.sy + 0.375 * g.c1y + 0.375 * g.c2y + 0.125 * g.ey
+        });
+
+        // Real waypoints render as solid circles; segment midpoints render as faint "ghost"
+        // circles you can drag to insert a new point there.
+        this.drawEditHandles = (points, segGeoms, zoom) => {
+            const ctx = this.ctx;
+            const r = 6 / zoom;
+            const ghostR = 4 / zoom;
+
+            segGeoms.forEach((g) => {
+                const { x: mx, y: my } = this.bezierMidpoint(g);
+                ctx.beginPath();
+                ctx.arc(mx, my, ghostR, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.fill();
+            });
+
+            for (let i = 1; i < points.length - 1; i++) {
+                ctx.beginPath();
+                ctx.arc(points[i].x, points[i].y, r, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1 / zoom;
+                ctx.fill();
+                ctx.stroke();
+            }
         };
 
         this.redraw = () => {
@@ -2293,16 +2420,19 @@ Hooks.RumorMap = {
 
         const findHoveredConnection = (localX, localY, threshold) => {
             for (const c of Object.values(this.connections)) {
-                if (c.isMerged || !c._geom) continue;
-                const pts = sampleBezier(c._geom);
-                for (let i = 0; i < pts.length - 1; i++) {
-                    if (distToSegment(localX, localY, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]) <= threshold) {
-                        return c;
+                if (c.isMerged || !c._segGeoms) continue;
+                for (const g of c._segGeoms) {
+                    const pts = sampleBezier(g);
+                    for (let i = 0; i < pts.length - 1; i++) {
+                        if (distToSegment(localX, localY, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]) <= threshold) {
+                            return c;
+                        }
                     }
                 }
             }
             return null;
         };
+        this._findHoveredConnection = findHoveredConnection;
 
         this.viewport.addEventListener('mousemove', (e) => {
             if (!this.lineTippy) return;
@@ -2338,6 +2468,175 @@ Hooks.RumorMap = {
             this._hoveredConnId = null;
         });
 
+        // --- Line click menu (Edit path / Delete) ---
+        this.hideLineMenu = () => {
+            if (this._lineMenuEl) {
+                this._lineMenuEl.remove();
+                this._lineMenuEl = null;
+            }
+        };
+
+        this.showLineMenu = (hit, clientX, clientY) => {
+            this.hideLineMenu();
+
+            const menu = document.createElement('div');
+            menu.style.cssText = 'position: fixed; z-index: 50; background: #1a1a1a; ' +
+                `border: 1px solid #444; border-radius: 6px; padding: 4px; display: flex; ` +
+                `flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.5); ` +
+                `left: ${clientX}px; top: ${clientY}px;`;
+
+            const makeButton = (label, onClick) => {
+                const btn = document.createElement('button');
+                btn.textContent = label;
+                btn.style.cssText = 'padding: 6px 12px; text-align: left; background: none; ' +
+                    'border: none; color: #ddd; cursor: pointer; white-space: nowrap; font-size: 13px;';
+                btn.addEventListener('mouseenter', () => { btn.style.background = '#333'; });
+                btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; });
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.hideLineMenu();
+                    onClick();
+                });
+                return btn;
+            };
+
+            menu.appendChild(makeButton('Edit path', () => {
+                this.editingConnId = hit.conn.id;
+                this.redraw();
+            }));
+
+            document.body.appendChild(menu);
+            this._lineMenuEl = menu;
+
+            // Close on the next click anywhere else (menu buttons stop propagation themselves)
+            setTimeout(() => {
+                document.addEventListener('click', () => this.hideLineMenu(), { once: true });
+            }, 0);
+        };
+
+        // --- Waypoint hit-testing + drag (used only while editingConnId is set) ---
+        this.hitTestHandle = (localX, localY, zoom) => {
+            const c = this.connections[this.editingConnId];
+            if (!c) return null;
+            const points = this.computeConnectionPoints(c);
+            if (!points) return null;
+            const segGeoms = this.computeSegGeoms(points, zoom);
+
+            const hitR = 12 / zoom;
+
+            for (let i = 1; i < points.length - 1; i++) {
+                if (Math.hypot(localX - points[i].x, localY - points[i].y) <= hitR) {
+                    return { kind: 'move', index: i - 1 };
+                }
+            }
+            for (let i = 0; i < segGeoms.length; i++) {
+                const { x: mx, y: my } = this.bezierMidpoint(segGeoms[i]);
+                if (Math.hypot(localX - mx, localY - my) <= hitR) {
+                    return { kind: 'insert', insertAt: i };
+                }
+            }
+            return null;
+        };
+
+        this.localCoordsFromEvent = (e) => {
+            const rect = this.viewport.getBoundingClientRect();
+            const { panX, panY, zoom } = this.getWorldTransform();
+            return { x: (e.clientX - rect.left - panX) / zoom, y: (e.clientY - rect.top - panY) / zoom, zoom };
+        };
+
+        this.startHandleDrag = (handleHit, e) => {
+            const c = this.connections[this.editingConnId];
+            if (!c) return;
+            if (!c.conn.waypoints) c.conn.waypoints = [];
+
+            let index;
+            if (handleHit.kind === 'insert') {
+                const { x, y } = this.localCoordsFromEvent(e);
+                c.conn.waypoints.splice(handleHit.insertAt, 0, { x, y });
+                index = handleHit.insertAt;
+            } else {
+                index = handleHit.index;
+            }
+
+            const onMove = (moveEvent) => {
+                const { x, y } = this.localCoordsFromEvent(moveEvent);
+                c.conn.waypoints[index] = { x, y };
+                this.redraw();
+            };
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                this._justDraggedHandle = true;
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        };
+
+        this.commitPathEdit = () => {
+            const c = this.connections[this.editingConnId];
+            if (c) {
+                this.pushEvent('update_connection_path', {
+                    connection_id: this.editingConnId.toString(),
+                    waypoints: c.conn.waypoints || []
+                });
+            }
+            this.editingConnId = null;
+            this.redraw();
+        };
+
+        // Right-click a waypoint handle to remove it
+        this.viewport.addEventListener('contextmenu', (e) => {
+            if (this.editingConnId === null) return;
+            const { x, y, zoom } = this.localCoordsFromEvent(e);
+            const hit = this.hitTestHandle(x, y, zoom);
+            if (hit && hit.kind === 'move') {
+                e.preventDefault();
+                const c = this.connections[this.editingConnId];
+                c.conn.waypoints.splice(hit.index, 1);
+                this.redraw();
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.editingConnId !== null) {
+                this.commitPathEdit();
+            }
+        });
+
+        // Entry point RumorMapViewport calls before doing its own mousedown/click handling,
+        // so line-menu clicks and waypoint drags don't also trigger panning/deselect/node-create.
+        this.claimPointer = (type, e) => {
+            if (type === 'mousedown' && this.editingConnId !== null) {
+                const { x, y, zoom } = this.localCoordsFromEvent(e);
+                const handleHit = this.hitTestHandle(x, y, zoom);
+                if (handleHit) {
+                    this.startHandleDrag(handleHit, e);
+                    return true;
+                }
+                return false;
+            }
+
+            if (type === 'click') {
+                if (this._justDraggedHandle) {
+                    this._justDraggedHandle = false;
+                    return true;
+                }
+                if (this.editingConnId !== null) {
+                    this.commitPathEdit();
+                    return true;
+                }
+                const { x, y, zoom } = this.localCoordsFromEvent(e);
+                const hit = findHoveredConnection(x, y, 8 / zoom);
+                if (hit) {
+                    this.showLineMenu(hit, e.clientX, e.clientY);
+                    return true;
+                }
+            }
+
+            return false;
+        };
+        this.canvas.__rumorClaimPointer = this.claimPointer;
+
         this._resizeObserver = new ResizeObserver(() => this.resizeCanvas());
         this._resizeObserver.observe(this.viewport);
         this.resizeCanvas();
@@ -2353,10 +2652,32 @@ Hooks.RumorMap = {
             this.drawConnectionFromData(conn);
         });
 
-        // Update a connection: remove old then redraw (naturally handles merge/unmerge)
+        // Update a connection's data in place. This must NOT go through removeConnection —
+        // that function's job is handling actual deletion of a connection (including promoting
+        // a merged partner to standalone when its primary is deleted), and reusing it here for
+        // a plain data refresh meant every single edit to the primary half of a merged
+        // bidirectional pair was mistaken for "the primary got deleted," silently promoting the
+        // secondary (with whatever stale data it had cached) and swapping which connection id
+        // is actually the one that renders/edits. That's what caused edits to alternate between
+        // two different connection ids' waypoint histories instead of ever landing consistently.
         this.handleEvent('update_connection', (conn) => {
-            this.removeConnection(conn.id);
-            this.drawConnectionFromData(conn);
+            if (this.editingConnId !== null && conn.id.toString() === this.editingConnId.toString()) {
+                // A delayed echo for the connection we're actively editing — we're about to
+                // push our own authoritative version on commit, so this has nothing to add.
+                return;
+            }
+            const entry = this.connections[conn.id];
+            if (entry) {
+                entry.conn = conn;
+                entry.color = this.getConnColor(conn);
+                const lineStyle = conn.line_style || {};
+                entry.size = lineStyle.size || 2;
+                entry.dash = lineStyle.dash;
+                this.redraw();
+            } else {
+                // Not one we know about yet — draw it fresh (handles merge-on-arrival normally).
+                this.drawConnectionFromData(conn);
+            }
         });
 
         // Remove a connection (handles merged pair cleanup)
@@ -2521,6 +2842,7 @@ Hooks.RumorMap = {
     destroyed() {
         if (this._resizeObserver) this._resizeObserver.disconnect();
         if (this.lineTippy) this.lineTippy.destroy();
+        if (this.hideLineMenu) this.hideLineMenu();
         this.connections = {};
         this.pairIndex = {};
     }
