@@ -2060,6 +2060,23 @@ Hooks.RumorMapNode = {
     }
 }
 
+Hooks.RumorMapSearch = {
+    mounted() {
+        this._timer = null;
+        this._onInput = () => {
+            clearTimeout(this._timer);
+            this._timer = setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('rumor-search', { detail: { query: this.el.value } }));
+            }, 120);
+        };
+        this.el.addEventListener('input', this._onInput);
+    },
+    destroyed() {
+        clearTimeout(this._timer);
+        this.el.removeEventListener('input', this._onInput);
+    }
+};
+
 Hooks.RumorMap = {
     mounted() {
         this.canvas = this.el;
@@ -2069,6 +2086,67 @@ Hooks.RumorMap = {
 
         this.connections = {}; // connId -> { fromId, toId, conn, color, size, dash, isMerged, bidirectional, partner }
         this.pairIndex = {};   // pairKey -> { primaryId, secondaryId }
+
+        // Search: null means "no active search" (nothing dimmed). Otherwise a Set of matched ids.
+        this.matchedNodeIds = null;
+        this.matchedPrimaryConnIds = null;
+
+        this.applyNodeDimming = () => {
+            document.querySelectorAll('#nodes-container [data-node-id]').forEach(el => {
+                const dim = this.matchedNodeIds !== null && !this.matchedNodeIds.has(el.dataset.nodeId);
+                el.style.opacity = dim ? '0.2' : '';
+            });
+        };
+
+        this.applySearch = (rawQuery) => {
+            const query = (rawQuery || '').trim().toLowerCase();
+
+            if (!query) {
+                this.matchedNodeIds = null;
+                this.matchedPrimaryConnIds = null;
+                this.applyNodeDimming();
+                this.redraw();
+                return;
+            }
+
+            const matchedNodeIds = new Set();
+            const matchedPrimaryConnIds = new Set();
+
+            // Direct node matches: title or description
+            document.querySelectorAll('#nodes-container [data-node-id]').forEach(el => {
+                const title = (el.dataset.title || '').toLowerCase();
+                const content = (el.dataset.content || '').toLowerCase();
+                if (title.includes(query) || content.includes(query)) {
+                    matchedNodeIds.add(el.dataset.nodeId);
+                }
+            });
+
+            // Path (connection) label matches: pull in both endpoint nodes too
+            Object.values(this.connections).forEach(c => {
+                const label = (c.conn.label || '').toLowerCase();
+                if (label.includes(query)) {
+                    const primaryId = (c.isMerged ? c.partner : c.conn.id).toString();
+                    matchedPrimaryConnIds.add(primaryId);
+                    matchedNodeIds.add(c.fromId.toString());
+                    matchedNodeIds.add(c.toId.toString());
+                }
+            });
+
+            // A path between two already-matched nodes shouldn't look dimmed either
+            Object.values(this.connections).forEach(c => {
+                if (c.isMerged) return;
+                if (matchedNodeIds.has(c.fromId.toString()) || matchedNodeIds.has(c.toId.toString())) {
+                    matchedPrimaryConnIds.add(c.conn.id.toString());
+                }
+            });
+
+            this.matchedNodeIds = matchedNodeIds;
+            this.matchedPrimaryConnIds = matchedPrimaryConnIds;
+            this.applyNodeDimming();
+            this.redraw();
+        };
+
+        window.addEventListener('rumor-search', (e) => this.applySearch(e.detail.query));
 
         // Keep the canvas backing store matched to the visible viewport (not the 20000px world)
         this.resizeCanvas = () => {
@@ -2137,7 +2215,15 @@ Hooks.RumorMap = {
             const c1x = sx + (ex - sx) / 3 + nx * bend, c1y = sy + (ey - sy) / 3 + ny * bend;
             const c2x = sx + (ex - sx) * 2 / 3 + nx * bend, c2y = sy + (ey - sy) * 2 / 3 + ny * bend;
 
+            // Cache local-space curve geometry for hover hit-testing
+            c._geom = { sx, sy, c1x, c1y, c2x, c2y, ex, ey };
+
+            const isDimmed = this.matchedPrimaryConnIds !== null &&
+                !this.matchedPrimaryConnIds.has(c.conn.id.toString());
+
             const ctx = this.ctx;
+            ctx.save();
+            ctx.globalAlpha = isDimmed ? 0.15 : 1;
             ctx.beginPath();
             ctx.moveTo(sx, sy);
             ctx.bezierCurveTo(c1x, c1y, c2x, c2y, ex, ey);
@@ -2157,6 +2243,7 @@ Hooks.RumorMap = {
             if (c.bidirectional) {
                 this.drawArrowhead(sx, sy, Math.atan2(sy - c1y, sx - c1x), c.color, zoom);
             }
+            ctx.restore();
         };
 
         this.redraw = () => {
@@ -2172,6 +2259,79 @@ Hooks.RumorMap = {
                 this.drawConnection(c, zoom);
             });
         };
+
+        // --- Hover tooltip (same virtual-reference-element pattern as BBSQuotePopover) ---
+        this.lineTippy = window.tippy
+            ? window.tippy(document.createElement('div'), { trigger: 'manual', placement: 'top', offset: [0, 12], allowHTML: false })
+            : null;
+        this._hoveredConnId = null;
+
+        const sampleBezier = (g, n = 20) => {
+            const pts = [];
+            for (let i = 0; i <= n; i++) {
+                const t = i / n, mt = 1 - t;
+                pts.push([
+                    mt * mt * mt * g.sx + 3 * mt * mt * t * g.c1x + 3 * mt * t * t * g.c2x + t * t * t * g.ex,
+                    mt * mt * mt * g.sy + 3 * mt * mt * t * g.c1y + 3 * mt * t * t * g.c2y + t * t * t * g.ey
+                ]);
+            }
+            return pts;
+        };
+
+        const distToSegment = (px, py, x1, y1, x2, y2) => {
+            const dx = x2 - x1, dy = y2 - y1;
+            const lenSq = dx * dx + dy * dy;
+            let t = lenSq ? ((px - x1) * dx + (py - y1) * dy) / lenSq : 0;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+        };
+
+        const findHoveredConnection = (localX, localY, threshold) => {
+            for (const c of Object.values(this.connections)) {
+                if (c.isMerged || !c._geom) continue;
+                const pts = sampleBezier(c._geom);
+                for (let i = 0; i < pts.length - 1; i++) {
+                    if (distToSegment(localX, localY, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]) <= threshold) {
+                        return c;
+                    }
+                }
+            }
+            return null;
+        };
+
+        this.viewport.addEventListener('mousemove', (e) => {
+            if (!this.lineTippy) return;
+            const rect = this.viewport.getBoundingClientRect();
+            const { panX, panY, zoom } = this.getWorldTransform();
+            const localX = (e.clientX - rect.left - panX) / zoom;
+            const localY = (e.clientY - rect.top - panY) / zoom;
+
+            const hit = findHoveredConnection(localX, localY, 8 / zoom);
+
+            if (hit) {
+                const fromEl = document.getElementById(`node-${hit.fromId}`);
+                const toEl = document.getElementById(`node-${hit.toId}`);
+                const fromTitle = (fromEl && fromEl.dataset.title) || '?';
+                const toTitle = (toEl && toEl.dataset.title) || '?';
+                const label = hit.conn.label && hit.conn.label.trim() !== '' ? hit.conn.label : null;
+                const text = label ? `${label} (${fromTitle} → ${toTitle})` : `${fromTitle} → ${toTitle}`;
+
+                this.lineTippy.setProps({
+                    getReferenceClientRect: () => new DOMRect(e.clientX, e.clientY, 0, 0)
+                });
+                this.lineTippy.setContent(text);
+                this.lineTippy.show();
+                this._hoveredConnId = hit.conn.id;
+            } else if (this._hoveredConnId !== null) {
+                this.lineTippy.hide();
+                this._hoveredConnId = null;
+            }
+        });
+
+        this.viewport.addEventListener('mouseleave', () => {
+            if (this.lineTippy) this.lineTippy.hide();
+            this._hoveredConnId = null;
+        });
 
         this._resizeObserver = new ResizeObserver(() => this.resizeCanvas());
         this._resizeObserver.observe(this.viewport);
@@ -2355,6 +2515,7 @@ Hooks.RumorMap = {
 
     destroyed() {
         if (this._resizeObserver) this._resizeObserver.disconnect();
+        if (this.lineTippy) this.lineTippy.destroy();
         this.connections = {};
         this.pairIndex = {};
     }

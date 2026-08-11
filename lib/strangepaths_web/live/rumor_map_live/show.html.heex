@@ -65,8 +65,14 @@
 
 <div class="w-full flex flex-col" style="height: 86vh;">
   <!-- Header -->
-  <div class="text-sm text-gray-400">
-    Zoom: <%= Float.round(@zoom, 2) %>x | Shift+Click to create node
+  <div class="text-sm text-gray-400 flex items-center justify-between gap-4">
+    <div>Zoom: <%= Float.round(@zoom, 2) %>x | Shift+Click to create node</div>
+    <input type="text"
+           id="rumor-search-input"
+           phx-hook="RumorMapSearch"
+           phx-update="ignore"
+           placeholder="Search nodes &amp; paths..."
+           class="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 w-64" />
   </div>
 
   <!-- Main viewport -->
@@ -88,6 +94,8 @@
         <%= for node <- @nodes, MapSet.member?(@visible_layer_ids, node.layer_id) do %>
         <div id={"node-#{node.id}"}
              data-node-id={node.id}
+             data-title={node.title}
+             data-content={node.content}
              data-is-anchor={if node.is_anchor do "true" else "false" end}
              phx-hook="RumorMapNode"
              class={"absolute transition-transform hover:scale-105"}

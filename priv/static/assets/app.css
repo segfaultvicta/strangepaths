@@ -3837,6 +3837,16 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
   color: rgb(156 163 175 / var(--tw-placeholder-opacity));
 }
 
+.placeholder-gray-500::-moz-placeholder{
+  --tw-placeholder-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-placeholder-opacity));
+}
+
+.placeholder-gray-500::placeholder{
+  --tw-placeholder-opacity: 1;
+  color: rgb(107 114 128 / var(--tw-placeholder-opacity));
+}
+
 .accent-yellow-400{
   accent-color: #facc15;
 }
