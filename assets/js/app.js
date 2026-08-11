@@ -2247,6 +2247,11 @@ Hooks.RumorMap = {
         };
 
         this.redraw = () => {
+            // Node opacity is set imperatively via JS, but LiveView owns the node divs'
+            // style attribute and can silently clobber it on any DOM patch (e.g. every
+            // pan/zoom round-trip) — so re-apply it every time we redraw, not just on search.
+            this.applyNodeDimming();
+
             const dpr = window.devicePixelRatio || 1;
             const { panX, panY, zoom } = this.getWorldTransform();
             const ctx = this.ctx;
