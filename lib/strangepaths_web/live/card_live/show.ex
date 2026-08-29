@@ -435,13 +435,13 @@ defmodule StrangepathsWeb.CardLive.Show do
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#E1E1E1"}
 
         "Claw" ->
-          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
+          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#E1E1E1"}
 
         "Scale" ->
-          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
+          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#E1E1E1"}
 
         "Breath" ->
-          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
+          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#E1E1E1"}
 
         "Red" ->
           {"Oxanium", "/usr/share/fonts/truetype/Oxanium-VariableFont_wght.ttf", "#f35663"}
@@ -467,7 +467,7 @@ defmodule StrangepathsWeb.CardLive.Show do
            "/usr/share/fonts/truetype/CormorantGaramond-VariableFont_wght.ttf", "#FFCCFF"}
 
         _ ->
-          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
+          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#E1E1E1"}
       end
 
     rules_text_color =
