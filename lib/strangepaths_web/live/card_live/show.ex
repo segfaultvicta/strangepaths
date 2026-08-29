@@ -229,7 +229,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 135
         "Black" -> 135
         "Alethic" -> 150
-        _ -> 100
+        _ -> 150
       end
 
     art_y =
@@ -251,7 +251,18 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 750
         "Black" -> 750
         "Alethic" -> 700
-        _ -> 790
+        _ -> 700
+      end
+
+    shadow_presence =
+      case render_aspect.name do
+        "Green" -> false
+        "Red" -> true
+        "Blue" -> false
+        "White" -> false
+        "Black" -> false
+        "Alethic" -> false
+        _ -> false
       end
 
     title_decoration =
@@ -287,7 +298,17 @@ defmodule StrangepathsWeb.CardLive.Show do
 
     title_text = title_decoration <> " " <> card.name <> " " <> title_decoration
     title_center_x = 500
-    title_y = 75
+
+    title_y =
+      case render_aspect.name do
+        "Green" -> 75
+        "Red" -> 75
+        "Blue" -> 75
+        "White" -> 75
+        "Black" -> 75
+        "Alethic" -> 75
+        _ -> 60
+      end
 
     statusline_x =
       case render_aspect.name do
@@ -297,7 +318,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 170
         "Black" -> 130
         "Alethic" -> 170
-        _ -> 120
+        _ -> 100
       end
 
     statusline_y =
@@ -308,7 +329,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 865
         "Black" -> 880
         "Alethic" -> 860
-        _ -> 935
+        _ -> 870
       end
 
     icon_x =
@@ -318,7 +339,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Blue" -> 835
         "White" -> 845
         "Black" -> 845
-        _ -> 835
+        _ -> 815
       end
 
     icon_y =
@@ -328,7 +349,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "Blue" -> 835
         "White" -> 825
         "Black" -> 825
-        _ -> 905
+        _ -> 835
       end
 
     rules_x =
@@ -339,7 +360,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 155
         "Black" -> 205
         "Alethic" -> 165
-        _ -> 135
+        _ -> 150
       end
 
     rules_y =
@@ -350,7 +371,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 955
         "Black" -> 985
         "Alethic" -> 955
-        _ -> 995
+        _ -> 960
       end
 
     rules_width =
@@ -394,7 +415,7 @@ defmodule StrangepathsWeb.CardLive.Show do
         "White" -> 50
         "Black" -> -15
         "Alethic" -> 50
-        _ -> 50
+        _ -> 0
       end
 
     flavor_offset_y =
@@ -411,7 +432,7 @@ defmodule StrangepathsWeb.CardLive.Show do
     {font, font_file, text_color} =
       case render_aspect.name do
         "Fang" ->
-          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
+          {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#E1E1E1"}
 
         "Claw" ->
           {"Anaktoria", "/usr/share/fonts/truetype/Anaktoria.ttf", "#000000"}
@@ -452,7 +473,12 @@ defmodule StrangepathsWeb.CardLive.Show do
     rules_text_color =
       case render_aspect.name do
         "Red" -> "#680000"
-        _ -> text_color
+        "Green" -> text_color
+        "Blue" -> text_color
+        "White" -> text_color
+        "Black" -> text_color
+        "Alethic" -> text_color
+        _ -> "#101010"
       end
 
     try do
@@ -542,7 +568,13 @@ defmodule StrangepathsWeb.CardLive.Show do
       title_x = title_center_x - div(title_text_width, 2)
 
       # Composite text onto the card
-      {:ok, img} = Image.compose(frame_with_art, shadow, x: title_x, y: title_y)
+      {:ok, img} =
+        if shadow_presence do
+          Image.compose(frame_with_art, shadow, x: title_x, y: title_y)
+        else
+          {:ok, frame_with_art}
+        end
+
       {:ok, img} = Image.compose(img, title_image, x: title_x, y: title_y)
 
       base_statusline =
@@ -609,7 +641,13 @@ defmodule StrangepathsWeb.CardLive.Show do
           font_file: font_file
         )
 
-      {:ok, img} = Image.compose(img, statusline_shadow, x: statusline_x, y: statusline_y)
+      {:ok, img} =
+        if shadow_presence do
+          Image.compose(img, statusline_shadow, x: statusline_x, y: statusline_y)
+        else
+          {:ok, img}
+        end
+
       {:ok, img} = Image.compose(img, statusline_image, x: statusline_x, y: statusline_y)
 
       img =
