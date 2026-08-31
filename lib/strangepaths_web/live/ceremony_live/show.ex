@@ -241,7 +241,26 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     uuid = socket.assigns.selectedEntity.uuid
     Cards.Ceremony.toggle_brightness(socket.assigns.ceremony.id, uuid)
     StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
-    {:noreply, socket |> assign(:state, :ready) |> assign(:selectedEntity, nil)}
+
+    {:noreply,
+     socket
+     |> assign(:state, :ready)
+     |> assign(:selectedEntity, nil)
+     |> push_event("unloadAvatarMenu", %{})}
+  end
+
+  # Ghost-click guard. Radial menus now live on document.body and are no longer torn
+  # down as a side effect of a re-render, so a stale avatar/card radial can outlive its
+  # selection. Opening either radial always sets :selectedEntity, so a nil selection here
+  # means the click hit a ghost menu; no-op instead of dereferencing nil and crashing.
+  defp handle_ceremony_event("menuClick", %{"e" => "avatar" <> _}, socket)
+       when is_nil(socket.assigns.selectedEntity) do
+    {:noreply, push_event(socket, "unloadAvatarMenu", %{})}
+  end
+
+  defp handle_ceremony_event("menuClick", %{"e" => "card" <> _}, socket)
+       when is_nil(socket.assigns.selectedEntity) do
+    {:noreply, push_event(socket, "unloadCardMenu", %{})}
   end
 
   defp handle_ceremony_event("entityClick", data, socket)
@@ -1198,7 +1217,12 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
     uuid = socket.assigns.selectedEntity.uuid
     Cards.Ceremony.toggle_smolness(socket.assigns.ceremony.id, uuid)
     StrangepathsWeb.Endpoint.broadcast(socket.assigns.ceremony.id, "updateEntities", nil)
-    {:noreply, socket |> assign(:state, :ready) |> assign(:selectedEntity, nil)}
+
+    {:noreply,
+     socket
+     |> assign(:state, :ready)
+     |> assign(:selectedEntity, nil)
+     |> push_event("unloadCardMenu", %{})}
   end
 
   defp handle_ceremony_event("menuClick", %{"e" => "cardMove"}, socket) do

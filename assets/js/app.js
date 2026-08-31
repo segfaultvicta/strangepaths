@@ -1447,8 +1447,17 @@ Hooks.TemenosMoveReporter = {
 }
 
 Hooks.Temenos = {
+    menuIds: ["avatarmenu", "temenosmenu", "cardmenu", "amountSubmenu"],
+    removeMenu(id) {
+        var el = document.getElementById(id);
+        if (el) { el.remove(); }
+    },
+    clearMenus() {
+        this.menuIds.forEach(id => this.removeMenu(id));
+    },
     mounted() {
         this.handleEvent("loadAvatarMenu", e => {
+            this.removeMenu("avatarmenu");
             var template = document.getElementById('avatarmenuTemplate');
             var a = template.cloneNode(true);
             a.id = "avatarmenu";
@@ -1456,7 +1465,7 @@ Hooks.Temenos = {
             a.style.height = 400 + "px";
             a.style.left = e.x + "px";
             a.style.top = e.y + "px";
-            this.el.parentNode.appendChild(a);
+            document.body.appendChild(a);
             // thus positioned, build an avatar menu around it
             var avatarmenu = new wheelnav('avatarmenu');
             avatarmenu.selectedNavItemIndex = null;
@@ -1488,6 +1497,7 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("loadTemenosMenu", e => {
+            this.removeMenu("temenosmenu");
             var template = document.getElementById('temenosmenuTemplate');
             var a = template.cloneNode(true);
             a.id = "temenosmenu";
@@ -1495,7 +1505,7 @@ Hooks.Temenos = {
             a.style.height = 400 + "px";
             a.style.left = e.x + "px";
             a.style.top = e.y + "px";
-            this.el.parentNode.appendChild(a);
+            document.body.appendChild(a);
             var temenosmenu = new wheelnav('temenosmenu');
             temenosmenu.selectedNavItemIndex = null;
             temenosmenu.slicePathFunction = slicePath().MenuSliceWithoutLine;
@@ -1533,6 +1543,7 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("loadCardMenu", e => {
+            this.removeMenu("cardmenu");
             var template = document.getElementById('cardmenuTemplate');
             var a = template.cloneNode(true);
             a.id = "cardmenu";
@@ -1540,7 +1551,7 @@ Hooks.Temenos = {
             a.style.height = 400 + "px";
             a.style.left = e.x + "px";
             a.style.top = e.y + "px";
-            this.el.parentNode.appendChild(a);
+            document.body.appendChild(a);
             var cardmenu = new wheelnav('cardmenu');
             cardmenu.selectedNavItemIndex = null;
             cardmenu.slicePathFunction = slicePath().MenuSliceWithoutLine;
@@ -1571,6 +1582,7 @@ Hooks.Temenos = {
         })
 
         this.handleEvent("loadAmountSubmenu", e => {
+            this.removeMenu("amountSubmenu");
             var template = document.getElementById('amountSubmenuTemplate');
             var submenu = template.cloneNode(true);
             submenu.id = "amountSubmenu";
@@ -1578,7 +1590,7 @@ Hooks.Temenos = {
             submenu.style.height = 500 + "px";
             submenu.style.left = (e.x - 305) + "px";
             submenu.style.top = (e.y - 55) + "px";
-            this.el.parentNode.appendChild(submenu);
+            document.body.appendChild(submenu);
             var amountSubmenu = new wheelnav('amountSubmenu');
             amountSubmenu.slicePathFunction = slicePath().StarSlice;
             // can we find out WHICH submenu we're invoking?
@@ -1657,27 +1669,13 @@ Hooks.Temenos = {
             this.pushEvent("menuClick", { e: e.detail })
         })
 
-        this.handleEvent("unloadAvatarMenu", e => {
-            var submenu = document.getElementById('avatarmenu');
-            if (submenu) {
-                submenu.remove();
-            }
-        })
+        this.handleEvent("unloadAvatarMenu", () => this.removeMenu('avatarmenu'))
 
-        this.handleEvent("unloadTemenosMenu", e => {
-            var submenu = document.getElementById('temenosmenu');
-            if (submenu) {
-                submenu.remove();
-            }
+        this.handleEvent("unloadTemenosMenu", () => this.removeMenu('temenosmenu'))
 
-        })
+        this.handleEvent("unloadCardMenu", () => this.removeMenu('cardmenu'))
 
-        this.handleEvent("unloadAmountSubmenu", () => {
-            var submenu = document.getElementById('amountSubmenu');
-            if (submenu) {
-                submenu.remove();
-            }
-        })
+        this.handleEvent("unloadAmountSubmenu", () => this.removeMenu('amountSubmenu'))
 
         this.pushEvent("context", this.el.getBoundingClientRect());
 
@@ -1698,6 +1696,9 @@ Hooks.Temenos = {
         ctx.moveTo(100, 0);
         ctx.lineTo(100, 200);
         ctx.stroke();
+    },
+    destroyed() {
+        this.clearMenus();
     }
 }
 

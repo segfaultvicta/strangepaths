@@ -46,6 +46,7 @@ defmodule StrangepathsWeb.Scenes do
         |> assign(:create_scene_name, "")
         |> assign(:create_scene_locked, false)
         |> assign(:create_scene_user_ids, [])
+        |> assign(:show_create_scene_form, false)
         |> assign(:narrative_mode, false)
         |> assign(:narrative_author_name, socket.assigns.current_user.nickname)
         |> assign(:narrative_author_editing, false)
@@ -667,6 +668,26 @@ defmodule StrangepathsWeb.Scenes do
     end
   end
 
+  defp handle_scene_event("toggle_create_scene_form", _params, socket) do
+    {:noreply, assign(socket, :show_create_scene_form, !socket.assigns.show_create_scene_form)}
+  end
+
+  defp handle_scene_event("validate_scene", params, socket) do
+    locked = socket.assigns.role == :dragon && Map.get(params, "locked", "false") == "true"
+
+    user_ids =
+      case Map.get(params, "user_ids") do
+        nil -> socket.assigns.create_scene_user_ids
+        ids -> Enum.map(ids, &String.to_integer/1)
+      end
+
+    {:noreply,
+     socket
+     |> assign(:create_scene_name, Map.get(params, "name", ""))
+     |> assign(:create_scene_locked, locked)
+     |> assign(:create_scene_user_ids, user_ids)}
+  end
+
   defp handle_scene_event("create_scene", params, socket) do
     user = socket.assigns.current_user
 
@@ -707,6 +728,7 @@ defmodule StrangepathsWeb.Scenes do
            |> assign(:create_scene_name, "")
            |> assign(:create_scene_locked, false)
            |> assign(:create_scene_user_ids, [])
+           |> assign(:show_create_scene_form, false)
            |> put_flash(:info, "Scene created successfully")}
 
         {:error, _changeset} ->

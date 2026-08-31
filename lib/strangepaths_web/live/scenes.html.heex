@@ -479,51 +479,57 @@
 
           <%= if @role == :dragon do %>
             <button
-              phx-click={JS.toggle(to: "#create-scene-form")}
+              phx-click="toggle_create_scene_form"
               class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition"
             >
               + Create Scene
             </button>
 
-            <div id="create-scene-form" class="mt-4 p-3 bg-gray-800 rounded hidden" x-data="{ locked: false }">
-              <form phx-submit="create_scene">
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Scene name"
-                  class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded text-white"
-                  required
-                />
-                <label class="flex items-center mb-2 text-sm">
-                  <input type="checkbox" name="locked" value="true" class="mr-2" x-model="locked" />
-                  <span>Private Scene (locked to specific users)</span>
-                </label>
+            <%= if @show_create_scene_form do %>
+              <div id="create-scene-form" class="mt-4 p-3 bg-gray-800 rounded">
+                <form phx-change="validate_scene" phx-submit="create_scene">
+                  <input
+                    type="text"
+                    name="name"
+                    value={@create_scene_name}
+                    placeholder="Scene name"
+                    class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded text-white"
+                    required
+                  />
+                  <label class="flex items-center mb-2 text-sm">
+                    <input type="checkbox" name="locked" value="true" checked={@create_scene_locked} class="mr-2" />
+                    <span>Private Scene (locked to specific users)</span>
+                  </label>
 
-                <div x-show="locked" x-transition class="mb-2">
-                  <label class="block text-sm mb-1">Select Users:</label>
-                  <select
-                    name="user_ids[]"
-                    multiple
-                    size="5"
-                    class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
-                  >
-                    <%= for user <- @all_users do %>
-                      <option value={user.id}><%= user.nickname %></option>
-                    <% end %>
-                  </select>
-                  <p class="text-xs text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple users</p>
-                </div>
+                  <%= if @create_scene_locked do %>
+                    <div class="mb-2">
+                      <label class="block text-sm mb-1">Select Users:</label>
+                      <select
+                        name="user_ids[]"
+                        multiple
+                        size="5"
+                        class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
+                      >
+                        <%= for user <- @all_users do %>
+                          <option value={user.id} selected={user.id in @create_scene_user_ids}><%= user.nickname %></option>
+                        <% end %>
+                      </select>
+                      <p class="text-xs text-gray-400 mt-1">Hold Ctrl/Cmd to select multiple users</p>
+                    </div>
+                  <% end %>
 
-                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
-                  Create
-                </button>
-              </form>
-            </div>
+                  <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition">
+                    Create
+                  </button>
+                </form>
+              </div>
+            <% end %>
           <% else %>
-            <form phx-submit="create_scene">
+            <form phx-change="validate_scene" phx-submit="create_scene">
               <input
                 type="text"
                 name="name"
+                value={@create_scene_name}
                 placeholder="Scene name"
                 class="w-full p-2 mb-2 bg-indigo-300 dark:bg-gray-700 border border-gray-600 rounded text-indigo-900 dark:text-white"
                 required
