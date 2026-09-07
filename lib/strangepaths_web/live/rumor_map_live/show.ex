@@ -78,6 +78,11 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:viewing_node_id, nil)
       |> assign(:viewport_width, nil)
       |> assign(:viewport_height, nil)
+      # Deep-link (`/rumor?node=<id>`) support: the node to center + open once the
+      # client reports its viewport size, and that node's layer (kept visible even
+      # if the user's saved layer prefs would otherwise hide it).
+      |> assign(:pending_focus_node_id, nil)
+      |> assign(:focus_layer_id, nil)
 
     # Draw existing connections on mount (for connected clients only)
     # Only draw connections where both endpoint nodes are on visible layers
@@ -95,6 +100,33 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       end
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    node =
+      with str when is_binary(str) <- params["node"],
+           {id, ""} <- Integer.parse(str) do
+        Enum.find(socket.assigns.nodes, &(&1.id == id))
+      else
+        _ -> nil
+      end
+
+    socket =
+      if node do
+        socket
+        |> assign(:viewing_node_id, node.id)
+        |> assign(:selected_node, node)
+        |> assign(:pending_focus_node_id, node.id)
+        |> assign(:focus_layer_id, node.layer_id)
+        |> ensure_focus_layer_visible(node.layer_id)
+        |> maybe_focus_pending_node()
+      else
+        # Bad / stale / deleted id — just show the map as normal.
+        assign(socket, pending_focus_node_id: nil, focus_layer_id: nil)
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -187,19 +219,23 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
       |> assign(:viewport_width, width)
       |> assign(:viewport_height, height)
 
-    # Recalculate pan to properly center on world coordinates
-    center_world_x = 2029
-    center_world_y = 968
-    viewport_center_x = width / 2
-    viewport_center_y = height / 2
+    socket =
+      case pending_focus_node(socket) do
+        nil ->
+          # Default: recalculate pan to center on the map's home coordinates.
+          center_world_x = 2029
+          center_world_y = 968
 
-    new_pan_x = viewport_center_x - center_world_x * socket.assigns.zoom
-    new_pan_y = viewport_center_y - center_world_y * socket.assigns.zoom
+          socket
+          |> assign(:pan_x, width / 2 - center_world_x * socket.assigns.zoom)
+          |> assign(:pan_y, height / 2 - center_world_y * socket.assigns.zoom)
 
-    {:noreply,
-     socket
-     |> assign(:pan_x, new_pan_x)
-     |> assign(:pan_y, new_pan_y)}
+        node ->
+          # Deep link: frame the linked node instead.
+          focus_on_node(socket, node, width, height)
+      end
+
+    {:noreply, socket}
   end
 
   defp handle_rumormap_event("create_node", %{"x" => x, "y" => y}, socket) do
@@ -985,6 +1021,8 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     all_layer_ids = socket.assigns.layers |> Enum.map(& &1.id) |> MapSet.new()
     # Only keep IDs that correspond to layers that still exist
     hidden_valid = hidden_ids |> Enum.filter(&MapSet.member?(all_layer_ids, &1)) |> MapSet.new()
+    # Keep a deep-linked node's layer visible even if the user's saved prefs hide it.
+    hidden_valid = MapSet.delete(hidden_valid, socket.assigns.focus_layer_id)
     old_visible = socket.assigns.visible_layer_ids
     new_visible = MapSet.difference(all_layer_ids, hidden_valid)
 
@@ -1427,6 +1465,57 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
     all_ids = socket.assigns.layers |> Enum.map(& &1.id) |> MapSet.new()
     hidden_ids = MapSet.difference(all_ids, socket.assigns.visible_layer_ids) |> MapSet.to_list()
     push_event(socket, "layer_visibility_saved", %{hidden_ids: hidden_ids})
+  end
+
+  # --- Deep-link focus (`/rumor?node=<id>`) -----------------------------------
+
+  # Zoom level a deep link frames its node at. The default map zoom (~0.09)
+  # renders nodes as specks, so we pull in close enough to read one.
+  @focus_zoom 0.6
+
+  defp pending_focus_node(socket) do
+    id = socket.assigns.pending_focus_node_id
+    id && Enum.find(socket.assigns.nodes, &(&1.id == id))
+  end
+
+  # Center + zoom on a node if the viewport size is already known (live-nav case);
+  # otherwise leave pending_focus_node_id for set_viewport_dimensions to consume
+  # once the client reports its dimensions (initial page load).
+  defp maybe_focus_pending_node(socket) do
+    with node when not is_nil(node) <- pending_focus_node(socket),
+         w when is_number(w) <- socket.assigns.viewport_width,
+         h when is_number(h) <- socket.assigns.viewport_height do
+      focus_on_node(socket, node, w, h)
+    else
+      _ -> socket
+    end
+  end
+
+  # node.x / node.y are the node's center in world space (the node div is
+  # positioned with translate(-50%, -50%)), so the same pan formula the rest of
+  # the LiveView uses applies directly.
+  defp focus_on_node(socket, node, viewport_width, viewport_height) do
+    socket
+    |> assign(:zoom, @focus_zoom)
+    |> assign(:pan_x, viewport_width / 2 - node.x * @focus_zoom)
+    |> assign(:pan_y, viewport_height / 2 - node.y * @focus_zoom)
+    |> assign(:pending_focus_node_id, nil)
+  end
+
+  defp ensure_focus_layer_visible(socket, nil), do: socket
+
+  defp ensure_focus_layer_visible(socket, layer_id) do
+    old_visible = socket.assigns.visible_layer_ids
+
+    if MapSet.member?(old_visible, layer_id) do
+      socket
+    else
+      new_visible = MapSet.put(old_visible, layer_id)
+
+      socket
+      |> assign(:visible_layer_ids, new_visible)
+      |> sync_connection_visibility(old_visible, new_visible)
+    end
   end
 
   defp can_manage_layer?(socket, layer) do

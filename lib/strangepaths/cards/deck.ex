@@ -11,6 +11,7 @@ defmodule Strangepaths.Cards.Deck do
     field(:avatar_id, :integer)
     field(:glory_used, :integer, virtual: true)
     field(:manabalance, :map)
+    field(:public, :boolean, default: false)
     belongs_to(:user, Strangepaths.Accounts.User, foreign_key: :owner)
 
     has_one(:avatar, Strangepaths.Accounts.Avatar, foreign_key: :id, references: :avatar_id)
@@ -50,6 +51,11 @@ defmodule Strangepaths.Cards.Deck do
   def avatar_changeset(deck, avatar_id) do
     deck
     |> cast(%{"avatar_id" => avatar_id}, [:avatar_id])
+  end
+
+  def public_changeset(deck, public) do
+    deck
+    |> cast(%{"public" => public}, [:public])
   end
 
   def blockcap_changeset(deck, adjustment) do

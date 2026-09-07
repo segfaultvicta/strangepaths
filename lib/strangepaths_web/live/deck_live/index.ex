@@ -61,9 +61,14 @@ defmodule StrangepathsWeb.DeckLive.Index do
 
   defp handle_deck_event("delete", %{"id" => id}, socket) do
     [{%{aspect: _, deck: deck}}] = Cards.get_deck!(id)
-    {:ok, _} = Cards.delete_deck(deck)
+    user = socket.assigns.current_user
 
-    {:noreply, assign(socket, :decks, list_decks_of(socket))}
+    if deck.owner == user.id || user.role == :dragon do
+      {:ok, _} = Cards.delete_deck(deck)
+      {:noreply, assign(socket, :decks, list_decks_of(socket))}
+    else
+      {:noreply, put_flash(socket, :error, "You can only delete your own decks.")}
+    end
   end
 
   @impl true

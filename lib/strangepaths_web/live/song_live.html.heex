@@ -124,12 +124,17 @@
           </form>
         <% else %>
           <% # Display mode %>
-          <%= if @song.text && @song.text != "" do %>
-            <div id="lyrics-display" class={if @song.font_style == "alternate", do: "lyrics-alternate-font", else: "lyrics-default-font"}>
-              <%= raw(Earmark.as_html!(@song.text)) %>
-            </div>
-          <% else %>
-            <p class="text-gray-500 italic">No lyrics available yet.</p>
+          <%= cond do %>
+            <% is_binary(@song.text) and @song.text != "" and @can_view_lyrics -> %>
+              <div id="lyrics-display" class={if @song.font_style == "alternate", do: "lyrics-alternate-font", else: "lyrics-default-font"}>
+                <%= raw(Earmark.as_html!(@song.text)) %>
+              </div>
+            <% is_binary(@song.text) and @song.text != "" -> %>
+              <p class="text-gray-500 italic">
+                <i class="fa-solid fa-lock mr-2"></i>The lyrics for this song haven't been revealed yet.
+              </p>
+            <% true -> %>
+              <p class="text-gray-500 italic">No lyrics available.</p>
           <% end %>
         <% end %>
       </div>

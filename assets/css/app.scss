@@ -115,6 +115,10 @@ body {
 
 #chat-posts-container {
     @apply flex-1 overflow-y-auto bg-indigo-300 dark:bg-gray-900 rounded px-4;
+    // The ChatScrollManager hook manages this container's scroll position itself;
+    // opt out of the browser's own scroll-anchoring so it can't fight the hook
+    // when unrelated DOM patches land elsewhere on the page.
+    overflow-anchor: none;
 }
 
 .post-container-icecylee {
@@ -309,6 +313,13 @@ body {
 .deckbuttons {
     min-height: 40px;
     @apply flex justify-evenly mt-1
+}
+
+// Viewing someone else's public deck: hide the add/remove/swap card controls.
+// Server-side handlers also reject these events for non-owners; this just keeps
+// the inert buttons out of the way.
+.deck-readonly .deckbuttons {
+    display: none;
 }
 
 .avatar-image {

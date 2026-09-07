@@ -39,13 +39,14 @@
           </thead>
           <tbody>
             <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
+              <% mine = deck.owner == @current_user.id %>
               <tr class="odd:bg-indigo-200 odd:dark:bg-gray-800 even:bg-indigo-100 even:dark:bg-gray-700 deckrow">
-                <td class="break-words"><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= deck.name %><% end %></td>
+                <td class="break-words"><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= deck.name %><%= if deck.public do %> <i class="fa-solid fa-earth-americas text-green-600 dark:text-green-400" title="Public deck"></i><% end %><% end %></td>
                 <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= aspect %><% end %></td>
                 <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= deck.glory %><% end %></td>
                 <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "inline-flex flex-wrap dark:hover:text-white" do %><%= raw(manabalance_div(deck.manabalance)) %><% end %></td>
-                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= if @role == :dragon do %><%= get_owner_name_by_id(deck.owner) %><% else %><% end %><% end %></td>
-                <td><div class="text-red-400 shadow" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?">X</div></td>
+                <td><%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "dark:hover:text-white" do %><%= if @role == :dragon or not mine do %><%= get_owner_name_by_id(deck.owner) %><% end %><% end %></td>
+                <td><%= if mine || @role == :dragon do %><div class="text-red-400 shadow" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?">X</div><% end %></td>
               </tr>
             <% end %>
           </tbody>
@@ -75,13 +76,19 @@
 
         <!-- Deck cards -->
         <%= for {%{deck: deck, aspect: aspect}} <- @decks do %>
+          <% mine = deck.owner == @current_user.id %>
           <div class="section overflow-hidden">
             <%= live_redirect to: Routes.deck_show_path(@socket, :show, deck), class: "block p-4 hover:bg-gray-700" do %>
               <div class="flex justify-between items-start mb-2">
-                <h3 class="text-lg font-bold dark:text-white break-words flex-grow"><%= deck.name %></h3>
-                <div class="text-red-600 dark:text-red-400 ml-2 flex-shrink-0" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?" onclick="event.stopPropagation();">
-                  <i class="fa-solid fa-trash"></i>
-                </div>
+                <h3 class="text-lg font-bold dark:text-white break-words flex-grow">
+                  <%= deck.name %>
+                  <%= if deck.public do %><i class="fa-solid fa-earth-americas text-green-600 dark:text-green-400 text-sm" title="Public deck"></i><% end %>
+                </h3>
+                <%= if mine || @role == :dragon do %>
+                  <div class="text-red-600 dark:text-red-400 ml-2 flex-shrink-0" phx-click="delete" phx-value-id={deck.id} data-confirm="Are you sure you want to delete that deck?" onclick="event.stopPropagation();">
+                    <i class="fa-solid fa-trash"></i>
+                  </div>
+                <% end %>
               </div>
 
               <div class="space-y-2 text-sm">
@@ -95,7 +102,7 @@
                   <span class="text-black dark:text-white"><%= deck.glory %></span>
                 </div>
 
-                <%= if @role == :dragon do %>
+                <%= if @role == :dragon or not mine do %>
                   <div class="flex justify-between">
                     <span class="dark:text-gray-400">Owner:</span>
                     <span class="text-black dark:text-white"><%= get_owner_name_by_id(deck.owner) %></span>

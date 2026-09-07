@@ -642,8 +642,23 @@ defmodule StrangepathsWeb.Scenes do
   end
 
   defp handle_scene_event("cycle_scene", %{"direction" => direction}, socket) do
-    scenes = socket.assigns.scenes
     current = socket.assigns.current_scene
+
+    # When the unread filter is active (dragon "collapsed to pinned scenes" view),
+    # ctrl-up/down cycles only through the pinned scenes. Elsewhere is always in
+    # the ring (it can't be pinned but must stay reachable), and the current scene
+    # is kept in the ring even if it isn't pinned, so you can still arrow away from
+    # an unpinned scene you navigated to (it drops out once you leave it).
+    scenes =
+      if socket.assigns.filter_unread_scenes do
+        pinned = socket.assigns.pinned_scene_ids
+
+        Enum.filter(socket.assigns.scenes, fn s ->
+          s.is_elsewhere || MapSet.member?(pinned, s.id) || (current && s.id == current.id)
+        end)
+      else
+        socket.assigns.scenes
+      end
 
     if scenes == [] || current == nil do
       {:noreply, socket}
@@ -728,8 +743,7 @@ defmodule StrangepathsWeb.Scenes do
            |> assign(:create_scene_name, "")
            |> assign(:create_scene_locked, false)
            |> assign(:create_scene_user_ids, [])
-           |> assign(:show_create_scene_form, false)
-           |> put_flash(:info, "Scene created successfully")}
+           |> assign(:show_create_scene_form, false)}
 
         {:error, _changeset} ->
           {:noreply, put_flash(socket, :error, "Failed to create scene")}

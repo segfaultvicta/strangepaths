@@ -12,14 +12,17 @@ defmodule StrangepathsWeb.SongLive do
     song = Site.get_song!(id)
     user = socket.assigns.current_user
 
-    # Check if user can view lyrics (lyrics_unlocked OR admin)
-    can_view = song.lyrics_unlocked || user.role == :dragon
+    # Page access is gated on the song being unlocked; the lyrics block is gated
+    # separately on lyrics_unlocked. Dragons see everything.
+    can_view = song.unlocked || user.role == :dragon
+    can_view_lyrics = song.lyrics_unlocked || user.role == :dragon
 
     {:ok,
      socket
      |> assign(:song, song)
      |> assign(:page_title, song.title)
      |> assign(:can_view, can_view)
+     |> assign(:can_view_lyrics, can_view_lyrics)
      |> assign(:editing_lyrics, false)
      |> assign(:uploaded_files, [])
      |> allow_upload(:mp3_file,

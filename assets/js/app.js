@@ -2904,6 +2904,29 @@ Hooks.RumorDetailPanel = {
     }
 };
 
+Hooks.RumorNodeCopyLink = {
+    mounted() {
+        this.handleClick = async (e) => {
+            e.preventDefault();
+            const nodeId = this.el.dataset.nodeId;
+            if (!nodeId) return;
+            const url = `${window.location.origin}/rumor?node=${nodeId}`;
+            try {
+                await navigator.clipboard.writeText(url);
+                const original = this.el.innerHTML;
+                this.el.textContent = "Copied!";
+                setTimeout(() => { this.el.innerHTML = original; }, 1500);
+            } catch (err) {
+                console.error("Failed to copy node link:", err);
+            }
+        };
+        this.el.addEventListener("click", this.handleClick);
+    },
+    destroyed() {
+        if (this.handleClick) this.el.removeEventListener("click", this.handleClick);
+    }
+};
+
 Hooks.RumorHistoryPanel = {
     mounted() {
         // Prevent wheel events from bubbling up to viewport zoom handler

@@ -31,42 +31,68 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("swap", %{"card" => card, "value" => _, "with" => into}, socket) do
-    deck =
-      socket.assigns.deck
-      |> Cards.remove_card_from_deck(String.to_integer(card))
-      |> Cards.add_card_to_deck(String.to_integer(into))
+    if_can_edit(socket, fn ->
+      deck =
+        socket.assigns.deck
+        |> Cards.remove_card_from_deck(String.to_integer(card))
+        |> Cards.add_card_to_deck(String.to_integer(into))
 
-    {:noreply, recalc(socket, deck)}
+      {:noreply, recalc(socket, deck)}
+    end)
   end
 
   defp handle_deck_event("add", %{"value" => card}, socket) do
-    deck = Cards.add_card_to_deck(socket.assigns.deck, String.to_integer(card))
+    if_can_edit(socket, fn ->
+      deck = Cards.add_card_to_deck(socket.assigns.deck, String.to_integer(card))
 
-    {:noreply, recalc(socket, deck)}
+      {:noreply, recalc(socket, deck)}
+    end)
   end
 
   defp handle_deck_event("remove", %{"value" => card}, socket) do
-    deck = Cards.remove_card_from_deck(socket.assigns.deck, String.to_integer(card))
+    if_can_edit(socket, fn ->
+      deck = Cards.remove_card_from_deck(socket.assigns.deck, String.to_integer(card))
 
-    {:noreply, recalc(socket, deck)}
+      {:noreply, recalc(socket, deck)}
+    end)
   end
 
   defp handle_deck_event("adjust_glory", %{"value" => adjustment}, socket) do
-    {:ok, deck} = Cards.adjust_glory(socket.assigns.deck, String.to_integer(adjustment))
+    if_can_edit(socket, fn ->
+      {:ok, deck} = Cards.adjust_glory(socket.assigns.deck, String.to_integer(adjustment))
 
-    {:noreply, recalc(socket, deck)}
+      {:noreply, recalc(socket, deck)}
+    end)
   end
 
   defp handle_deck_event("adjust_tolerance", %{"value" => adjustment}, socket) do
-    {:ok, deck} = Cards.adjust_tolerance(socket.assigns.deck, String.to_integer(adjustment))
+    if_can_edit(socket, fn ->
+      {:ok, deck} = Cards.adjust_tolerance(socket.assigns.deck, String.to_integer(adjustment))
 
-    {:noreply, recalc(socket, deck)}
+      {:noreply, recalc(socket, deck)}
+    end)
   end
 
   defp handle_deck_event("adjust_blockcap", %{"value" => adjustment}, socket) do
-    {:ok, deck} = Cards.adjust_blockcap(socket.assigns.deck, String.to_integer(adjustment))
+    if_can_edit(socket, fn ->
+      {:ok, deck} = Cards.adjust_blockcap(socket.assigns.deck, String.to_integer(adjustment))
 
-    {:noreply, recalc(socket, deck)}
+      {:noreply, recalc(socket, deck)}
+    end)
+  end
+
+  defp handle_deck_event("toggle_public", _, socket) do
+    if_can_edit(socket, fn ->
+      {:ok, updated} = Cards.set_deck_public(socket.assigns.deck, !socket.assigns.deck.public)
+
+      {:noreply,
+       socket
+       |> assign(:deck, %{socket.assigns.deck | public: updated.public})
+       |> put_flash(
+         :info,
+         if(updated.public, do: "Deck is now public.", else: "Deck is now private.")
+       )}
+    end)
   end
 
   defp handle_deck_event("toggle_show_all_cards", _, socket) do
@@ -82,14 +108,16 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("open_avatar_picker", _, socket) do
-    avatars_by_category =
-      Strangepaths.Accounts.list_avatars_by_category(socket.assigns.current_user)
+    if_can_edit(socket, fn ->
+      avatars_by_category =
+        Strangepaths.Accounts.list_avatars_by_category(socket.assigns.current_user)
 
-    {:noreply,
-     socket
-     |> assign(:avatar_picker_open, true)
-     |> assign(:avatars_by_category, avatars_by_category)
-     |> assign(:open_categories, [])}
+      {:noreply,
+       socket
+       |> assign(:avatar_picker_open, true)
+       |> assign(:avatars_by_category, avatars_by_category)
+       |> assign(:open_categories, [])}
+    end)
   end
 
   defp handle_deck_event("close_avatar_picker", _, socket) do
@@ -110,18 +138,20 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("select_avatar", %{"avatar-id" => avatar_id}, socket) do
-    {:ok, deck} = Cards.update_deck_avatar(socket.assigns.deck, String.to_integer(avatar_id))
-    # Reload the deck with avatar preloaded
-    deck = Strangepaths.Repo.preload(deck, :avatar, force: true)
+    if_can_edit(socket, fn ->
+      {:ok, deck} = Cards.update_deck_avatar(socket.assigns.deck, String.to_integer(avatar_id))
+      # Reload the deck with avatar preloaded
+      deck = Strangepaths.Repo.preload(deck, :avatar, force: true)
 
-    {:noreply,
-     socket
-     |> assign(:avatar_picker_open, false)
-     |> recalc(deck)}
+      {:noreply,
+       socket
+       |> assign(:avatar_picker_open, false)
+       |> recalc(deck)}
+    end)
   end
 
   defp handle_deck_event("start_rename", _, socket) do
-    {:noreply, assign(socket, :editing_name, true)}
+    if_can_edit(socket, fn -> {:noreply, assign(socket, :editing_name, true)} end)
   end
 
   defp handle_deck_event("cancel_rename", _, socket) do
@@ -129,24 +159,28 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("save_rename", %{"name" => name}, socket) do
-    name = String.trim(name)
+    if_can_edit(socket, fn ->
+      name = String.trim(name)
 
-    if name == "" do
-      {:noreply, socket}
-    else
-      deck = socket.assigns.deck
-      {:ok, updated_deck} = Cards.update_deck(deck, %{name: name})
+      if name == "" do
+        {:noreply, socket}
+      else
+        deck = socket.assigns.deck
+        {:ok, updated_deck} = Cards.update_deck(deck, %{name: name})
 
-      {:noreply,
-       socket
-       |> assign(:editing_name, false)
-       |> assign(:page_title, name)
-       |> recalc(updated_deck)}
-    end
+        {:noreply,
+         socket
+         |> assign(:editing_name, false)
+         |> assign(:page_title, name)
+         |> recalc(updated_deck)}
+      end
+    end)
   end
 
   defp handle_deck_event("truth", _, socket) do
-    {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
+    if_can_edit(socket, fn ->
+      {:noreply, assign(socket, eye: 0, eye_img: "/images/eye/0.png")}
+    end)
   end
 
   defp handle_deck_event("key", value, socket) do
@@ -193,21 +227,23 @@ defmodule StrangepathsWeb.DeckLive.Show do
   end
 
   defp handle_deck_event("libra", value, socket) do
-    {res, card_id} =
-      Cards.get_card_by_gnosis(
-        :crypto.hash(:md5, value["LIBRA"])
-        |> Base.encode16()
-        |> String.downcase()
-      )
+    if_can_edit(socket, fn ->
+      {res, card_id} =
+        Cards.get_card_by_gnosis(
+          :crypto.hash(:md5, value["LIBRA"])
+          |> Base.encode16()
+          |> String.downcase()
+        )
 
-    if res == :ok do
-      # add card to the deck and clear LIBRA
-      deck = Cards.add_card_to_deck(socket.assigns.deck, card_id)
+      if res == :ok do
+        # add card to the deck and clear LIBRA
+        deck = Cards.add_card_to_deck(socket.assigns.deck, card_id)
 
-      {:noreply, recalc(socket |> assign(eye: nil, eye_img: nil, alethics: false), deck)}
-    else
-      {:noreply, socket}
-    end
+        {:noreply, recalc(socket |> assign(eye: nil, eye_img: nil, alethics: false), deck)}
+      else
+        {:noreply, socket}
+      end
+    end)
   end
 
   @impl true
@@ -428,7 +464,33 @@ defmodule StrangepathsWeb.DeckLive.Show do
     |> assign(:total_sidereals, total_sidereals)
     |> assign(:bonustext, bonustext)
     |> assign(:is_subaspect, is_subaspect)
+    |> assign(:can_edit, can_edit_deck?(socket.assigns.current_user, deck))
+    |> assign(:creator_name, other_owner_name(socket.assigns.current_user, deck))
     |> assign(:deck, %{deck | glory_used: glory, manabalance: manabalance})
+  end
+
+  # Owner or dragon may edit; anyone else can only view a (public) deck.
+  defp can_edit_deck?(user, deck) do
+    user != nil && (deck.owner == user.id || user.role == :dragon)
+  end
+
+  # Nickname of the deck's owner, but only when the viewer isn't that owner
+  # (so the deck view can credit a shared deck's creator). nil for your own deck.
+  defp other_owner_name(user, deck) do
+    if user && deck.owner == user.id do
+      nil
+    else
+      case Strangepaths.Accounts.get_user(deck.owner) do
+        %{nickname: nickname} -> nickname
+        _ -> nil
+      end
+    end
+  end
+
+  # Wraps a deck-mutating handler body; no-ops for non-editors (who can reach a
+  # public deck's page but must not be able to change it).
+  defp if_can_edit(socket, fun) do
+    if socket.assigns[:can_edit], do: fun.(), else: {:noreply, socket}
   end
 
   defp ch(type, glory, gnosis) do

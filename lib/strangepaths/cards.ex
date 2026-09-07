@@ -760,7 +760,7 @@ defmodule Strangepaths.Cards do
       join: a in Strangepaths.Cards.Aspect,
       on: d.aspect_id == a.id,
       select: {%{deck: d, aspect: a.name}},
-      where: d.owner == ^user_id,
+      where: d.owner == ^user_id or d.public == true,
       order_by: {^direction, ^sortcol}
     )
     |> Repo.all()
@@ -898,6 +898,16 @@ defmodule Strangepaths.Cards do
   def update_deck_avatar(deck, avatar_id) do
     deck
     |> Deck.avatar_changeset(avatar_id)
+    |> Repo.update()
+  end
+
+  @doc """
+  Sets a deck's `public` flag. Public decks are visible to every user in the
+  codex list and selectable in a Rite, not just to their owner.
+  """
+  def set_deck_public(deck, public) when is_boolean(public) do
+    deck
+    |> Deck.public_changeset(public)
     |> Repo.update()
   end
 

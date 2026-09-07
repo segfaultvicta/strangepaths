@@ -30,17 +30,33 @@ defmodule StrangepathsWeb.CardLive.FormComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"card" => %{"aspect_id" => raw_id}}, socket) do
-    id = case Integer.parse(raw_id) do
-      {n, ""} -> n
-      _ -> nil
-    end
-    is_sub = not is_nil(id) && MapSet.member?(socket.assigns.sub_aspect_ids, id)
-    {:noreply, assign(socket, :is_sub_aspect, is_sub)}
+  def handle_event("validate", %{"card" => card_params}, socket) do
+    # Rebuild the changeset from the submitted params so every field has a
+    # server-side value. Without this the form's contents live only in the
+    # browser DOM, and any re-render that re-patches the inputs (notably
+    # selecting a file for the card-art upload, which re-renders the form to
+    # show the chosen filename) wipes everything back to the blank changeset.
+    changeset = Cards.change_card(socket.assigns.card, card_params)
+
+    is_sub =
+      case Integer.parse(card_params["aspect_id"] || "") do
+        {id, ""} -> MapSet.member?(socket.assigns.sub_aspect_ids, id)
+        _ -> false
+      end
+
+    {:noreply,
+     socket
+     |> assign(:changeset, changeset)
+     |> assign(:is_sub_aspect, is_sub)}
   end
 
   def handle_event("validate", _params, socket) do
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("cancel_cardart", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :cardart, ref)}
   end
 
   @impl true
@@ -50,15 +66,10 @@ defmodule StrangepathsWeb.CardLive.FormComponent do
 
   defp save_card(socket, :edit, card_params) do
     # Handle cardart upload if present
-
-    IO.inspect(card_params)
     card_params = handle_cardart_upload(socket, card_params)
 
     case Cards.update_card(socket.assigns.card, card_params) do
       {:ok, _card} ->
-        IO.puts("beep")
-        IO.puts(socket.assigns.return_to)
-
         {:noreply,
          socket
          |> put_flash(:info, "Card updated successfully")

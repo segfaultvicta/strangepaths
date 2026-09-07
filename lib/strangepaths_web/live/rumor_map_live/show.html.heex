@@ -334,6 +334,14 @@
             <%= if @selected_node.is_anchor do %>
               <div>⚓</div>
             <% end %>
+            <button type="button"
+                    id={"copy-node-link-#{@selected_node.id}"}
+                    phx-hook="RumorNodeCopyLink"
+                    data-node-id={@selected_node.id}
+                    class="inline-flex items-center gap-1 text-xs text-purple-300 hover:text-purple-100 border border-purple-700 hover:border-purple-400 rounded px-2 py-1 transition"
+                    title="Copy a link that opens the map on this node">
+              <i class="fa-solid fa-link"></i> Copy link
+            </button>
           </div>
 
           <!-- Art Image -->

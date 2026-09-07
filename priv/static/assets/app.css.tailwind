@@ -158,6 +158,7 @@ body {
 
 #chat-posts-container {
   @apply flex-1 overflow-y-auto bg-indigo-300 dark:bg-gray-900 rounded px-4;
+  overflow-anchor: none;
 }
 
 .post-container-icecylee {
@@ -343,6 +344,10 @@ body {
 .deckbuttons {
   min-height: 40px;
   @apply flex justify-evenly mt-1;
+}
+
+.deck-readonly .deckbuttons {
+  display: none;
 }
 
 .avatar-image .selected {

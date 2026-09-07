@@ -107,24 +107,38 @@
           </button>
         </form>
       <% else %>
-        <span class="text-4xl text-indigo-900 dark:text-indigo-50 font-bold text-center group cursor-pointer" phx-click="start_rename">
+        <span class={"text-4xl text-indigo-900 dark:text-indigo-50 font-bold text-center " <> if(@can_edit, do: "group cursor-pointer", else: "")} phx-click={if @can_edit, do: "start_rename"}>
           <%= @deck.name %>
+          <%= if @deck.public do %>
+            <span class="text-base align-middle text-green-600 dark:text-green-400" title="Public deck — visible to everyone"><i class="fa-solid fa-earth-americas"></i></span>
+          <% end %>
+          <%= if @creator_name do %>
+            <span class="text-base font-normal italic align-middle text-indigo-900 dark:text-indigo-50">deck by <%= @creator_name %></span>
+          <% end %>
 
           <span>
-            <button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+            <%= if @can_edit do %><button class="pl-5" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button><% end %>
             ❁<%= @deck.glory %>
-            <button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button>
+            <%= if @can_edit do %><button phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button><% end %>
           </span>
           <span>
-            <button class="pl-5" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+            <%= if @can_edit do %><button class="pl-5" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button><% end %>
             ♥<%= @deck.tolerance %>
-            <button phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button>
+            <%= if @can_edit do %><button phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button><% end %>
           </span>
           <span>
-            <button class="pl-5" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+            <%= if @can_edit do %><button class="pl-5" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button><% end %>
             ⛨<%= @deck.blockcap %>
-            <button phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button>
+            <%= if @can_edit do %><button phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button><% end %>
           </span>
+
+          <%= if @can_edit do %>
+            <button
+              phx-click="toggle_public"
+              class="ml-4 align-middle -translate-y-1 text-sm font-normal px-3 py-1 rounded border border-indigo-400 dark:border-gray-500 hover:bg-indigo-100 dark:hover:bg-gray-700">
+              <%= if @deck.public, do: "Make Private", else: "Make Public" %>
+            </button>
+          <% end %>
         </span>
       <% end %>
     </div>
@@ -203,29 +217,42 @@
         </button>
       </form>
     <% else %>
-      <div>
-        <span class="text-lg text-indigo-800 dark:text-white font-bold truncate mx-4" phx-click="start_rename"><%= @deck.name %></span>
+      <div class="mx-4">
+        <div class="flex items-center gap-2">
+          <span class="text-lg text-indigo-800 dark:text-white font-bold truncate" phx-click={if @can_edit, do: "start_rename"}><%= @deck.name %></span>
+          <%= if @deck.public do %>
+            <span class="text-green-600 dark:text-green-400 flex-shrink-0" title="Public deck"><i class="fa-solid fa-earth-americas"></i></span>
+          <% end %>
+          <%= if @can_edit do %>
+            <button phx-click="toggle_public" class="flex-shrink-0 text-xs px-2 py-0.5 rounded border border-indigo-400 dark:border-gray-500">
+              <%= if @deck.public, do: "Make Private", else: "Make Public" %>
+            </button>
+          <% end %>
+        </div>
+        <%= if @creator_name do %>
+          <div class="text-xs italic text-indigo-900 dark:text-indigo-100">deck by <%= @creator_name %></div>
+        <% end %>
       </div>
     <% end %>
     <div class="flex items-center justify-between px-3 pb-2 gap-2">
       <div class="flex-1 min-w-0">
-        
+
         <div class="text-sm dark:text-gray-400"><%= @deck.aspect %></div>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
-        <button class="text-xl" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+        <%= if @can_edit do %><button class="text-xl" phx-click="adjust_glory", value="-1"><i class="fa-solid fa-caret-left"></i></button><% end %>
         <span class="text-lg">❁<%= @deck.glory %></span>
-        <button class="text-xl" phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button>
+        <%= if @can_edit do %><button class="text-xl" phx-click="adjust_glory", value="1"><i class="fa-solid fa-caret-right"></i></button><% end %>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
-        <button class="text-xl" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+        <%= if @can_edit do %><button class="text-xl" phx-click="adjust_tolerance", value="-1"><i class="fa-solid fa-caret-left"></i></button><% end %>
         <span class="text-lg">♥<%= @deck.tolerance %></span>
-        <button class="text-xl" phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button>
+        <%= if @can_edit do %><button class="text-xl" phx-click="adjust_tolerance", value="1"><i class="fa-solid fa-caret-right"></i></button><% end %>
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
-        <button class="text-xl" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button>
+        <%= if @can_edit do %><button class="text-xl" phx-click="adjust_blockcap", value="-1"><i class="fa-solid fa-caret-left"></i></button><% end %>
         <span class="text-lg">⛨<%= @deck.blockcap %></span>
-        <button class="text-xl" phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button>
+        <%= if @can_edit do %><button class="text-xl" phx-click="adjust_blockcap", value="1"><i class="fa-solid fa-caret-right"></i></button><% end %>
       </div>
     </div>
 
@@ -286,7 +313,7 @@
     <div class="mt-[190px]">
       <!-- Avatar Selection -->
       <div class="text-center mb-4">
-        <button phx-click="open_avatar_picker" class="group relative inline-block">
+        <button phx-click={if @can_edit, do: "open_avatar_picker"} class={"relative inline-block " <> if(@can_edit, do: "group", else: "cursor-default")}>
           <%= if @deck.avatar && @deck.avatar.filepath do %>
             <img src={@deck.avatar.filepath} alt="Avatar" class="w-24 h-24 rounded-full border-2 border-gray-600 group-hover:border-purple-400 transition" />
           <% else %>
@@ -294,9 +321,11 @@
               <i class="fa-solid fa-user text-4xl text-gray-500"></i>
             </div>
           <% end %>
-          <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
-            <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
-          </div>
+          <%= if @can_edit do %>
+            <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition">
+              <i class="fa-solid fa-pencil text-white opacity-0 group-hover:opacity-100 transition"></i>
+            </div>
+          <% end %>
         </button>
       </div>
 
@@ -354,7 +383,7 @@
   <div class="flex-1 overflow-y-auto px-6 py-4 pb-32">
     <!-- Avatar Selection -->
     <div class="text-center mb-4">
-      <button phx-click="open_avatar_picker" class="group relative inline-block touch-manipulation">
+      <button phx-click={if @can_edit, do: "open_avatar_picker"} class={"relative inline-block touch-manipulation " <> if(@can_edit, do: "group", else: "cursor-default")}>
         <%= if @deck.avatar && @deck.avatar.filepath do %>
           <img src={@deck.avatar.filepath} alt="Avatar" class="w-20 h-20 rounded-full border-2 border-gray-600 active:border-purple-400 transition" />
         <% else %>
@@ -362,11 +391,13 @@
             <i class="fa-solid fa-user text-3xl text-gray-500"></i>
           </div>
         <% end %>
-        <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 active:bg-opacity-30 flex items-center justify-center transition">
-          <i class="fa-solid fa-pencil text-white opacity-0 active:opacity-100 transition"></i>
-        </div>
+        <%= if @can_edit do %>
+          <div class="absolute inset-0 rounded-full bg-black bg-opacity-0 active:bg-opacity-30 flex items-center justify-center transition">
+            <i class="fa-solid fa-pencil text-white opacity-0 active:opacity-100 transition"></i>
+          </div>
+        <% end %>
       </button>
-      <div class="text-xs mt-1">Tap to change avatar</div>
+      <%= if @can_edit do %><div class="text-xs mt-1">Tap to change avatar</div><% end %>
     </div>
 
     <div class="text-center pb-4">
@@ -413,7 +444,7 @@
   </button>
 </div>
 
-<div class="pt-[140px] lg:pt-16 lg:pl-64">
+<div class={"pt-[140px] lg:pt-16 lg:pl-64 " <> unless(@can_edit, do: "deck-readonly", else: "")}>
   <div class="container mx-auto mb-24">
     <div id="toc" class="mt-2">
       <!-- Mobile: Horizontal scroll -->
@@ -570,7 +601,7 @@
       <% end %>
     </div>
     
-    <%= if @alethics || @current_user.role == :dragon do %>
+    <%= if (@alethics && @can_edit) || @current_user.role == :dragon do %>
       <div id="ALETHEIA" class="h-64">
         <h2 class="text-center">Aletheia</h2>
         <div class="text-center font-black italic">Tell me the truth!</div>
@@ -583,11 +614,13 @@
       <div id="aletheia" class="hidden">
         Aletheia
       </div>
-      <div phx-click="truth" class="hidden lg:flex justify-center mt-8">
-        <button>
-          ꙮ
-        </button>
-      </div>
+      <%= if @can_edit do %>
+        <div phx-click="truth" class="hidden lg:flex justify-center mt-8">
+          <button>
+            ꙮ
+          </button>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </div>

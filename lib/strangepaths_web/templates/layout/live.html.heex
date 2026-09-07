@@ -1,15 +1,20 @@
 <main>
-  <%= if live_flash(@flash, :info) do %>
-    <p style="position: relative; z-index: 9999;" class="bg-blue-900 border border-blue-500 text-blue-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
-      phx-click="lv:clear-flash"
-      phx-value-key="info"><%= live_flash(@flash, :info) %></p>
-  <% end %>
+  <%!-- Stable keyed wrapper: keeps <main>'s child list a fixed shape so a flash
+        appearing/disappearing can't make morphdom relocate sibling subtrees
+        (which silently resets scrollTop on any scroll container inside them). --%>
+  <div id="flash-group">
+    <%= if live_flash(@flash, :info) do %>
+      <p id="flash-info" style="position: relative; z-index: 9999;" class="bg-blue-900 border border-blue-500 text-blue-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
+        phx-click="lv:clear-flash"
+        phx-value-key="info"><%= live_flash(@flash, :info) %></p>
+    <% end %>
 
-  <%= if live_flash(@flash, :error) do %>
-    <p style="position: relative; z-index: 9999;" class="bg-red-900 border border-red-500 text-red-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
-      phx-click="lv:clear-flash"
-      phx-value-key="error"><%= live_flash(@flash, :error) %></p>
-  <% end %>
+    <%= if live_flash(@flash, :error) do %>
+      <p id="flash-error" style="position: relative; z-index: 9999;" class="bg-red-900 border border-red-500 text-red-200 px-4 py-3 rounded mb-4 cursor-pointer" role="alert"
+        phx-click="lv:clear-flash"
+        phx-value-key="error"><%= live_flash(@flash, :error) %></p>
+    <% end %>
+  </div>
 
   <.live_component module={StrangepathsWeb.MusicPlayerComponent} id="music-player" current_user={assigns[:current_user]} />
   <%= @inner_content %>
