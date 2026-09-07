@@ -644,17 +644,21 @@ defmodule StrangepathsWeb.Scenes do
   defp handle_scene_event("cycle_scene", %{"direction" => direction}, socket) do
     current = socket.assigns.current_scene
 
-    # When the unread filter is active (dragon "collapsed to pinned scenes" view),
-    # ctrl-up/down cycles only through the pinned scenes. Elsewhere is always in
-    # the ring (it can't be pinned but must stay reachable), and the current scene
-    # is kept in the ring even if it isn't pinned, so you can still arrow away from
-    # an unpinned scene you navigated to (it drops out once you leave it).
+    # When the unread filter is active, ctrl-up/down cycles exactly the scenes
+    # that are visible in the picker: Elsewhere (can't be pinned but must stay
+    # reachable), pinned scenes, any scene with unread messages (so a backchannel
+    # DM you're not pinned to is reachable when its notification lands), and the
+    # current scene even if it's none of those (so you can always arrow away).
     scenes =
       if socket.assigns.filter_unread_scenes do
         pinned = socket.assigns.pinned_scene_ids
+        unread = socket.assigns.unread_counts
 
         Enum.filter(socket.assigns.scenes, fn s ->
-          s.is_elsewhere || MapSet.member?(pinned, s.id) || (current && s.id == current.id)
+          s.is_elsewhere ||
+            MapSet.member?(pinned, s.id) ||
+            Map.get(unread, s.id, 0) > 0 ||
+            (current && s.id == current.id)
         end)
       else
         socket.assigns.scenes
