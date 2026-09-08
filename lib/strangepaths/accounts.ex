@@ -226,6 +226,15 @@ defmodule Strangepaths.Accounts do
     |> Repo.update()
   end
 
+  @doc """
+  Persists a user's activity-notification preferences (the 8 `notif_*` booleans).
+  """
+  def update_notification_prefs(user, attrs \\ %{}) do
+    user
+    |> User.notification_prefs_changeset(attrs)
+    |> Repo.update()
+  end
+
   def update_user_action_default(user, attrs \\ %{}) do
     user
     |> User.action_default_changeset(attrs)

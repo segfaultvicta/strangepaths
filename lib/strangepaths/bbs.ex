@@ -6,6 +6,7 @@ defmodule Strangepaths.BBS do
   import Ecto.Query
   alias Strangepaths.Repo
   alias Strangepaths.BBS.{Board, Thread, Post, UserThreadSticky, ThreadReadMark}
+  alias Strangepaths.Notifications
 
   # === BOARDS ===
 
@@ -359,9 +360,10 @@ defmodule Strangepaths.BBS do
       end)
 
     case result do
-      {:ok, {thread, _post}} ->
+      {:ok, {thread, post}} ->
         StrangepathsWeb.Endpoint.broadcast("bbs_board:#{board.id}", "new_thread", %{thread_id: thread.id})
         StrangepathsWeb.Endpoint.broadcast("bbs_boards", "board_activity", %{board_id: board.id})
+        Notifications.publish_bbs_new_thread(board, thread, post, user)
         result
 
       {:error, changeset} ->
@@ -437,6 +439,7 @@ defmodule Strangepaths.BBS do
         StrangepathsWeb.Endpoint.broadcast("bbs_thread:#{thread.id}", "new_post", %{post: post})
         StrangepathsWeb.Endpoint.broadcast("bbs_board:#{thread.board_id}", "thread_updated", %{thread_id: thread.id})
         StrangepathsWeb.Endpoint.broadcast("bbs_boards", "board_activity", %{board_id: thread.board_id})
+        Notifications.publish_bbs_new_post(thread, post, user)
         {:ok, post}
 
       {:error, changeset} ->

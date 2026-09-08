@@ -9,6 +9,7 @@ defmodule StrangepathsWeb.Scenes do
   alias Strangepaths.Accounts
   alias Strangepaths.Cards
   alias Strangepaths.Presence
+  alias Strangepaths.Notifications
 
   alias StrangepathsWeb.Endpoint, as: E
 
@@ -564,6 +565,7 @@ defmodule StrangepathsWeb.Scenes do
             # Preload associations for broadcasting
             post = Strangepaths.Repo.preload(post, [:user, :avatar])
             SceneServer.broadcast_post(scene.id, post)
+            Notifications.publish_scene_post(%{post: post, scene: scene})
 
             {:noreply,
              socket
@@ -615,6 +617,7 @@ defmodule StrangepathsWeb.Scenes do
           {:ok, post} ->
             post = Strangepaths.Repo.preload(post, [:user, :avatar])
             SceneServer.broadcast_post(scene.id, post)
+            Notifications.publish_scene_post(%{post: post, scene: scene})
 
             {:noreply,
              socket

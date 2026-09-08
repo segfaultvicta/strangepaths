@@ -29,53 +29,55 @@ defmodule StrangepathsWeb.Router do
     # Secure music file serving
     get("/music/:guid", MusicFileController, :serve)
 
-    live("/ost", OstLive)
-    live("/ost/:id", SongLive)
+    live_session :app, on_mount: {StrangepathsWeb.NotificationHooks, :subscribe} do
+      live("/ost", OstLive)
+      live("/ost/:id", SongLive)
 
-    live("/scenes", Scenes)
-    live("/scenes/archives", Scenes.Archives)
-    live("/scenes/archives/elsewhere/:week", Scenes.Archives)
-    live("/scenes/archives/:slug", Scenes.Archives)
+      live("/scenes", Scenes)
+      live("/scenes/archives", Scenes.Archives)
+      live("/scenes/archives/elsewhere/:week", Scenes.Archives)
+      live("/scenes/archives/:slug", Scenes.Archives)
 
-    live("/content", ContentIndexLive)
-    live("/content/:slug", ContentLive)
+      live("/content", ContentIndexLive)
+      live("/content/:slug", ContentLive)
 
-    live("/avatars/admin", AvatarAdminLive)
+      live("/avatars/admin", AvatarAdminLive)
 
-    live("/lab/cardgen", CardGenLive)
+      live("/lab/cardgen", CardGenLive)
 
-    live("/codex", DeckLive.Index, :index)
-    live("/codex/new", DeckLive.Index, :new)
+      live("/codex", DeckLive.Index, :index)
+      live("/codex/new", DeckLive.Index, :new)
 
-    live("/codex/:id", DeckLive.Show, :show)
-    live("/codex/:id/show/edit", DeckLive.Show, :edit)
+      live("/codex/:id", DeckLive.Show, :show)
+      live("/codex/:id/show/edit", DeckLive.Show, :edit)
 
-    live("/cosmos", CardLive.Index, :index)
-    live("/cosmos/new", CardLive.Index, :new)
+      live("/cosmos", CardLive.Index, :index)
+      live("/cosmos/new", CardLive.Index, :new)
 
-    live("/cosmos/:id", CardLive.Show, :show)
-    live("/cosmos/:id/show/edit", CardLive.Show, :edit)
+      live("/cosmos/:id", CardLive.Show, :show)
+      live("/cosmos/:id/show/edit", CardLive.Show, :edit)
 
-    live("/ceremony", CeremonyLive.Index, :index)
-    live("/ceremony/new", CeremonyLive.Index, :new)
-    live("/ceremony/:id", CeremonyLive.Show, :show)
+      live("/ceremony", CeremonyLive.Index, :index)
+      live("/ceremony/new", CeremonyLive.Index, :new)
+      live("/ceremony/:id", CeremonyLive.Show, :show)
 
-    live("/rumor", RumorMapLive.Show, :show)
-    live("/rumor/archive", RumorMapLive.Archive, :index)
-    live("/rumor/archive/snapshot/:id", RumorMapLive.Archive, :snapshot)
-    live("/rumor/snapshot/:id", RumorMapLive.Snapshot, :show)
+      live("/rumor", RumorMapLive.Show, :show)
+      live("/rumor/archive", RumorMapLive.Archive, :index)
+      live("/rumor/archive/snapshot/:id", RumorMapLive.Archive, :snapshot)
+      live("/rumor/snapshot/:id", RumorMapLive.Snapshot, :show)
 
-    live("/bbs", BBSLive.BoardList, :index)
-    live("/bbs/:board_slug", BBSLive.ThreadList, :index)
-    live("/bbs/:board_slug/new", BBSLive.ThreadList, :new)
-    live("/bbs/:board_slug/:thread_id", BBSLive.Thread, :show)
+      live("/bbs", BBSLive.BoardList, :index)
+      live("/bbs/:board_slug", BBSLive.ThreadList, :index)
+      live("/bbs/:board_slug/new", BBSLive.ThreadList, :new)
+      live("/bbs/:board_slug/:thread_id", BBSLive.Thread, :show)
 
-    live("/library", LibraryLive.FolioList, :index)
-    live("/library/new", LibraryLive.FolioList, :new)
-    live("/library/admin", LibraryLive.Admin)
-    live("/library/:slug/compose", LibraryLive.Composer, :compose)
-    live("/library/:slug/history", LibraryLive.FolioHistory, :show)
-    live("/library/:slug", LibraryLive.Folio, :show)
+      live("/library", LibraryLive.FolioList, :index)
+      live("/library/new", LibraryLive.FolioList, :new)
+      live("/library/admin", LibraryLive.Admin)
+      live("/library/:slug/compose", LibraryLive.Composer, :compose)
+      live("/library/:slug/history", LibraryLive.FolioHistory, :show)
+      live("/library/:slug", LibraryLive.Folio, :show)
+    end
   end
 
   # Other scopes may use custom stacks.
@@ -115,7 +117,11 @@ defmodule StrangepathsWeb.Router do
     pipe_through([:browser, :require_authenticated_user])
 
     live_dashboard("/dashboard", metrics: StrangepathsWeb.Telemetry)
-    live("/users/admin", UserAdminLive)
+
+    live_session :app_authenticated, on_mount: {StrangepathsWeb.NotificationHooks, :subscribe} do
+      live("/users/admin", UserAdminLive)
+    end
+
     get("/users/settings", UserSettingsController, :edit)
     put("/users/settings", UserSettingsController, :update)
     get("/users/settings/confirm_email/:token", UserSettingsController, :confirm_email)

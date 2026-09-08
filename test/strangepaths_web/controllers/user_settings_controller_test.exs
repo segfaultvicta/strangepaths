@@ -126,4 +126,62 @@ defmodule StrangepathsWeb.UserSettingsControllerTest do
       assert redirected_to(conn) == Routes.user_session_path(conn, :new)
     end
   end
+
+  describe "PUT /users/settings (update notification prefs)" do
+    test "renders settings page with notification preferences form", %{conn: conn} do
+      conn = get(conn, Routes.user_settings_path(conn, :edit))
+      response = html_response(conn, 200)
+      assert response =~ "Activity notifications"
+      assert response =~ "name=\"user[notif_scene_sound]\""
+      assert response =~ "name=\"user[notif_scene_web]\""
+      assert response =~ "name=\"user[notif_library_sound]\""
+      assert response =~ "name=\"user[notif_library_web]\""
+      assert response =~ "name=\"user[notif_bbs_sound]\""
+      assert response =~ "name=\"user[notif_bbs_web]\""
+      assert response =~ "name=\"user[notif_rumor_sound]\""
+      assert response =~ "name=\"user[notif_rumor_web]\""
+      assert response =~ "id=\"notif-perm-note\""
+    end
+
+    test "updates notification preferences", %{conn: conn, user: user} do
+      conn =
+        put(conn, Routes.user_settings_path(conn, :update), %{
+          "action" => "update_notification_prefs",
+          "user" => %{
+            "notif_scene_sound" => "true",
+            "notif_library_web" => "true"
+          }
+        })
+
+      assert redirected_to(conn) == Routes.user_settings_path(conn, :edit)
+      assert get_flash(conn, :info) =~ "Activity notification preferences updated"
+
+      updated_user = Accounts.get_user!(user.id)
+      assert updated_user.notif_scene_sound == true
+      assert updated_user.notif_library_web == true
+      assert updated_user.notif_scene_web == false
+      assert updated_user.notif_library_sound == false
+      assert updated_user.notif_bbs_sound == false
+      assert updated_user.notif_bbs_web == false
+      assert updated_user.notif_rumor_sound == false
+      assert updated_user.notif_rumor_web == false
+    end
+
+    test "ignores unknown fields in notification prefs update", %{conn: conn, user: user} do
+      conn =
+        put(conn, Routes.user_settings_path(conn, :update), %{
+          "action" => "update_notification_prefs",
+          "user" => %{
+            "notif_scene_sound" => "true",
+            "role" => "dragon"
+          }
+        })
+
+      assert redirected_to(conn) == Routes.user_settings_path(conn, :edit)
+
+      updated_user = Accounts.get_user!(user.id)
+      assert updated_user.notif_scene_sound == true
+      assert updated_user.role == :user
+    end
+  end
 end

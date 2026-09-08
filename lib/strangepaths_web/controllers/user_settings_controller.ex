@@ -95,6 +95,21 @@ defmodule StrangepathsWeb.UserSettingsController do
     end
   end
 
+  def update(conn, %{"action" => "update_notification_prefs"} = params) do
+    %{"user" => user_params} = params
+    user = conn.assigns.current_user
+
+    case Accounts.update_notification_prefs(user, user_params) do
+      {:ok, _} ->
+        conn
+        |> put_flash(:info, "Activity notification preferences updated.")
+        |> redirect(to: Routes.user_settings_path(conn, :edit))
+
+      {:error, changeset} ->
+        render(conn, "edit.html", notification_prefs_changeset: changeset)
+    end
+  end
+
   def update(conn, %{"action" => "update_password"} = params) do
     %{"current_password" => password, "user" => user_params} = params
     user = conn.assigns.current_user
@@ -157,6 +172,7 @@ defmodule StrangepathsWeb.UserSettingsController do
     |> assign(:action_default_changeset, Accounts.User.action_default_changeset(user, %{}))
     |> assign(:theme_changeset, Accounts.User.theme_changeset(user, %{}))
     |> assign(:smart_unread_changeset, Accounts.User.smart_unread_changeset(user, %{}))
+    |> assign(:notification_prefs_changeset, Accounts.User.notification_prefs_changeset(user, %{}))
     |> assign(:site_settings, Site.get_site_settings())
   end
 end

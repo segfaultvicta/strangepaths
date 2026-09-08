@@ -401,4 +401,104 @@ defmodule Strangepaths.BBSTest do
       assert is_nil(result)
     end
   end
+
+  describe "activity notifications (Phase 4)" do
+    setup do
+      actor = user_fixture()
+
+      {:ok, actor} =
+        Accounts.update_notification_prefs(actor, %{
+          notif_bbs_sound: true,
+          notif_bbs_web: true
+        })
+
+      recipient = user_fixture()
+
+      {:ok, recipient} =
+        Accounts.update_notification_prefs(recipient, %{
+          notif_bbs_sound: true,
+          notif_bbs_web: true
+        })
+
+      board = board_fixture(%{name: "Test Board"})
+
+      %{actor: actor, recipient: recipient, board: board}
+    end
+
+    test "AC1.2: create_thread publishes one activity event", %{
+      actor: actor,
+      recipient: recipient,
+      board: board
+    } do
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, {_thread, _post}} =
+        BBS.create_thread(board, actor, %{
+          "title" => "Test Thread",
+          "content" => "Test content"
+        })
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "activity",
+        payload: %{source: :bbs, event: :new_thread, context_key: "bbs_thread:" <> _}
+      }
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.2: create_post publishes one activity event", %{
+      actor: actor,
+      recipient: recipient,
+      board: board
+    } do
+      {:ok, {thread, _post}} =
+        BBS.create_thread(board, actor, %{
+          "title" => "Test Thread",
+          "content" => "Initial post"
+        })
+
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _post} =
+        BBS.create_post(thread, actor, %{
+          "content" => "Reply content"
+        })
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "activity",
+        payload: %{source: :bbs, event: :new_post, context_key: "bbs_thread:" <> _}
+      }
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.5: update_post does NOT publish activity event", %{
+      actor: actor,
+      recipient: recipient,
+      board: board
+    } do
+      {:ok, {thread, _post}} =
+        BBS.create_thread(board, actor, %{
+          "title" => "Test Thread",
+          "content" => "Initial post"
+        })
+
+      {:ok, post} =
+        BBS.create_post(thread, actor, %{
+          "content" => "Reply content"
+        })
+
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _updated_post} =
+        BBS.update_post(post, actor, %{
+          "content" => "Edited content"
+        })
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+  end
 end

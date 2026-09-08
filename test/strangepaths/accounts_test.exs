@@ -561,4 +561,128 @@ defmodule Strangepaths.AccountsTest do
       assert %Ecto.Changeset{} = Accounts.change_avatar(avatar)
     end
   end
+
+  describe "User.notification_prefs_changeset/2" do
+    test "casts notification preference fields" do
+      user = %User{}
+
+      changeset =
+        User.notification_prefs_changeset(user, %{
+          "notif_scene_sound" => true,
+          "notif_library_web" => true
+        })
+
+      assert changeset.changes[:notif_scene_sound] == true
+      assert changeset.changes[:notif_library_web] == true
+    end
+
+    test "ignores non-notification-preference fields" do
+      user = %User{}
+
+      changeset =
+        User.notification_prefs_changeset(user, %{
+          "notif_scene_sound" => true,
+          "role" => "dragon",
+          "email" => "x@y.z"
+        })
+
+      assert changeset.changes[:notif_scene_sound] == true
+      refute Map.has_key?(changeset.changes, :role)
+      refute Map.has_key?(changeset.changes, :email)
+    end
+
+    test "ignores unknown notification fields" do
+      user = %User{}
+
+      changeset =
+        User.notification_prefs_changeset(user, %{
+          "notif_scene_sound" => true,
+          "notif_bogus_sound" => true
+        })
+
+      assert changeset.changes[:notif_scene_sound] == true
+      refute Map.has_key?(changeset.changes, :notif_bogus_sound)
+    end
+
+    test "fresh user_fixture has all 8 notification fields as false" do
+      user = user_fixture()
+
+      assert user.notif_scene_sound == false
+      assert user.notif_scene_web == false
+      assert user.notif_library_sound == false
+      assert user.notif_library_web == false
+      assert user.notif_bbs_sound == false
+      assert user.notif_bbs_web == false
+      assert user.notif_rumor_sound == false
+      assert user.notif_rumor_web == false
+    end
+
+    test "rejects nil values for notification preference fields" do
+      user = %User{}
+
+      changeset =
+        User.notification_prefs_changeset(user, %{"notif_scene_sound" => nil})
+
+      refute changeset.valid?
+      assert %{notif_scene_sound: ["can't be blank"]} = errors_on(changeset)
+    end
+  end
+
+  describe "Accounts.update_notification_prefs/2" do
+    test "updates a single notification preference" do
+      user = user_fixture()
+
+      {:ok, updated_user} =
+        Accounts.update_notification_prefs(user, %{"notif_bbs_web" => true})
+
+      assert updated_user.notif_bbs_web == true
+      # Verify other fields remain false
+      assert updated_user.notif_scene_sound == false
+      assert updated_user.notif_scene_web == false
+      assert updated_user.notif_library_sound == false
+      assert updated_user.notif_library_web == false
+      assert updated_user.notif_bbs_sound == false
+      assert updated_user.notif_rumor_sound == false
+      assert updated_user.notif_rumor_web == false
+    end
+
+    test "persists notification preference change to database" do
+      user = user_fixture()
+
+      {:ok, _} = Accounts.update_notification_prefs(user, %{"notif_bbs_web" => true})
+
+      reloaded_user = Accounts.get_user!(user.id)
+      assert reloaded_user.notif_bbs_web == true
+    end
+
+    test "toggles notification preference back to false" do
+      user = user_fixture()
+
+      {:ok, updated_user} =
+        Accounts.update_notification_prefs(user, %{"notif_bbs_web" => true})
+
+      assert updated_user.notif_bbs_web == true
+
+      {:ok, toggled_user} =
+        Accounts.update_notification_prefs(updated_user, %{"notif_bbs_web" => false})
+
+      assert toggled_user.notif_bbs_web == false
+    end
+
+    test "updates multiple notification preferences at once" do
+      user = user_fixture()
+
+      {:ok, updated_user} =
+        Accounts.update_notification_prefs(user, %{
+          "notif_scene_sound" => true,
+          "notif_library_web" => true,
+          "notif_rumor_sound" => true
+        })
+
+      assert updated_user.notif_scene_sound == true
+      assert updated_user.notif_library_web == true
+      assert updated_user.notif_rumor_sound == true
+      assert updated_user.notif_bbs_web == false
+    end
+  end
 end

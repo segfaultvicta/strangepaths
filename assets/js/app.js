@@ -1424,6 +1424,186 @@ Hooks.MusicPlayer = {
 
 };
 
+Hooks.ActivityNotifier = {
+  mounted() {
+    // ---- config ----
+    this.COALESCE_DEBOUNCE_MS = 1500;   // wait for a burst to settle
+    this.COALESCE_MAX_MS = 12000;       // …but never hold a cue longer than this
+    this.TOAST_TTL_MS = 6000;
+    this.TOAST_CAP = 4;
+
+    this.SOUNDS = {
+      scene: "/audio/notif/scene.mp3",
+      library: "/audio/notif/library.mp3",
+      bbs: "/audio/notif/bbs.mp3",
+      rumor: "/audio/notif/rumor.mp3",
+    };
+    this.NOUN = {
+      scene: "post", library: "update", bbs: "post", rumor: "node",
+    };
+    this.SOURCE_LABEL = {
+      scene: "Scene", library: "Library", bbs: "Linkpearl", rumor: "Rumor map",
+    };
+
+    this.audio = {};
+    Object.keys(this.SOUNDS).forEach((s) => {
+      const a = new Audio(this.SOUNDS[s]);
+      a.preload = "auto";
+      a.volume = 0.5;
+      this.audio[s] = a;
+    });
+
+    this.pending = {};        // source -> { count, payload, timer, maxTimer }
+    this.isPrimary = false;
+    this._toastRoot = null;
+
+    // ---- multi-tab primary election (AC7.3, AC7.4, AC7.6) ----
+    // ONE request. Its callback runs only once this tab actually holds the lock;
+    // inside it we mark ourselves primary and return a promise that resolves only
+    // on destroyed() — holding the lock (and primary status) until the tab closes,
+    // at which point a queued tab's callback runs and it becomes primary (AC7.4).
+    this._releasePrimary = null;
+    if (navigator.locks && typeof navigator.locks.request === "function") {
+      navigator.locks
+        .request("sp_notif_primary", { mode: "exclusive" }, () => {
+          this.isPrimary = true;
+          return new Promise((resolve) => { this._releasePrimary = resolve; });
+        })
+        .catch(() => { this.isPrimary = true; }); // lock machinery failed → act anyway
+    } else {
+      this.isPrimary = true; // ~4% of browsers, AC7.6 — every tab acts
+    }
+
+    // ---- receive server events ----
+    this.handleEvent("activity", (payload) => this.onActivity(payload));
+  },
+
+  destroyed() {
+    if (this._releasePrimary) this._releasePrimary(); // frees the Web Lock → next tab promoted
+    Object.values(this.pending).forEach((p) => {
+      clearTimeout(p.timer); clearTimeout(p.maxTimer);
+    });
+  },
+
+  currentContext() {
+    const el = document.querySelector("[data-notif-context]");
+    return el ? el.getAttribute("data-notif-context") : null;
+  },
+
+  onActivity(payload) {
+    if (!this.isPrimary) return;                       // AC7.3
+
+    // AC4.4: viewing the event's own source with the tab focused -> nothing.
+    if (payload.context_key && payload.context_key === this.currentContext() && document.hasFocus()) {
+      return;
+    }
+
+    const source = payload.source;
+    const st = this.pending[source] || { count: 0, payload: null, timer: null, maxTimer: null };
+    st.count += 1;
+    st.payload = payload;
+    clearTimeout(st.timer);
+    st.timer = setTimeout(() => this.fire(source), this.COALESCE_DEBOUNCE_MS);
+    if (!st.maxTimer) {
+      st.maxTimer = setTimeout(() => this.fire(source), this.COALESCE_MAX_MS);
+    }
+    this.pending[source] = st;
+  },
+
+  fire(source) {
+    const st = this.pending[source];
+    if (!st) return;
+    clearTimeout(st.timer); clearTimeout(st.maxTimer);
+    delete this.pending[source];
+
+    const p = st.payload;
+    const count = st.count;
+    const cues = p.cues || {};
+    const noun = this.NOUN[source] || "update";
+    const label = this.SOURCE_LABEL[source] || "Activity";
+    const headline =
+      count > 1
+        ? `${count} new ${noun}s in ${p.title}`
+        : (p.title ? `${p.title}` : "New activity");
+    const body = count > 1 ? "" : (p.excerpt || "");
+    // Author is only meaningful for a single event; a coalesced burst may be
+    // several people, so drop the name there.
+    const who = count === 1 && p.actor_name ? p.actor_name : null;
+    // Toast: small "SOURCE · Author" line above the title.
+    const contextLine = who ? `${label} · ${who}` : label;
+    // An OS notification has only title + body: fold the source into the title
+    // and the author into the body.
+    const notifTitle = `${label} · ${headline}`;
+    const notifBody = who && body ? `${who}: ${body}` : (body || who || "");
+
+    // AC4.1 / AC4.6: sound, with rejected play() swallowed.
+    if (cues.sound && this.audio[source]) {
+      try {
+        this.audio[source].currentTime = 0;
+        const pr = this.audio[source].play();
+        if (pr && pr.catch) pr.catch(() => {});
+      } catch (_e) { /* ignore */ }
+    }
+
+    const hidden = document.hidden;
+
+    if (cues.web && hidden && typeof window.Notification !== "undefined" && Notification.permission === "granted") {
+      // AC4.2
+      try {
+        const n = new Notification(notifTitle, { body: notifBody, tag: source, renotify: false, data: { url: p.url } });
+        n.onclick = (ev) => {
+          ev.preventDefault();
+          window.focus();
+          if (p.url) window.location = p.url;
+          n.close();
+        };
+      } catch (_e) {
+        this.toast(contextLine, headline, body, p.url, source); // iOS Safari etc.
+      }
+    } else if (cues.web && !hidden) {
+      // AC4.3
+      this.toast(contextLine, headline, body, p.url, source);
+    } else if (cues.sound && !hidden) {
+      // AC4.5 — sound-only pref, focused, elsewhere: also show a toast so the
+      // viewer knows what the sound was.
+      this.toast(contextLine, headline, body, p.url, source);
+    }
+    // (cues.sound && hidden && !cues.web) -> sound only, no visual. Intentional.
+  },
+
+  ensureToastRoot() {
+    if (this._toastRoot && document.body.contains(this._toastRoot)) return this._toastRoot;
+    const root = document.createElement("div");
+    root.className = "notif-toast-stack";
+    root.id = "notif-toast-stack";
+    document.body.appendChild(root);
+    this._toastRoot = root;
+    return root;
+  },
+
+  toast(context, title, body, url, source) {
+    const root = this.ensureToastRoot();
+    while (root.children.length >= this.TOAST_CAP) root.removeChild(root.firstChild);
+
+    const el = document.createElement(url ? "a" : "div");
+    el.className = "notif-toast";
+    if (source) el.dataset.source = source;
+    if (url) { el.href = url; }
+    el.innerHTML =
+      (context ? `<span class="notif-toast-source"></span>` : "") +
+      `<span class="notif-toast-title"></span>` +
+      (body ? `<span class="notif-toast-body"></span>` : "");
+    if (context) el.querySelector(".notif-toast-source").textContent = context;
+    el.querySelector(".notif-toast-title").textContent = title;
+    if (body) el.querySelector(".notif-toast-body").textContent = body;
+
+    const kill = () => { if (el.parentNode) el.parentNode.removeChild(el); };
+    el.addEventListener("click", (e) => { if (!url) e.preventDefault(); kill(); });
+    setTimeout(kill, this.TOAST_TTL_MS);
+    root.appendChild(el);
+  },
+};
+
 
 Hooks.PinnedScenes = {
     mounted() {

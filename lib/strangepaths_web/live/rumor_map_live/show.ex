@@ -5,6 +5,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
 
   alias Strangepaths.Rumor
   alias Strangepaths.Accounts
+  alias Strangepaths.Notifications
 
   @impl true
   def mount(_params, session, socket) do
@@ -273,6 +274,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         {:ok, node} ->
           # Broadcast to other users
           StrangepathsWeb.Endpoint.broadcast("rumor_map", "node_created", %{node: node})
+          Notifications.publish_rumor_node(:node_create, node, socket.assigns.current_user)
 
           log_rumor_change(socket, "node_created", %{
             node_id: node.id,
@@ -476,6 +478,7 @@ defmodule StrangepathsWeb.RumorMapLive.Show do
         StrangepathsWeb.Endpoint.broadcast("rumor_map", "node_updated", %{
           node: updated_node
         })
+        Notifications.publish_rumor_node(:node_update, updated_node, socket.assigns.current_user)
 
         # Build a diff of what actually changed
         changes =

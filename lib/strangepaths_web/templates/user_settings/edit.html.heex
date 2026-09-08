@@ -108,6 +108,58 @@
       </.form>
     </div>
 
+    <!-- Activity notifications -->
+    <div class="section p-6">
+      <h2 class="mb-2">Activity notifications</h2>
+      <p class="text-sm text-gray-400 mb-4">
+        Optional louder cues — a sound, or an OS desktop notification — layered on top of the
+        quiet unread badges the site already shows. Everything here is off unless you turn it on,
+        and cues only ever fire while you have a tab open. You are never alerted about your own
+        activity or about the page you are already looking at.
+      </p>
+
+      <.form let={f} for={@notification_prefs_changeset} action={Routes.user_settings_path(@conn, :update)} id="update_notification_prefs" class="formstyle">
+        <%= hidden_input f, :action, name: "action", value: "update_notification_prefs" %>
+
+        <table class="text-sm" id="notif-prefs-grid">
+          <thead>
+            <tr>
+              <th class="text-left pr-6 pb-2">Source</th>
+              <th class="pr-6 pb-2">Sound</th>
+              <th class="pb-2">Desktop notification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for {field_key, label} <- [
+                  {"scene", "Scene posts"},
+                  {"library", "Library edits & marginalia"},
+                  {"bbs", "Linkpearl threads & replies"},
+                  {"rumor", "Rumor map nodes"}
+                ] do %>
+              <tr>
+                <td class="text-left pr-6 py-1"><%= label %></td>
+                <td class="text-center pr-6 py-1">
+                  <%= checkbox f, String.to_atom("notif_#{field_key}_sound"), class: "notif-sound-box" %>
+                </td>
+                <td class="text-center py-1">
+                  <%= checkbox f, String.to_atom("notif_#{field_key}_web"), class: "notif-web-box" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+
+        <p id="notif-perm-note" class="text-xs text-amber-400 mt-2" hidden>
+          Desktop notifications are blocked in your browser settings for this site. Re-enable them
+          in your browser to use the desktop-notification cues. The sound cues still work.
+        </p>
+
+        <div class="pt-3">
+          <%= submit "Save", class: "submit" %>
+        </div>
+      </.form>
+    </div>
+
     <!-- Dragon-only: Site Settings -->
     <%= if @conn.assigns[:role] == :dragon do %>
       <div class="section p-6 border-2 border-purple-700">
@@ -191,3 +243,59 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    var form = document.getElementById("update_notification_prefs");
+    if (!form) return;
+
+    var note = document.getElementById("notif-perm-note");
+    var webBoxes = form.querySelectorAll(".notif-web-box");
+
+    function notifySupported() {
+      return typeof window.Notification !== "undefined";
+    }
+
+    function disableWebBox(box) {
+      box.disabled = true;
+      var hiddenInput = form.querySelector('input[type=hidden][name="' + box.name + '"]');
+      if (hiddenInput) hiddenInput.disabled = true;
+    }
+
+    function disableAllWebBoxes() {
+      webBoxes.forEach(function (b) { disableWebBox(b); });
+    }
+
+    // AC5.6: permission already denied at page load -> disable web boxes, show note.
+    if (!notifySupported() || Notification.permission === "denied") {
+      disableAllWebBoxes();
+      if (note) note.hidden = false;
+    }
+
+    // AC5.4 / AC5.5: first time a web box is enabled, request permission; revert on denial.
+    webBoxes.forEach(function (box) {
+      box.addEventListener("change", function () {
+        if (!box.checked) return;
+        if (!notifySupported()) {
+          box.checked = false;
+          if (note) note.hidden = false;
+          return;
+        }
+        if (Notification.permission === "granted") return;
+
+        function handlePermissionResult(result) {
+          if (result !== "granted") {
+            box.checked = false;
+            if (result === "denied") {
+              disableAllWebBoxes();
+              if (note) note.hidden = false;
+            }
+          }
+        }
+
+        var p = Notification.requestPermission(handlePermissionResult);
+        if (p && p.then) p.then(handlePermissionResult);
+      });
+    });
+  })();
+</script>

@@ -2,6 +2,7 @@ defmodule Strangepaths.Library do
   import Ecto.Query
   import Ecto.Changeset
   alias Strangepaths.Repo
+  alias Strangepaths.Notifications
 
   alias Strangepaths.Library.{
     Folio,
@@ -456,6 +457,7 @@ defmodule Strangepaths.Library do
 
       summary = body_diff_summary(folio.body, content)
       record_folio_edit(folio.id, user_id, "body", summary)
+      Notifications.publish_library_body_edit(folio, user_id, summary)
 
       :ok
     else
@@ -866,6 +868,13 @@ defmodule Strangepaths.Library do
               "library_folio:#{entry.folio_id}",
               "new_marginalia",
               %{marginalia: Repo.preload(marginalia, :user), entry_id: entry.id}
+            )
+
+            Notifications.publish_library_marginalia(
+              get_folio!(entry.folio_id),
+              entry,
+              marginalia,
+              user
             )
 
             {:ok, marginalia}

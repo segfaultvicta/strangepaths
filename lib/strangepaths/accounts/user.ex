@@ -30,6 +30,14 @@ defmodule Strangepaths.Accounts.User do
     field(:theme, :string, default: "dark")
     field(:action_default, :string, default: "action")
     field(:smart_unread, :boolean, default: true)
+    field(:notif_scene_sound, :boolean, default: false)
+    field(:notif_scene_web, :boolean, default: false)
+    field(:notif_library_sound, :boolean, default: false)
+    field(:notif_library_web, :boolean, default: false)
+    field(:notif_bbs_sound, :boolean, default: false)
+    field(:notif_bbs_web, :boolean, default: false)
+    field(:notif_rumor_sound, :boolean, default: false)
+    field(:notif_rumor_web, :boolean, default: false)
     field(:last_rite_id, :string)
 
     timestamps()
@@ -161,6 +169,27 @@ defmodule Strangepaths.Accounts.User do
   def smart_unread_changeset(user, attrs) do
     user
     |> cast(attrs, [:smart_unread])
+  end
+
+  @notification_pref_fields [
+    :notif_scene_sound,
+    :notif_scene_web,
+    :notif_library_sound,
+    :notif_library_web,
+    :notif_bbs_sound,
+    :notif_bbs_web,
+    :notif_rumor_sound,
+    :notif_rumor_web
+  ]
+
+  @doc """
+  Single-purpose changeset for the 8 activity-notification preference booleans.
+  Casts exactly those fields — any other key in `attrs` is ignored by `cast/3`.
+  """
+  def notification_prefs_changeset(user, attrs) do
+    user
+    |> cast(attrs, @notification_pref_fields)
+    |> validate_required(@notification_pref_fields)
   end
 
   def last_scene_id_changeset(user, attrs) do

@@ -72,6 +72,7 @@ defmodule Strangepaths.LibraryTest do
 
     test "creates folio with subtitle" do
       user = user_typeface_fixture()
+
       {:ok, folio} =
         Library.create_folio(user, %{
           "title" => "Night Court Transcript",
@@ -83,6 +84,7 @@ defmodule Strangepaths.LibraryTest do
 
     test "creates folio with body only and no entries (AC2.4)" do
       user = user_typeface_fixture()
+
       {:ok, folio} =
         Library.create_folio(user, %{
           "title" => "Body-Only Folio",
@@ -149,21 +151,25 @@ defmodule Strangepaths.LibraryTest do
 
   describe "entries" do
     defp create_scene_and_posts(user, count) do
-      {:ok, scene} = Strangepaths.Scenes.create_scene(%{
-        name: "Test Scene #{System.unique_integer([:positive])}",
-        owner_id: user.id,
-        locked_to_users: []
-      })
-
-      posts = for i <- 1..count do
-        {:ok, post} = Strangepaths.Scenes.create_character_post(%{
-          scene_id: scene.id,
-          user_id: user.id,
-          content: "Post #{i}",
-          author_nickname: user.nickname
+      {:ok, scene} =
+        Strangepaths.Scenes.create_scene(%{
+          name: "Test Scene #{System.unique_integer([:positive])}",
+          owner_id: user.id,
+          locked_to_users: []
         })
-        post
-      end
+
+      posts =
+        for i <- 1..count do
+          {:ok, post} =
+            Strangepaths.Scenes.create_character_post(%{
+              scene_id: scene.id,
+              user_id: user.id,
+              content: "Post #{i}",
+              author_nickname: user.nickname
+            })
+
+          post
+        end
 
       {scene, posts}
     end
@@ -277,12 +283,18 @@ defmodule Strangepaths.LibraryTest do
       assert positions == [1, 2, 3, 4, 5, 6]
 
       # Verify the order: note1 at pos 1, then 3 posts at pos 2-4, then note2 at pos 5, note3 at pos 6
-      assert Enum.at(all_entries, 0).id == note1.id  # position 1
-      assert Enum.at(all_entries, 1).kind == :post_ref  # position 2 (first inserted post)
-      assert Enum.at(all_entries, 2).kind == :post_ref  # position 3 (second inserted post)
-      assert Enum.at(all_entries, 3).kind == :post_ref  # position 4 (third inserted post)
-      assert Enum.at(all_entries, 4).id == note2.id  # position 5
-      assert Enum.at(all_entries, 5).id == note3.id  # position 6
+      # position 1
+      assert Enum.at(all_entries, 0).id == note1.id
+      # position 2 (first inserted post)
+      assert Enum.at(all_entries, 1).kind == :post_ref
+      # position 3 (second inserted post)
+      assert Enum.at(all_entries, 2).kind == :post_ref
+      # position 4 (third inserted post)
+      assert Enum.at(all_entries, 3).kind == :post_ref
+      # position 5
+      assert Enum.at(all_entries, 4).id == note2.id
+      # position 6
+      assert Enum.at(all_entries, 5).id == note3.id
     end
   end
 
@@ -396,7 +408,7 @@ defmodule Strangepaths.LibraryTest do
 
       # Depth 3 (m3) should succeed; depth 4 (off m3) should fail
       assert {:error, :max_depth_exceeded} =
-             Library.create_marginalia(entry, user, Map.put(base_attrs, "parent_id", m3.id))
+               Library.create_marginalia(entry, user, Map.put(base_attrs, "parent_id", m3.id))
     end
   end
 
@@ -553,16 +565,18 @@ defmodule Strangepaths.LibraryTest do
       Library.assign_user_typeface(editor1.id, tf.id)
       Library.assign_user_typeface(editor2.id, tf.id)
 
-      {:ok, folio1} = Library.create_folio(editor1, %{
-        "title" => "The Crimson Archives",
-        "subtitle" => "A history of the tribunal",
-        "body" => "These records span three centuries of rulings."
-      })
+      {:ok, folio1} =
+        Library.create_folio(editor1, %{
+          "title" => "The Crimson Archives",
+          "subtitle" => "A history of the tribunal",
+          "body" => "These records span three centuries of rulings."
+        })
 
-      {:ok, folio2} = Library.create_folio(editor2, %{
-        "title" => "Amber Studies",
-        "body" => "Notes on resonance theory."
-      })
+      {:ok, folio2} =
+        Library.create_folio(editor2, %{
+          "title" => "Amber Studies",
+          "body" => "Notes on resonance theory."
+        })
 
       # Add a tag to folio1
       Library.add_tag(folio1, "tribunal")
@@ -618,7 +632,10 @@ defmodule Strangepaths.LibraryTest do
       assert first.id == f2.id
     end
 
-    test "sort_by :title with tag filter returns folios in alphabetic order", %{folio1: f1, folio2: f2} do
+    test "sort_by :title with tag filter returns folios in alphabetic order", %{
+      folio1: f1,
+      folio2: f2
+    } do
       # Add the same tag to both folios to ensure both are in results
       Library.add_tag(f2, "history")
       results = Library.search_folios(tag: "history", sort_by: :title)
@@ -639,6 +656,7 @@ defmodule Strangepaths.LibraryTest do
     # Verifies: liminal-library.AC7.2
     test "results contain only Folio structs, not scenes or other types" do
       results = Library.search_folios(query: "")
+
       for r <- results do
         assert %Library.Folio{} = r
       end
@@ -649,9 +667,167 @@ defmodule Strangepaths.LibraryTest do
       # Calling Scenes.search_archived_scenes with a query that won't match library folios
       # This verifies the function signature and return type haven't changed.
       user = user_fixture()
-      results = Strangepaths.Scenes.search_archived_scenes("crimson archives", user.id, false, false, nil, nil)
+
+      results =
+        Strangepaths.Scenes.search_archived_scenes(
+          "crimson archives",
+          user.id,
+          false,
+          false,
+          nil,
+          nil
+        )
+
       # Should return a list (may be empty); key assertion is no crash and no folios in result
       assert is_list(results)
+    end
+  end
+
+  describe "activity notifications (Phase 4)" do
+    alias Strangepaths.Accounts
+
+    setup do
+      actor = user_typeface_fixture()
+
+      {:ok, actor} =
+        Accounts.update_notification_prefs(actor, %{
+          notif_library_sound: true,
+          notif_library_web: true
+        })
+
+      recipient = user_fixture()
+
+      {:ok, recipient} =
+        Accounts.update_notification_prefs(recipient, %{
+          notif_library_sound: true,
+          notif_library_web: true
+        })
+
+      folio = folio_fixture(actor)
+
+      %{actor: actor, recipient: recipient, folio: folio}
+    end
+
+    test "AC1.3: save_body publishes one activity event with non-empty excerpt", %{
+      actor: actor,
+      recipient: recipient,
+      folio: folio
+    } do
+      # Set actor as body lock holder using claim_body_lock
+      :ok = Library.claim_body_lock(folio.id, actor.id)
+
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      :ok = Library.save_body(folio, actor.id, "New body content with some text")
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "activity",
+        payload: %{
+          source: :library,
+          event: :body_edit,
+          excerpt: excerpt
+        }
+      }
+
+      assert is_binary(excerpt)
+      assert String.length(excerpt) > 0
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.3: create_marginalia publishes one activity event", %{
+      actor: actor,
+      recipient: recipient,
+      folio: folio
+    } do
+      # Get a typeface from the actor's assigned typefaces
+      typefaces = Library.folio_editor_typefaces(actor.id)
+      tf = List.first(typefaces) || raise "actor has no typeface"
+
+      entry =
+        Strangepaths.Repo.insert!(%Strangepaths.Library.Entry{
+          folio_id: folio.id,
+          user_id: actor.id,
+          kind: :note,
+          position: 1,
+          content: "Note content",
+          name: "Note Name",
+          font: tf.font,
+          color: tf.color
+        })
+
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _marginalia} =
+        Library.create_marginalia(entry, actor, %{
+          "content" => "Test marginalia",
+          "name" => "Marginalia Author",
+          "font" => tf.font,
+          "color" => tf.color
+        })
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "activity",
+        payload: %{source: :library, event: :marginalia}
+      }
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.6: update_folio_title does NOT publish activity event", %{
+      actor: actor,
+      recipient: recipient,
+      folio: folio
+    } do
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _updated_folio} = Library.update_folio_title(folio, %{title: "New Title"})
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.6: update_folio_privacy does NOT publish activity event", %{
+      actor: actor,
+      recipient: recipient,
+      folio: folio
+    } do
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _updated_folio} = Library.update_folio_privacy(folio, true)
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.6: add_tag does NOT publish activity event", %{
+      actor: actor,
+      recipient: recipient,
+      folio: folio
+    } do
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _folio} = Library.add_tag(folio, "test-tag")
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
+    end
+
+    test "AC1.6: remove_tag does NOT publish activity event", %{
+      actor: actor,
+      recipient: recipient,
+      folio: folio
+    } do
+      {:ok, _folio} = Library.add_tag(folio, "test-tag")
+
+      topic = "user:#{recipient.id}:notifications"
+      StrangepathsWeb.Endpoint.subscribe(topic)
+
+      {:ok, _folio} = Library.remove_tag(folio, "test-tag")
+
+      refute_receive %Phoenix.Socket.Broadcast{event: "activity"}, 100
     end
   end
 end

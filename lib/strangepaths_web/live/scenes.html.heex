@@ -79,6 +79,7 @@
 <div
   id="scenes-container"
   phx-hook="SceneFocusManager"
+  data-notif-context={@current_scene && "scene:#{@current_scene.id}"}
 >
   <!-- 2 columns: Left 75% (with posts + bottom bar) | Right 25% (controls, full height) -->
   <div id="icecylee-container" class="flex flex-col lg:flex-row h-full gap-1">
