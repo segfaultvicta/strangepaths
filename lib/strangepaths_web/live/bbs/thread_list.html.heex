@@ -8,7 +8,7 @@
         <span><%= @board.name %></span>
       </div>
 
-      <%= if @current_user do %>
+      <%= if @current_user && !@read_only do %>
         <%= live_redirect to: Routes.bbs_thread_list_path(@socket, :new, @board.slug), class: "bbs-button inline-block" do %>
           New Strand
         <% end %>
@@ -21,7 +21,7 @@
   </div>
 
   <!-- New Thread Form -->
-  <%= if @live_action == :new && @current_user do %>
+  <%= if @live_action == :new && @current_user && !@read_only do %>
     <div class="bbs-form mb-8">
       <form phx-submit="create_thread" phx-change="validate_thread" class="space-y-4">
         <!-- Display Name Field -->

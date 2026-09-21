@@ -18,7 +18,7 @@
         <%= if @folio.subtitle do %>
           <p class="library-folio-subtitle"><%= @folio.subtitle %></p>
         <% end %>
-        <%= if @is_author || @is_dragon do %>
+        <%= if (@is_author && !@read_only) || @is_dragon do %>
           <div class="flex gap-2 mt-3">
             <button phx-click="start_edit_title" class="btn-secondary text-sm">✎ Edit Title &amp; Subtitle</button>
             <button phx-click="toggle_privacy" class="btn-secondary text-sm">
@@ -40,7 +40,7 @@
       <%= for tag <- (@folio_tags || []) do %>
         <span class="library-tag inline-flex items-center gap-1">
           <span>#<%= tag %></span>
-          <%= if @is_folio_editor do %>
+          <%= if (@is_folio_editor && !@read_only) do %>
             <button
               phx-click="remove_tag"
               phx-value-tag={tag}
@@ -51,7 +51,7 @@
         </span>
       <% end %>
 
-      <%= if @is_folio_editor do %>
+      <%= if (@is_folio_editor && !@read_only) do %>
         <form phx-submit="add_tag" class="inline-flex items-center gap-1">
           <input
             type="text"
@@ -68,7 +68,7 @@
     </div>
   </div>
 
-  <%= if @is_folio_editor && !@editing_body do %>
+  <%= if (@is_folio_editor && !@read_only) && !@editing_body do %>
     <div class="flex gap-3 items-center mt-3 mb-2">
       <button phx-click="claim_body_lock" class="btn-secondary text-sm">
         <%= if @folio.body, do: "✎ Edit Prolegomenon", else: "+ Add Prolegomenon" %>
@@ -133,7 +133,7 @@
         </div>
       <% end %>
 
-      <%= if @is_folio_editor do %>
+      <%= if (@is_folio_editor && !@read_only) do %>
         <div class="flex gap-3 items-center mt-2">
           <button phx-click="claim_body_lock" class="btn-secondary text-sm">
             <%= if @folio.body, do: "✎ Edit Prolegomenon", else: "+ Add Prolegomenon" %>
@@ -258,7 +258,7 @@
                     <span class="font-semibold library-marginalia-meta"><%= m.name %></span>
                     <span class="library-marginalia-meta"><%= format_relative_time(m.inserted_at) %></span>
 
-                    <%= if @is_folio_editor do %>
+                    <%= if (@is_folio_editor && !@read_only) do %>
                       <button
                         phx-click="open_marginalia_form"
                         phx-value-entry-id={entry.id}
@@ -268,7 +268,7 @@
                       >↩ Reply</button>
                     <% end %>
 
-                    <%= if @current_user && m.user_id == @current_user.id do %>
+                    <%= if @current_user && m.user_id == @current_user.id && !@read_only do %>
                       <button
                         phx-click="edit_marginalia"
                         phx-value-marginalia-id={m.id}
@@ -330,7 +330,7 @@
               </div>
 
               <!-- Top-level marginalia form -->
-              <%= if @is_folio_editor do %>
+              <%= if (@is_folio_editor && !@read_only) do %>
                 <%= if @marginalia_form_entry_id == entry.id && is_nil(@marginalia_reply_to_id) do %>
                   <.form let={_f} for={%{}} as={:marginalia} phx-submit="submit_marginalia" class="mt-2">
                     <%= if length(@editor_typefaces) > 1 do %>

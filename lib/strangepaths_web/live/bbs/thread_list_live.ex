@@ -7,7 +7,9 @@ defmodule StrangepathsWeb.BBSLive.ThreadList do
 
   @impl true
   def mount(%{"board_slug" => board_slug}, session, socket) do
-    socket = assign_defaults(session, socket)
+    socket =
+      assign_defaults(session, socket)
+      |> StrangepathsWeb.WriteLock.attach(["validate_thread", "create_thread"])
 
     case BBS.get_board_by_slug(board_slug) do
       nil ->

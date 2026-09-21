@@ -9,7 +9,23 @@ defmodule StrangepathsWeb.LibraryLive.Folio do
 
   @impl true
   def mount(%{"slug" => slug}, session, socket) do
-    socket = assign_defaults(session, socket)
+    socket =
+      assign_defaults(session, socket)
+      |> StrangepathsWeb.WriteLock.attach([
+        "start_edit_title",
+        "save_title",
+        "delete_folio",
+        "toggle_privacy",
+        "claim_body_lock",
+        "save_body",
+        "update_preview",
+        "open_marginalia_form",
+        "edit_marginalia",
+        "save_marginalia_edit",
+        "submit_marginalia",
+        "add_tag",
+        "remove_tag"
+      ])
 
     case Library.get_folio_by_slug(slug) do
       nil ->

@@ -10,6 +10,7 @@ defmodule StrangepathsWeb.BBSLive.BoardList do
   def mount(_params, session, socket) do
     socket =
       assign_defaults(session, socket)
+      |> StrangepathsWeb.WriteLock.attach([])
       |> assign(:page_title, "Linkpearl")
       |> assign(:show_new_board_form, false)
       |> assign(:changeset, nil)

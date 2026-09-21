@@ -8,7 +8,15 @@ defmodule StrangepathsWeb.BBSLive.Thread do
 
   @impl true
   def mount(%{"thread_id" => thread_id} = _params, session, socket) do
-    socket = assign_defaults(session, socket)
+    socket =
+      assign_defaults(session, socket)
+      |> StrangepathsWeb.WriteLock.attach([
+        "validate_reply",
+        "create_reply",
+        "delete_post",
+        "start_edit_post",
+        "save_edit_post"
+      ])
 
     case BBS.get_thread(thread_id) do
       nil ->

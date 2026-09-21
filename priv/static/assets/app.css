@@ -2704,6 +2704,11 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
   border-color: rgb(55 48 163 / var(--tw-border-opacity));
 }
 
+.border-yellow-700{
+  --tw-border-opacity: 1;
+  border-color: rgb(161 98 7 / var(--tw-border-opacity));
+}
+
 .border-indigo-300{
   --tw-border-opacity: 1;
   border-color: rgb(165 180 252 / var(--tw-border-opacity));
@@ -2937,6 +2942,10 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
 
 .bg-black\/50{
   background-color: rgb(0 0 0 / 0.5);
+}
+
+.bg-yellow-900\/20{
+  background-color: rgb(113 63 18 / 0.2);
 }
 
 .bg-indigo-500{
@@ -3698,6 +3707,11 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
 .text-purple-500{
   --tw-text-opacity: 1;
   color: rgb(168 85 247 / var(--tw-text-opacity));
+}
+
+.text-yellow-200{
+  --tw-text-opacity: 1;
+  color: rgb(254 240 138 / var(--tw-text-opacity));
 }
 
 .text-red-800{

@@ -624,9 +624,13 @@ defmodule Strangepaths.Site do
   def update_site_settings(attrs) do
     settings = get_site_settings()
 
-    settings
-    |> SiteSettings.changeset(attrs)
-    |> Repo.update()
+    with {:ok, updated} <- settings |> SiteSettings.changeset(attrs) |> Repo.update() do
+      StrangepathsWeb.Endpoint.broadcast("site_settings", "updated", %{
+        tomestone_required: updated.tomestone_required
+      })
+
+      {:ok, updated}
+    end
   end
 
   def get_devour_count do

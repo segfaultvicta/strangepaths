@@ -1,10 +1,14 @@
 <div class="library-root p-6 pb-36 max-w-4xl mx-auto">
   <div class="flex items-center justify-between mb-6">
     <h1 class="library-page-heading">The Liminal Library</h1>
-    <%= if @is_folio_editor do %>
+    <%= if @is_folio_editor && !@read_only do %>
       <%= live_patch("+ New Folio", to: "/library/new", class: "btn-secondary text-sm") %>
     <% end %>
   </div>
+
+  <%= if @read_only do %>
+    <StrangepathsWeb.WriteLock.tomestone_banner />
+  <% end %>
 
   <div class="library-bird-bark">
     <img src="/images/JORULE_WAS_HERE/bird_lavender.png" alt="bird" class="library-bird-bark-icon" />
@@ -69,7 +73,7 @@
     </div>
   </form>
 
-  <%= if @live_action == :new && @folio_changeset do %>
+  <%= if @live_action == :new && @folio_changeset && !@read_only do %>
     <div class="mb-8 p-4 border border-gray-700 rounded">
       <h2 class="text-lg font-semibold mb-4">New Folio</h2>
       <.form let={f} for={@folio_changeset} phx-change="validate_folio" phx-submit="create_folio">

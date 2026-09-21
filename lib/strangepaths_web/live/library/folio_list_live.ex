@@ -5,7 +5,10 @@ defmodule StrangepathsWeb.LibraryLive.FolioList do
 
   @impl true
   def mount(_params, session, socket) do
-    socket = assign_defaults(session, socket)
+    socket =
+      assign_defaults(session, socket)
+      |> StrangepathsWeb.WriteLock.attach(["validate_folio", "create_folio"])
+
     user = socket.assigns.current_user
 
     {:ok,

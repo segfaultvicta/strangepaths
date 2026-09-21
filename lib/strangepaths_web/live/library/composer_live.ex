@@ -13,7 +13,21 @@ defmodule StrangepathsWeb.LibraryLive.Composer do
 
   @impl true
   def mount(%{"slug" => slug}, session, socket) do
-    socket = assign_defaults(session, socket)
+    socket =
+      assign_defaults(session, socket)
+      |> StrangepathsWeb.WriteLock.attach([], on_lock: fn _socket -> "/library/#{slug}" end)
+
+    if socket.assigns.read_only do
+      {:ok,
+       socket
+       |> put_flash(:error, StrangepathsWeb.WriteLock.message())
+       |> push_redirect(to: "/library/#{slug}")}
+    else
+      mount_composer(slug, socket)
+    end
+  end
+
+  defp mount_composer(slug, socket) do
     user = socket.assigns.current_user
 
     case Library.get_folio_by_slug(slug) do

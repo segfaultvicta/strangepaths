@@ -173,7 +173,7 @@
   </div>
 
   <!-- Reply Form -->
-  <%= if !@thread.is_locked && @current_user do %>
+  <%= if !@thread.is_locked && @current_user && !@read_only do %>
     <div class="bbs-form mt-4">
       <form id="bbs-reply-form" phx-submit="create_reply" phx-change="validate_reply" phx-hook="BBSReplyForm" class="space-y-4">
         <!-- Display Name Field -->

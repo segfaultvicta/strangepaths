@@ -13,6 +13,10 @@ __ \_/\_/ \___|_|\___\___/|_| |_|_|_|\___|   |_|\___/  __|_| |_|_|_|\___|
     </div>
   </div>
 
+  <%= if @read_only do %>
+    <StrangepathsWeb.WriteLock.tomestone_banner />
+  <% end %>
+
   <!-- Dragon controls -->
   <%= if @current_user && @current_user.role == :dragon do %>
     <div class="flex gap-2 mb-6 flex-wrap">
