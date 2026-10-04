@@ -29,6 +29,9 @@ defmodule StrangepathsWeb.Router do
     # Secure music file serving
     get("/music/:guid", MusicFileController, :serve)
 
+    # Reference listing of player-visible rites (must precede live /cosmos/:id)
+    get("/cosmos/rites", RiteListingController, :index)
+
     live_session :app, on_mount: {StrangepathsWeb.NotificationHooks, :subscribe} do
       live("/ost", OstLive)
       live("/ost/:id", SongLive)

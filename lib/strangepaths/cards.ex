@@ -81,6 +81,61 @@ defmodule Strangepaths.Cards do
     end)
   end
 
+  @tellurian_aspect_ids [1, 2, 3, 4]
+
+  @sidereal_gnosis %{
+    "Red" => "Burning",
+    "Blue" => "Pellucid",
+    "Green" => "Flourishing",
+    "White" => "Radiant",
+    "Black" => "Tenebrous"
+  }
+
+  @doc """
+  Lists every player-visible Rite (non-glorified, card and aspect both unlocked)
+  that is Tellurian or Sidereal, for the reference listing at /cosmos/rites.
+
+  Returns maps of `%{name, gnosis, aspect, origin, flavortext}`, Tellurian first,
+  then by aspect and name. Tellurian rites have no gnosis unless veiled with a
+  sidereal aspect. Alethic and Status cards are excluded.
+  """
+  def list_visible_rites_for_reference do
+    from(c in Card,
+      join: a in Aspect,
+      on: a.id == c.aspect_id,
+      left_join: p in Aspect,
+      on: p.id == a.parent_aspect_id,
+      left_join: v in Aspect,
+      on: v.id == c.veil_aspect_id,
+      where: c.type == :Rite and c.glorified == false and c.unlocked == true,
+      where: a.unlocked == true and (is_nil(p.id) or p.unlocked == true),
+      where:
+        a.id in @tellurian_aspect_ids or a.parent_aspect_id in @tellurian_aspect_ids or
+          a.name in ^Map.keys(@sidereal_gnosis),
+      select: %{
+        name: c.name,
+        flavortext: c.flavortext,
+        aspect: a.name,
+        parent_aspect: p.name,
+        veil_aspect: v.name
+      }
+    )
+    |> Repo.all()
+    |> Enum.map(fn row ->
+      sidereal? = Map.has_key?(@sidereal_gnosis, row.aspect)
+
+      %{
+        name: row.name,
+        flavortext: row.flavortext,
+        origin: if(sidereal?, do: "Sidereal", else: "Tellurian"),
+        aspect:
+          if(row.parent_aspect, do: "#{row.aspect} (#{row.parent_aspect})", else: row.aspect),
+        gnosis: @sidereal_gnosis[if(sidereal?, do: row.aspect, else: row.veil_aspect)]
+      }
+    end)
+    |> Enum.sort_by(&{&1.origin != "Tellurian", &1.aspect, &1.name})
+  end
+
   @doc """
   Gets cards for a deck's aspect. For sub-aspects, returns both the parent's cards
   and any cards specifically tagged with the sub-aspect ID.
