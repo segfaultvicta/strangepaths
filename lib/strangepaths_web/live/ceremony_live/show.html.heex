@@ -342,15 +342,6 @@
     <% end %>
   <% end %>
 
-  <%= if @presenceList != [] do %>
-    <div id="presenceList" class="absolute flex w-32 pl-4 pt-2 text-slate-400">
-      <%= for nickname <- @presenceList do %>
-        <div class="p-1"><%= nickname %></div>
-        <%= @state %>
-      <% end %>
-    </div>
-  <% end %>
-
   <div id='avatarmenuTemplate' style="height:0px;" onmouseup='menuClick("catchall")'></div>
   <div id='temenosmenuTemplate' style="height:0px;" onmouseup='menuClick("catchall")'></div>
   <div id='cardmenuTemplate' style="height:0px;" onmouseup='menuClick("catchall")'></div>

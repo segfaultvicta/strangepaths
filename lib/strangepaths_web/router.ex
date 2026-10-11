@@ -33,6 +33,8 @@ defmodule StrangepathsWeb.Router do
     get("/cosmos/rites", RiteListingController, :index)
 
     live_session :app, on_mount: {StrangepathsWeb.NotificationHooks, :subscribe} do
+      live("/observatory", ObservatoryLive)
+
       live("/ost", OstLive)
       live("/ost/:id", SongLive)
 

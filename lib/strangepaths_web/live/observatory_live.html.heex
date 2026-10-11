@@ -1,0 +1,25 @@
+<div
+  id="observatory"
+  class="observatory-root"
+  phx-hook="Observatory"
+  phx-update="ignore"
+  data-catalogue={Routes.static_path(@socket, "/images/observatory/sky-catalogue.json")}
+  data-nebula={Routes.static_path(@socket, "/images/observatory/nebula-atlas.png")}
+  data-star-atlas={Routes.static_path(@socket, "/images/observatory/star-atlas.png")}
+>
+  <canvas
+    data-sky
+    class="observatory-sky"
+    tabindex="0"
+    aria-label="Observatory sky. Drag to rotate or pan; wheel to zoom; arrow keys to navigate; double-click to zoom in; Home returns to the zenith."
+  ></canvas>
+  <canvas data-overlay class="observatory-overlay" aria-hidden="true"></canvas>
+
+  <aside class="observatory-instruments" aria-label="Observatory instruments">
+    <button type="button" data-zenith class="observatory-zenith">Zenith</button>
+    <label for="observatory-veil">Nebular veil</label>
+    <input id="observatory-veil" data-veil type="range" min="0" max="4" step=".05" value="4" aria-label="Nebular visibility" />
+  </aside>
+
+  <div data-message class="observatory-message" role="status" hidden></div>
+</div>
