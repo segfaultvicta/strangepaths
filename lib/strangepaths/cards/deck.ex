@@ -46,6 +46,7 @@ defmodule Strangepaths.Cards.Deck do
   def tolerance_changeset(deck, adjustment) do
     deck
     |> cast(%{"tolerance" => deck.tolerance + adjustment}, [:tolerance])
+    |> validate_number(:tolerance, greater_than: 0)
   end
 
   def avatar_changeset(deck, avatar_id) do

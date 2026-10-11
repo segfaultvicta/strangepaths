@@ -67,9 +67,10 @@ defmodule StrangepathsWeb.DeckLive.Show do
 
   defp handle_deck_event("adjust_tolerance", %{"value" => adjustment}, socket) do
     if_can_edit(socket, fn ->
-      {:ok, deck} = Cards.adjust_tolerance(socket.assigns.deck, String.to_integer(adjustment))
-
-      {:noreply, recalc(socket, deck)}
+      case Cards.adjust_tolerance(socket.assigns.deck, String.to_integer(adjustment)) do
+        {:ok, deck} -> {:noreply, recalc(socket, deck)}
+        {:error, _} -> {:noreply, socket}
+      end
     end)
   end
 

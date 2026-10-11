@@ -1611,12 +1611,15 @@ defmodule StrangepathsWeb.CeremonyLive.Show do
         _ -> "background-color: rgb(255 0 255)"
       end
 
-    ticks = 360 / total
+    ticks = if is_number(total) and total > 0, do: 360 / total, else: 0
     color <> "; transform: rotate(#{index * ticks}deg) translate(#{distance}px);"
   end
 
   defp pieStyle(stress, tolerance) do
-    split = stress / tolerance * 360
+    split =
+      if is_number(tolerance) and tolerance > 0,
+        do: min(stress / tolerance, 1) * 360,
+        else: 360
 
     "background: conic-gradient(rgb(255 0 255) 0deg #{split}deg, rgb(0 255 255) #{split}deg 360deg);"
   end
