@@ -5090,6 +5090,9 @@ within:
   var DBLCLICK_FOV = 40;
   var DBLCLICK_MS = 750;
   var PAN_WEIGHT_MS = 300;
+  var DOUBLE_TAP_MS = 300;
+  var DOUBLE_TAP_PX = 30;
+  var TAP_SLOP_PX = 10;
   var ZENITH_MS = 1800;
   var ZOOM_IDLE_MS = 1500;
   var HOME = { yaw: 0, alt: 90, fieldOfView: 180, roll: 0 };
@@ -5575,34 +5578,100 @@ within:
       state.nebulaBrightness = clamp(Number(veil.value), 0, 4);
       draw();
     });
+    const pointers = /* @__PURE__ */ new Map();
+    let pinch = null;
+    let lastTap = null, lastTouchDoubleTap = -Infinity;
+    function beginPan(x, y) {
+      pan = { goal: { yaw: state.yaw, alt: state.alt }, vel: { yaw: 0, alt: 0 }, dragging: true, idle: true, lastX: x, lastY: y };
+    }
+    function pinchGeometry() {
+      const [a, b] = [...pointers.values()];
+      return { mid: [(a.x + b.x) / 2, (a.y + b.y) / 2], dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) };
+    }
+    function beginPinch() {
+      pan = null;
+      const { mid, dist } = pinchGeometry();
+      refreshZoomGesture(mid[0], mid[1], true);
+      pinch = { startDist: dist, startFov: state.fieldOfView, anchor: zoomTarget };
+      startLoop();
+    }
+    function handleTap(x, y) {
+      const now = performance.now();
+      if (lastTap && now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(x - lastTap.x, y - lastTap.y) < DOUBLE_TAP_PX) {
+        lastTap = null;
+        lastTouchDoubleTap = now;
+        doubleClickZoom(x, y);
+      } else
+        lastTap = { t: now, x, y };
+    }
     listen(canvas2, "pointerdown", (e) => {
-      interrupt();
-      pan = { goal: { yaw: state.yaw, alt: state.alt }, vel: { yaw: 0, alt: 0 }, dragging: true, idle: true, lastX: e.clientX, lastY: e.clientY };
+      if (pointers.size >= 2)
+        return;
+      const [x, y] = local(e);
+      pointers.set(e.pointerId, { x, y, downX: x, downY: y, moved: false, type: e.pointerType });
       canvas2.setPointerCapture(e.pointerId);
-      canvas2.focus();
+      if (pointers.size === 1) {
+        interrupt();
+        beginPan(x, y);
+        canvas2.focus();
+      } else
+        beginPinch();
     });
-    const release = () => {
+    listen(canvas2, "pointermove", (e) => {
+      const p = pointers.get(e.pointerId);
+      if (!p)
+        return;
+      const [x, y] = local(e);
+      p.x = x;
+      p.y = y;
+      if (Math.hypot(x - p.downX, y - p.downY) > TAP_SLOP_PX)
+        p.moved = true;
+      if (pinch && pointers.size === 2) {
+        const { mid, dist } = pinchGeometry();
+        refreshZoomGesture(mid[0], mid[1], false);
+        zoomAtCursor(pinch.startFov * pinch.startDist / dist, mid[0], mid[1], pinch.anchor);
+        draw();
+        return;
+      }
+      if (!pan || !pan.dragging)
+        return;
+      const { goal } = pan;
+      goal.yaw -= (x - pan.lastX) * 0.15;
+      goal.alt = clamp(goal.alt + (y - pan.lastY) * 0.15, state.fieldOfView / 2, 90);
+      pan.lastX = x;
+      pan.lastY = y;
+      pan.idle = false;
+      startLoop();
+    });
+    const lift = (cancelled) => (e) => {
+      const p = pointers.get(e.pointerId);
+      if (!p)
+        return;
+      pointers.delete(e.pointerId);
+      if (pinch) {
+        pinch = null;
+        lastTap = null;
+        if (pointers.size === 1) {
+          const [rest] = pointers.values();
+          rest.moved = true;
+          beginPan(rest.x, rest.y);
+        }
+        return;
+      }
       if (pan && pan.dragging) {
         pan.dragging = false;
         pan.idle = false;
         startLoop();
       }
+      if (!cancelled && p.type === "touch" && !p.moved)
+        handleTap(p.x, p.y);
     };
-    listen(canvas2, "pointerup", release);
-    listen(canvas2, "pointercancel", release);
-    listen(canvas2, "pointermove", (e) => {
-      if (!pan || !pan.dragging)
-        return;
-      const { goal } = pan;
-      goal.yaw -= (e.clientX - pan.lastX) * 0.15;
-      goal.alt = clamp(goal.alt + (e.clientY - pan.lastY) * 0.15, state.fieldOfView / 2, 90);
-      pan.lastX = e.clientX;
-      pan.lastY = e.clientY;
-      pan.idle = false;
-      startLoop();
-    });
+    listen(canvas2, "pointerup", lift(false));
+    listen(canvas2, "pointercancel", lift(true));
     listen(canvas2, "dblclick", (e) => {
       e.preventDefault();
+      if (performance.now() - lastTouchDoubleTap < 600)
+        return;
       const [x, y] = local(e);
       doubleClickZoom(x, y);
     });

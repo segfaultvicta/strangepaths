@@ -20,6 +20,11 @@ const DBLCLICK_MS = 750
 // smoothing time (ms) — slow to start, no overshoot, settling exactly where the pointer
 // put it. There is no momentum after release. Higher feels heavier; 0 is rigid.
 const PAN_WEIGHT_MS = 300
+// Touch double-tap: max gap between taps (ms), max distance between them and max finger
+// travel within a tap (CSS px).
+const DOUBLE_TAP_MS = 300
+const DOUBLE_TAP_PX = 30
+const TAP_SLOP_PX = 10
 // Duration of the eased return to the zenith view (ms).
 const ZENITH_MS = 1800
 // A wheel gesture keeps its celestial target until this long after its last event.
@@ -387,25 +392,86 @@ function createObservatory(root) {
   veil.value = state.nebulaBrightness
   listen(veil, "input", () => { state.nebulaBrightness = clamp(Number(veil.value), 0, 4); draw() })
 
+  // Active pointers by id, in container-local CSS pixels. One pointer pans; two pinch-zoom.
+  const pointers = new Map()
+  let pinch = null     // { startDist, startFov, anchor } while two pointers are down
+  let lastTap = null, lastTouchDoubleTap = -Infinity
+
+  // Grabbing the sky while it is still settling holds it where it currently is.
+  function beginPan(x, y) {
+    pan = { goal: { yaw: state.yaw, alt: state.alt }, vel: { yaw: 0, alt: 0 }, dragging: true, idle: true, lastX: x, lastY: y }
+  }
+  function pinchGeometry() {
+    const [a, b] = [...pointers.values()]
+    return { mid: [(a.x + b.x) / 2, (a.y + b.y) / 2], dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) }
+  }
+  // Pinch zoom is direct (no easing): the sky under the fingers' midpoint stays under it,
+  // so spreading zooms and moving both fingers drags the view.
+  function beginPinch() {
+    pan = null
+    const { mid, dist } = pinchGeometry()
+    refreshZoomGesture(mid[0], mid[1], true)
+    pinch = { startDist: dist, startFov: state.fieldOfView, anchor: zoomTarget }
+    startLoop()
+  }
+  function handleTap(x, y) {
+    const now = performance.now()
+    if (lastTap && now - lastTap.t < DOUBLE_TAP_MS && Math.hypot(x - lastTap.x, y - lastTap.y) < DOUBLE_TAP_PX) {
+      lastTap = null; lastTouchDoubleTap = now
+      doubleClickZoom(x, y)
+    } else lastTap = { t: now, x, y }
+  }
+
   listen(canvas, "pointerdown", e => {
-    // Grabbing the sky while it is still settling holds it where it currently is.
-    interrupt()
-    pan = { goal: { yaw: state.yaw, alt: state.alt }, vel: { yaw: 0, alt: 0 }, dragging: true, idle: true, lastX: e.clientX, lastY: e.clientY }
-    canvas.setPointerCapture(e.pointerId); canvas.focus()
+    if (pointers.size >= 2) return
+    const [x, y] = local(e)
+    pointers.set(e.pointerId, { x, y, downX: x, downY: y, moved: false, type: e.pointerType })
+    canvas.setPointerCapture(e.pointerId)
+    if (pointers.size === 1) { interrupt(); beginPan(x, y); canvas.focus() }
+    else beginPinch()
   })
-  // On release the view finishes settling onto the goal; it never travels past it.
-  const release = () => { if (pan && pan.dragging) { pan.dragging = false; pan.idle = false; startLoop() } }
-  listen(canvas, "pointerup", release)
-  listen(canvas, "pointercancel", release)
   listen(canvas, "pointermove", e => {
+    const p = pointers.get(e.pointerId)
+    if (!p) return
+    const [x, y] = local(e)
+    p.x = x; p.y = y
+    if (Math.hypot(x - p.downX, y - p.downY) > TAP_SLOP_PX) p.moved = true
+    if (pinch && pointers.size === 2) {
+      const { mid, dist } = pinchGeometry()
+      refreshZoomGesture(mid[0], mid[1], false)
+      zoomAtCursor(pinch.startFov * pinch.startDist / dist, mid[0], mid[1], pinch.anchor)
+      draw()
+      return
+    }
     if (!pan || !pan.dragging) return
     const { goal } = pan
-    goal.yaw -= (e.clientX - pan.lastX) * 0.15
-    goal.alt = clamp(goal.alt + (e.clientY - pan.lastY) * 0.15, state.fieldOfView / 2, 90)
-    pan.lastX = e.clientX; pan.lastY = e.clientY; pan.idle = false
+    goal.yaw -= (x - pan.lastX) * 0.15
+    goal.alt = clamp(goal.alt + (y - pan.lastY) * 0.15, state.fieldOfView / 2, 90)
+    pan.lastX = x; pan.lastY = y; pan.idle = false
     startLoop()
   })
-  listen(canvas, "dblclick", e => { e.preventDefault(); const [x, y] = local(e); doubleClickZoom(x, y) })
+  const lift = cancelled => e => {
+    const p = pointers.get(e.pointerId)
+    if (!p) return
+    pointers.delete(e.pointerId)
+    if (pinch) {
+      pinch = null; lastTap = null
+      // Lifting one finger of a pinch hands over to a one-finger pan without a jump.
+      if (pointers.size === 1) { const [rest] = pointers.values(); rest.moved = true; beginPan(rest.x, rest.y) }
+      return
+    }
+    // On release the view finishes settling onto the goal; it never travels past it.
+    if (pan && pan.dragging) { pan.dragging = false; pan.idle = false; startLoop() }
+    if (!cancelled && p.type === "touch" && !p.moved) handleTap(p.x, p.y)
+  }
+  listen(canvas, "pointerup", lift(false))
+  listen(canvas, "pointercancel", lift(true))
+  listen(canvas, "dblclick", e => {
+    e.preventDefault()
+    // Some mobile browsers also synthesise dblclick from a double-tap we've already handled.
+    if (performance.now() - lastTouchDoubleTap < 600) return
+    const [x, y] = local(e); doubleClickZoom(x, y)
+  })
   listen(canvas, "wheel", e => { e.preventDefault(); const [x, y] = local(e); wheelZoom(e, x, y) }, { passive: false })
   listen(canvas, "keydown", e => {
     if (e.key === "Home") { e.preventDefault(); goZenith(); return }
