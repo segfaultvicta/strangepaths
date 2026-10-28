@@ -16,6 +16,10 @@
         <div class="bbs-meta mt-2">
           Cast by <span class="bbs-display-name"><%= hd(@posts).display_name %></span>
         </div>
+        <a
+          href={if @unread_boundary_index, do: "#bbs-unread", else: "#bbs-thread-bottom"}
+          class="bbs-button bbs-button--secondary bbs-button--sm inline-block mt-3"
+        ><%= if @unread_boundary_index, do: "↓ Jump to new replies", else: "↓ Jump to bottom" %></a>
       </div>
       <div class="flex items-center gap-2">
         <%= if @thread.is_locked do %>
@@ -85,7 +89,7 @@
     <%= for {post, index} <- Enum.with_index(@posts) do %>
       <!-- Unread divider (sibling, not inside post) -->
       <%= if @unread_boundary_index && index == @unread_boundary_index do %>
-        <div class="bbs-unread-divider text-sm py-1">
+        <div id="bbs-unread" class="bbs-unread-divider text-sm py-1">
           ── new replies ──
         </div>
       <% end %>
@@ -232,4 +236,5 @@
       </form>
     </div>
   <% end %>
+  <div id="bbs-thread-bottom"></div>
 </div>

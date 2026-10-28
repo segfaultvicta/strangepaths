@@ -1293,6 +1293,25 @@ input[type="range"].slider-purple {
         margin-bottom: 0.75rem;
     }
 
+    /* Tailwind preflight strips list markers/indentation; restore them */
+    ol,
+    ul {
+        margin: 0 0 0.75rem 0;
+        padding-left: 2em;
+    }
+
+    ol {
+        list-style: decimal;
+    }
+
+    ul {
+        list-style: disc;
+    }
+
+    li::marker {
+        color: #6060c0;
+    }
+
     code {
         background: #111128;
         border: 1px solid #2a2a4a;

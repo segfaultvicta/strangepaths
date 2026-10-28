@@ -6137,10 +6137,29 @@ input[type=range].slider-purple::-moz-range-progress {
   line-height: 1.6;
   color: #b8b8cc;
   /* Preserve BBS formatting */
+  /* Tailwind preflight strips list markers/indentation; restore them */
 }
 
 .bbs-post-content p {
   margin-bottom: 0.75rem;
+}
+
+.bbs-post-content ol,
+.bbs-post-content ul {
+  margin: 0 0 0.75rem 0;
+  padding-left: 2em;
+}
+
+.bbs-post-content ol {
+  list-style: decimal;
+}
+
+.bbs-post-content ul {
+  list-style: disc;
+}
+
+.bbs-post-content li::marker {
+  color: #6060c0;
 }
 
 .bbs-post-content code {
