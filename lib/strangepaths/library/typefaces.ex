@@ -51,6 +51,13 @@ defmodule Strangepaths.Library.Typefaces do
       font: "'Cormorant Garamond', serif",
       color: "#d54cff",
       font_size: "1em"
+    },
+    %{
+      id: "dyu",
+      name: "Dyu",
+      font: "'Lobster Two', serif",
+      color: "#b8860b",
+      font_size: "1.2em"
     }
   ]
 
