@@ -192,32 +192,39 @@
     <div id="toc" class="mt-2">
       <!-- Table of Contents (only show if not filtering by specific aspect) -->
       <%= if is_nil(@filter_aspect_id) do %>
-        <!-- Mobile: Two column layout -->
-        <div class="grid grid-cols-2 gap-4 lg:hidden">
-          <!-- Dragon Aspects Column -->
-          <div class="flex flex-col gap-2">
-            <%= for {_, aspect} <- @cards do %>
-              <%= if aspect.name in ["Fang", "Claw", "Scale", "Breath"] do %>
-                <div class="text-center"><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
-              <% end %>
-            <% end %>
-          </div>
-          <!-- Elements Column -->
-          <div class="flex flex-col gap-2">
-            <%= for {_, aspect} <- @cards do %>
-              <%= if aspect.name in ["Red", "Green", "Blue", "White", "Black"] do %>
-                <div class="text-center"><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
-              <% end %>
-            <% end %>
-          </div>
-        </div>
+        <% dragon_names = ["Fang", "Claw", "Scale", "Breath"] %>
+        <% color_names = ["Red", "Blue", "Green", "White", "Black"] %>
+        <% toc_aspects = Enum.map(@cards, fn {_, aspect} -> aspect end) %>
+        <% dragon_aspects = Enum.filter(toc_aspects, &(&1.name in dragon_names)) %>
+        <% color_aspects = Enum.filter(toc_aspects, &(&1.name in color_names)) %>
+        <% custom_aspects = Enum.reject(toc_aspects, &(&1.name in dragon_names ++ color_names ++ ["Alethic", "Status"])) %>
 
-        <!-- Desktop: Horizontal layout -->
-        <div class="hidden lg:flex lg:justify-evenly">
-          <%= for {_, aspect} <- @cards do %>
-            <%= if aspect.name != "Alethic" && aspect.name != "Status" do %>
-              <div class="text-center"><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
-            <% end %>
+        <div class="flex flex-col gap-3">
+          <!-- Row 1: Dragon aspects -->
+          <%= if dragon_aspects != [] do %>
+            <div class="flex flex-wrap justify-evenly gap-x-4 gap-y-1">
+              <%= for aspect <- dragon_aspects do %>
+                <div class="text-center"><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <!-- Row 2: Colors -->
+          <%= if color_aspects != [] do %>
+            <div class="flex flex-wrap justify-evenly gap-x-4 gap-y-1">
+              <%= for aspect <- color_aspects do %>
+                <div class="text-center"><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <!-- Custom / per-Rite aspects: wrap across as many lines as needed -->
+          <%= if custom_aspects != [] do %>
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 pt-3 border-t border-gray-400 dark:border-gray-700 text-sm">
+              <%= for aspect <- custom_aspects do %>
+                <div class="text-center whitespace-nowrap"><a href={"#" <> aspect.name}><%= aspect.name %></a></div>
+              <% end %>
+            </div>
           <% end %>
         </div>
       <% end %>

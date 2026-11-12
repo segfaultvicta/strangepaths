@@ -2441,6 +2441,10 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
   justify-content: space-around;
 }
 
+.justify-evenly{
+  justify-content: space-evenly;
+}
+
 .justify-items-center{
   justify-items: center;
 }
@@ -2488,6 +2492,15 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
 
 .gap-y-1{
   row-gap: 0.25rem;
+}
+
+.gap-x-6{
+  -moz-column-gap: 1.5rem;
+       column-gap: 1.5rem;
+}
+
+.gap-y-2{
+  row-gap: 0.5rem;
 }
 
 .space-y-2 > :not([hidden]) ~ :not([hidden]){
