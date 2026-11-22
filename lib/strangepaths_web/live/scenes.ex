@@ -1607,7 +1607,7 @@ defmodule StrangepathsWeb.Scenes do
               # Alethic: roll 2 pick best, starlit doubles to roll 4 pick best
               rolls = if starlit, do: 4, else: 2
               results = for _ <- 1..rolls, do: Enum.random(1..primary)
-              {:alethic, alethic, Enum.max(results), results, starlit}
+              {:alethic, primary, Enum.max(results), results, starlit}
             else
               # Mundane: roll 1, starlit doubles to roll 2 pick best
               if starlit do

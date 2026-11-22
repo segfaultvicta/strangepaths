@@ -3350,6 +3350,10 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
   padding-left: 2.5rem;
 }
 
+.pt-3{
+  padding-top: 0.75rem;
+}
+
 .pb-32{
   padding-bottom: 8rem;
 }
@@ -3384,10 +3388,6 @@ a:not([class*=btn]):not([class*=library-meta-link]):hover{
 
 .pb-4{
   padding-bottom: 1rem;
-}
-
-.pt-3{
-  padding-top: 0.75rem;
 }
 
 .pb-3{
@@ -8711,10 +8711,6 @@ a.library-folio-row-title:hover {
 
   .lg\:flex-row{
     flex-direction: row;
-  }
-
-  .lg\:justify-evenly{
-    justify-content: space-evenly;
   }
 
   .lg\:rounded-none{
