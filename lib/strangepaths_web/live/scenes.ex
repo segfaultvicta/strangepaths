@@ -1799,6 +1799,12 @@ defmodule StrangepathsWeb.Scenes do
     post = Enum.find(socket.assigns.posts, &(&1.id == post_id))
 
     if post && can_edit_post?(post, socket.assigns.current_user) do
+      # The Dragon's edit always wins, so close any player's open edit window
+      # on this post now rather than letting them keep typing.
+      if socket.assigns.current_user.role == :dragon do
+        SceneServer.broadcast_post_edit_claimed(post.scene_id, post_id)
+      end
+
       {:noreply,
        socket
        |> assign(:editing_post_id, post_id)
@@ -1829,31 +1835,44 @@ defmodule StrangepathsWeb.Scenes do
 
   defp handle_scene_event("save_edit_post", %{"content" => content} = params, socket) do
     post_id = socket.assigns.editing_post_id
-    post = Enum.find(socket.assigns.posts, &(&1.id == post_id))
 
-    if post && can_edit_post?(post, socket.assigns.current_user) do
+    if post_id do
       ooc = Map.get(params, "ooc_content", "")
       ooc = if String.trim(ooc) == "", do: nil, else: String.trim(ooc)
 
-      case Scenes.update_post(post, %{
+      # Permission is re-checked against the locked DB row, so a Dragon edit
+      # that landed after this window was opened wins and this save is dropped.
+      case Scenes.edit_post(post_id, socket.assigns.current_user, %{
              content: String.trim(content),
-             ooc_content: ooc,
-             edited_by_id: socket.assigns.current_user.id
+             ooc_content: ooc
            }) do
         {:ok, updated_post} ->
-          posts =
-            Enum.map(socket.assigns.posts, fn p ->
-              if p.id == updated_post.id, do: updated_post, else: p
-            end)
-
-          SceneServer.invalidate_cache(socket.assigns.current_scene.id)
+          SceneServer.broadcast_post_updated(updated_post.scene_id, updated_post)
 
           {:noreply,
            socket
-           |> assign(:posts, posts)
-           |> assign(:editing_post_id, nil)
-           |> assign(:editing_post_content, "")
-           |> assign(:editing_post_ooc, "")}
+           |> replace_post(updated_post)
+           |> close_edit_window()}
+
+        {:error, :forbidden} ->
+          # Refresh our copy so the edit button disappears.
+          socket =
+            case Scenes.get_post(post_id) do
+              nil -> socket
+              fresh -> replace_post(socket, fresh)
+            end
+
+          {:noreply,
+           socket
+           |> close_edit_window()
+           |> put_flash(:error, "The Dragon has edited this post; your changes were discarded.")}
+
+        {:error, :not_found} ->
+          {:noreply,
+           socket
+           |> remove_post(post_id)
+           |> close_edit_window()
+           |> put_flash(:error, "That post has been deleted.")}
 
         {:error, _changeset} ->
           {:noreply, put_flash(socket, :error, "Failed to save edit")}
@@ -1871,15 +1890,12 @@ defmodule StrangepathsWeb.Scenes do
       if post do
         case Scenes.delete_post(post) do
           {:ok, _} ->
-            posts = Enum.reject(socket.assigns.posts, &(&1.id == post_id))
-            SceneServer.invalidate_cache(socket.assigns.current_scene.id)
+            SceneServer.broadcast_post_deleted(post.scene_id, post_id)
 
             {:noreply,
              socket
-             |> assign(:posts, posts)
-             |> assign(:editing_post_id, nil)
-             |> assign(:editing_post_content, "")
-             |> assign(:editing_post_ooc, "")}
+             |> remove_post(post_id)
+             |> close_edit_window()}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Failed to delete post")}
@@ -1907,14 +1923,35 @@ defmodule StrangepathsWeb.Scenes do
     {:noreply, socket}
   end
 
-  defp can_edit_post?(%{post_type: :system}, _user), do: false
-  defp can_edit_post?(_post, %{role: :dragon}), do: true
+  defp can_edit_post?(post, user), do: Scenes.can_edit_post?(post, user)
 
-  defp can_edit_post?(%{edited_by_id: edited_by_id, user_id: user_id}, _user)
-       when edited_by_id != nil and edited_by_id != user_id, do: false
+  defp close_edit_window(socket) do
+    socket
+    |> assign(:editing_post_id, nil)
+    |> assign(:editing_post_content, "")
+    |> assign(:editing_post_ooc, "")
+  end
 
-  defp can_edit_post?(%{user_id: post_user_id}, %{id: user_id}), do: post_user_id == user_id
-  defp can_edit_post?(_, _), do: false
+  defp replace_post(socket, updated_post) do
+    posts =
+      Enum.map(socket.assigns.posts, fn p ->
+        if p.id == updated_post.id, do: updated_post, else: p
+      end)
+
+    assign(socket, :posts, posts)
+  end
+
+  # Removes a post from the loaded list (no-op if absent), keeping the
+  # pagination offset consistent so "load more" doesn't skip a post.
+  defp remove_post(socket, post_id) do
+    if Enum.any?(socket.assigns.posts, &(&1.id == post_id)) do
+      socket
+      |> assign(:posts, Enum.reject(socket.assigns.posts, &(&1.id == post_id)))
+      |> assign(:posts_offset, max(socket.assigns.posts_offset - 1, 0))
+    else
+      socket
+    end
+  end
 
   # Handle music broadcasts and scene updates
   @impl true
@@ -1983,6 +2020,58 @@ defmodule StrangepathsWeb.Scenes do
        |> assign(:unread_counts, unread_counts)
        |> assign(:unread_count, unread_count)
        |> assign(:page_title, build_page_title(base_title(socket), unread_count))}
+    end
+  end
+
+  defp handle_scene_info(%{event: "post_updated", payload: %{post: post}}, socket) do
+    if socket.assigns.current_scene && socket.assigns.current_scene.id == post.scene_id do
+      socket = replace_post(socket, post)
+
+      # Someone else (the Dragon) edited the post this user has open: their
+      # edit is no longer allowed, so close the window rather than let them
+      # type into something that will be rejected on save.
+      if socket.assigns.editing_post_id == post.id and
+           not can_edit_post?(post, socket.assigns.current_user) do
+        {:noreply,
+         socket
+         |> close_edit_window()
+         |> put_flash(:error, "The Dragon has edited this post; your changes were discarded.")}
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_scene_info(%{event: "post_edit_claimed", payload: %{post_id: post_id}}, socket) do
+    if socket.assigns.editing_post_id == post_id and
+         socket.assigns.current_user.role != :dragon do
+      {:noreply,
+       socket
+       |> close_edit_window()
+       |> put_flash(:error, "The Dragon is editing this post; your changes were discarded.")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_scene_info(%{event: "post_deleted", payload: %{post_id: post_id}, topic: topic}, socket) do
+    scene_id = topic |> String.split(":") |> List.last() |> String.to_integer()
+
+    if socket.assigns.current_scene && socket.assigns.current_scene.id == scene_id do
+      socket = remove_post(socket, post_id)
+
+      if socket.assigns.editing_post_id == post_id do
+        {:noreply,
+         socket
+         |> close_edit_window()
+         |> put_flash(:error, "The post you were editing has been deleted.")}
+      else
+        {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
     end
   end
 

@@ -3261,6 +3261,30 @@ Hooks.BBSQuotePopover = {
     }
 };
 
+Hooks.LibraryCopyEntryLink = {
+    mounted() {
+        this.handleClick = async (e) => {
+            e.preventDefault();
+            const anchor = this.el.dataset.anchor;
+            if (!anchor) return;
+            const url = window.location.href.split('#')[0] + '#' + anchor;
+            try {
+                await navigator.clipboard.writeText(url);
+                this.el.textContent = "copied!";
+                clearTimeout(this.resetTimer);
+                this.resetTimer = setTimeout(() => { this.el.textContent = "¶ copy link"; }, 1500);
+            } catch (err) {
+                console.error("Failed to copy entry link:", err);
+            }
+        };
+        this.el.addEventListener("click", this.handleClick);
+    },
+    destroyed() {
+        clearTimeout(this.resetTimer);
+        if (this.handleClick) this.el.removeEventListener("click", this.handleClick);
+    }
+};
+
 Hooks.BBSCopyLink = {
     mounted() {
         this.handleClick = async (e) => {

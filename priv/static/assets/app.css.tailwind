@@ -1790,6 +1790,23 @@ input[type=range].slider-purple::-moz-range-progress {
   color: var(--library-accent);
 }
 
+.library-entry-copy-link {
+  font-size: 0.75rem;
+  margin-left: 0.75rem;
+  color: var(--library-text-muted);
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+.library-entry:hover .library-entry-copy-link {
+  opacity: 0.7;
+}
+.library-entry-copy-link:hover {
+  opacity: 1 !important;
+  color: var(--library-accent);
+}
+
 .library-marginalia-thread {
   margin-top: 0.5rem;
   padding: 0.5rem 0 0.5rem 0.5rem;

@@ -26,6 +26,28 @@ defmodule Strangepaths.Scenes.SceneServer do
   end
 
   @doc """
+  Broadcasts an edited post to all subscribers of a scene and refreshes the cache.
+  """
+  def broadcast_post_updated(scene_id, post) do
+    GenServer.cast(__MODULE__, {:broadcast_post_updated, scene_id, post})
+  end
+
+  @doc """
+  Broadcasts a deleted post id to all subscribers of a scene and invalidates the cache.
+  """
+  def broadcast_post_deleted(scene_id, post_id) do
+    GenServer.cast(__MODULE__, {:broadcast_post_deleted, scene_id, post_id})
+  end
+
+  @doc """
+  Broadcasts that the Dragon has opened a post for editing, so any player
+  with an edit window open on it can close theirs.
+  """
+  def broadcast_post_edit_claimed(scene_id, post_id) do
+    GenServer.cast(__MODULE__, {:broadcast_post_edit_claimed, scene_id, post_id})
+  end
+
+  @doc """
   Broadcasts scene list update (new scene created, scene archived, etc.).
   """
   def broadcast_scene_update do
@@ -103,6 +125,38 @@ defmodule Strangepaths.Scenes.SceneServer do
     end
 
     {:noreply, %{state | cache: new_cache}}
+  end
+
+  @impl true
+  def handle_cast({:broadcast_post_updated, scene_id, post}, state) do
+    Endpoint.broadcast("scene:#{scene_id}", "post_updated", %{post: post})
+
+    new_cache =
+      case Map.get(state.cache, scene_id) do
+        nil ->
+          state.cache
+
+        cached_posts ->
+          Map.put(
+            state.cache,
+            scene_id,
+            Enum.map(cached_posts, fn p -> if p.id == post.id, do: post, else: p end)
+          )
+      end
+
+    {:noreply, %{state | cache: new_cache}}
+  end
+
+  @impl true
+  def handle_cast({:broadcast_post_deleted, scene_id, post_id}, state) do
+    Endpoint.broadcast("scene:#{scene_id}", "post_deleted", %{post_id: post_id})
+    {:noreply, %{state | cache: Map.delete(state.cache, scene_id)}}
+  end
+
+  @impl true
+  def handle_cast({:broadcast_post_edit_claimed, scene_id, post_id}, state) do
+    Endpoint.broadcast("scene:#{scene_id}", "post_edit_claimed", %{post_id: post_id})
+    {:noreply, state}
   end
 
   @impl true

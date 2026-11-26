@@ -445,6 +445,68 @@ defmodule Strangepaths.Scenes do
     end
   end
 
+  @doc """
+  Gets a single post with user and avatar preloaded, or nil.
+  """
+  def get_post(id) do
+    case Repo.get(Post, id) do
+      nil -> nil
+      post -> Repo.preload(post, [:user, :avatar])
+    end
+  end
+
+  @doc """
+  Whether `user` may edit `post`.
+
+  - System posts are never editable.
+  - The Dragon may always edit.
+  - Authors may edit their own posts, unless someone else (i.e. the Dragon)
+    has already edited it — a Dragon edit permanently locks the post.
+  """
+  def can_edit_post?(%Post{post_type: :system}, _user), do: false
+  def can_edit_post?(_post, %User{role: :dragon}), do: true
+
+  def can_edit_post?(%Post{user_id: author_id, edited_by_id: edited_by_id}, %User{id: user_id})
+      when author_id == user_id,
+      do: is_nil(edited_by_id) or edited_by_id == user_id
+
+  def can_edit_post?(_post, _user), do: false
+
+  @doc """
+  Edits a post on behalf of `editor`, checking permission against the current
+  database row (locked for the duration) rather than any caller-held copy.
+
+  This guarantees Dragon priority: once the Dragon has saved an edit, a player
+  save that was already in flight — or started from a stale edit window — is
+  rejected instead of overwriting it.
+
+  Returns `{:ok, post}`, `{:error, :not_found}` (post was deleted),
+  `{:error, :forbidden}`, or `{:error, changeset}`.
+  """
+  def edit_post(post_id, %User{} = editor, attrs) do
+    Repo.transaction(fn ->
+      post =
+        Post
+        |> where([p], p.id == ^post_id)
+        |> lock("FOR UPDATE")
+        |> Repo.one()
+
+      cond do
+        is_nil(post) ->
+          Repo.rollback(:not_found)
+
+        not can_edit_post?(post, editor) ->
+          Repo.rollback(:forbidden)
+
+        true ->
+          case post |> Post.edit_changeset(Map.put(attrs, :edited_by_id, editor.id)) |> Repo.update() do
+            {:ok, post} -> Repo.preload(post, [:user, :avatar])
+            {:error, changeset} -> Repo.rollback(changeset)
+          end
+      end
+    end)
+  end
+
   ## Read marks (persistent unread tracking)
 
   @doc """

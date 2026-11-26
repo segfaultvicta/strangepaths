@@ -144,7 +144,7 @@
                   <% end %>
 
                   <!-- Post Content -->
-                  <% editable = post.post_type != :system && (@role == :dragon || (post.user_id == @current_user.id && (post.edited_by_id == nil || post.edited_by_id == post.user_id))) %>
+                  <% editable = Strangepaths.Scenes.can_edit_post?(post, @current_user) %>
                   <div class="post-content-icecylee">
                     <%= if editable && @editing_post_id != post.id do %>
                       <button
